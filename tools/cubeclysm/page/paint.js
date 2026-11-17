@@ -180,6 +180,25 @@ export function char(ctx, x, y, w, h, r) {
   }
 }
 
+/** Lightning scars (Lichtenberg figures): pale branching fern-like lines burnt into the skin. */
+export function lichtenberg(ctx, x, y, w, h, hex, r) {
+  ctx.strokeStyle = css(hex); ctx.lineCap = 'square';
+  const branch = (px, py, ang, len, depth) => {
+    if (depth > 3 || len < 2) return;
+    const nx = px + Math.cos(ang) * len, ny = py + Math.sin(ang) * len;
+    ctx.lineWidth = Math.max(1, 3 - depth); ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(nx, ny); ctx.stroke();
+    branch(nx, ny, ang + (r() - 0.5) * 0.9, len * 0.75, depth + 1);
+    if (r() < 0.7) branch(nx, ny, ang + (r() < 0.5 ? -0.8 : 0.8), len * 0.55, depth + 1);
+  };
+  for (let i = 0; i < 2; i++) branch(x + r() * w, y + r() * h * 0.3, Math.PI / 2 + (r() - 0.5), Math.min(w, h) * 0.3, 0);
+}
+
+/** Rash: blistered, inflamed blotches (red with pale blister heads). */
+export function rash(ctx, x, y, w, h, r) {
+  blobs(ctx, x, y, w, h, 0xb85a4a, 4, Math.min(w, h) * 0.12, r);
+  for (let i = 0; i < 6; i++) fill(ctx, x + r() * w, y + r() * h, Math.max(2, w * 0.05), Math.max(2, h * 0.04), 0xe8d8b0);
+}
+
 /** Living shadow: the surface dark and smoky, a faint sheen where it moves. */
 export function shadow(ctx, x, y, w, h, r) {
   ctx.globalAlpha = 0.8; fill(ctx, x, y, w, h, 0x101016); ctx.globalAlpha = 1;

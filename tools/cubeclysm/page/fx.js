@@ -84,6 +84,22 @@ export function effects(seed) {
         animate(node, i / n + r() * 0.15, (u) => ({ p: v(dx * u + Math.sin(u * Math.PI * 2 * k) * sway, rise * u, Math.cos(u * Math.PI * 2 * k) * sway * 0.5), s: u < 0.12 ? u / 0.12 : Math.max(0.05, 1 - (u - 0.12) / 0.88) * (1 + 0.15 * Math.sin(u * 40)) }));
       }
     },
+    /**
+     * Sparks: tiny glowing points that jump about a spot, each flashing on and off at random
+     * places within `spread` (electricity crackling off a body).
+     */
+    spark(parent, at, { color = 0xbfe8ff, size = 0.025, spread = 0.12, n = 3 }) {
+      for (let i = 0; i < n; i++) {
+        const node = particle(parent, 'spark', at.clone(), size, color, true);
+        const offs = Array.from({ length: STEPS + 1 }, () => v((r() - 0.5) * spread * 2, (r() - 0.5) * spread * 2, (r() - 0.5) * spread * 2));
+        const on = Array.from({ length: STEPS + 1 }, () => r() < 0.45);
+        animate(node, i / n, (u) => { const k = Math.min(STEPS, Math.floor(u * STEPS)); return { p: offs[k], s: on[k] ? 1 : 0.02 }; });
+      }
+    },
+    /** Flicker a node on and off (an arc of lightning): visible for `duty` of each of `k` flashes per loop. */
+    flicker(node, { k = 3, duty = 0.35, phase = 0 } = {}) {
+      animate(node, phase, (u) => ({ p: v(0, 0, 0), s: (u * k) % 1 < duty ? 1 : 0.02 }));
+    },
     /** Swell and shrink a node that is already part of the model (a cyst, a belly). */
     pulse(node, { amount = 0.15, phase = 0 } = {}) {
       animate(node, phase, (u) => ({ p: v(0, 0, 0), s: 1 + amount * Math.sin(u * Math.PI * 2) }));

@@ -48,7 +48,11 @@ variant(baseId, { …, newOutfit, more, moreFx, drop })
 
 **体型（BODIES）**：standard、fat、tough、bloated、female、teen、child、lanky、elongated、brute、giant。另外 `crawler` 是特殊处理的爬行体型。
 
-**姿势**：stand、reach、hunched、crooked、crawl、prowl（四足）、knuckle（指节着地的大猩猩式四足）、drag（手臂后摆）、trail（长手臂拖在身后，角度按臂长解算）、crouch（屈膝下蹲）、supine（仰面躺着、四肢摊开）。crouch 和 supine 会自动把最低的方块落到 y = 0。
+**姿势**：stand、reach、hunched、crooked、crawl、prowl（四足）、knuckle（指节着地的大猩猩式四足）、drag（手臂后摆）、trail（长手臂拖在身后，角度按臂长解算）、crouch（屈膝下蹲）、supine（仰面躺着、四肢摊开）、creep（蜘蛛式爬行：身体贴地、四肢向两侧张开、前臂和小腿撑地）、flail（痉挛：四肢甩向不同方向、头歪向一边、一条腿抬起）、stagger（醉汉式踉跄）、blob（肉球，只落地，配 fleshBall）。crouch、supine、creep、flail、stagger 和 blob 会自动把最低的方块落到 y = 0。
+
+**claws** 的长度由配方的 `clawLength`（米，默认 0.17）决定，超过 0.2 会加白色爪尖。
+
+**材质**：`add(..., { metal: true })` 让方块使用略带金属感的材质（atlas.js 的 `cubeclysm-metal`），`{ glow: true }` 使用自发光材质。
 
 **proportions**：配方里的 `proportions: { upperArm, forearm, head, headDrop, … }` 覆盖体型的单项尺寸（例如鞭笞者的超长手臂）。
 
@@ -62,7 +66,9 @@ variant(baseId, { …, newOutfit, more, moreFx, drop })
 - 标识：`patch`（袖章）、`text` + `textFront`（背心上的字）、`logo`（胸标 + 名牌）、`insignia`（胸前徽章）
 - 部件配色：`vest`、`helmet`、`cap`、`drape`、`skirt`、`skirtColor`
 
-**wear 字段**：`tears`、`blood`、`bloodyHands`、`wounds`、`veins`（颜色）、`stitches`、`scab`、`bone`、`soot`、`tattoos`、`meld`、`acid`、`shards`、`rust`、`shadow`、`char`（裸露皮肤画成焦壳，衣服上烧出破洞）。数值大多是"每个部位出现的概率"。
+**wear 字段**：`tears`、`blood`、`bloodyHands`、`wounds`、`veins`（颜色）、`stitches`、`scab`、`bone`、`soot`、`tattoos`、`meld`、`acid`、`shards`、`rust`、`shadow`、`char`（裸露皮肤画成焦壳，衣服上烧出破洞）、`lichtenberg`（颜色：树枝状雷击疤）、`rash`（起疱的疹子）。
+
+**其他配方字段**：`glowAll`（全身发光，炽耀躯壳）、`cystColor` / `gasColor`（囊肿和漏气的颜色）、`arcs: { size, color, n }`、`sparkColor`、`ball`（肉球大小）、`spikeLength`（锈刺长度倍数）。数值大多是"每个部位出现的概率"。
 
 ## 面部部件（`tools/cubeclysm/faces/`）
 
@@ -86,11 +92,12 @@ bald、buzz、short、messy、spiky、long、ponytail、bob、mohawk、afro、bu
 
 | 类别 | 部件 |
 |---|---|
-| 警察 / 消防 / 军人 | policeCap、badge、dutyBelt、radio、fireHelmet、fireMask、airTank、combatHelmet、tacticalVest（读取 vest/text/insignia）、kneePads、patrolCap、sailorCap、officerCap、balaclava、nvg、swatMask、flightHelmet、exoSuit |
+| 警察 / 消防 / 军人 | policeCap、badge、dutyBelt、radio、fireHelmet、fireMask、airTank、combatHelmet、tacticalVest（读取 vest/text/insignia）、kneePads、patrolCap、sailorCap、officerCap、balaclava、nvg、swatMask、flightHelmet（浅色头盔、放下的护目镜、扣在脸上的氧气面罩和软管，读取 outfit.helmet / helmetStripe）、pilotKit（伞包背带、飞行徽章、名牌、抗荷服护腿，读取 outfit.gsuit）、exoSuit（钢板外骨骼，用金属材质，读取 outfit.steel） |
 | 防护 / 职业 | hazmatHood、minerHelmet、lampBattery、coatTails、stethoscope、idBadge、maskDown、surgicalCap、surgicalMask、glasses、visorCap |
 | 原型道具 | skirt、beard、veil、strawHat、headphones、crackedSkull、topHat、seaweed、bouquet、beret、shawl、cane、truckerCap、bandanaNeck、missingForearm、faceBandana、earrings、backpack、cuffs |
 | 体型特征 | belly、hump、muscles、lumps、chestSwell、jawStumps、fatRolls、tornChest、puckerMouth、translucentBelly、bigJaw（大张的巨颌）、bigEyes（凸出的大眼，读取 `recipe.bigEyes: { color, size, glint }`） |
-| 变异 | drips、cysts（存入 `H.cysts`）、scabPlates、bonePlates、skeletalBody、calcified、boneSpikes、kevlarPlates、kevlarHide、meldLumps、hammerFists、metalShards、cudgelHands、boneClubs（配 drag 姿势）、claws、splitSkin、boneTeeth、gearScraps、shadowWisps、glassShards、fusedGasMask（存入 `H.tip`）、meltedPlates、acidTubes（存入 `H.tubes`）、drapedScrubs、trash、acidGel（存入 `H.cysts`）、charPlates（焦痂甲）、charShell（焦壳）、muscleStrands（垂挂肌肉条，存入 `H.strands`）、ribHive（肋骨蜂巢，存入 `H.hive`、`H.swarm`）、skinMembrane（绷在细骨上的皮膜，配 skeletalBody） |
+| 变异 | drips、cysts（存入 `H.cysts`）、scabPlates、bonePlates、skeletalBody、calcified、boneSpikes、kevlarPlates、kevlarHide、meldLumps、hammerFists、metalShards、cudgelHands、boneClubs（配 drag 姿势）、claws、splitSkin、boneTeeth、gearScraps、shadowWisps、glassShards、fusedGasMask（存入 `H.tip`）、meltedPlates、acidTubes（存入 `H.tubes`）、drapedScrubs、trash、acidGel（存入 `H.cysts`）、charPlates（焦痂甲）、charShell（焦壳）、muscleStrands（垂挂肌肉条，存入 `H.strands`）、ribHive（肋骨蜂巢，存入 `H.hive`、`H.swarm`）、skinMembrane（绷在细骨上的皮膜，配 skeletalBody）、boneSpurs（从肘、膝、肩和脊椎刺出的骨刺）、throatSac（喉部鼓起的声囊，存入 `H.sac`）、lungRibs（敞开的肋骨和肿胀的肺，存入 `H.cysts`）、fleshBall（整个身体变成肉球，配 blob 姿势）、impaled（穿透身体的锈钢筋）、rustArmor（皮肤裂口下的锈铁甲）、rustShell（背上的锈铁壳和歪掉的脊椎）、rustSpikes（全身锈刺） |
+| 电 | arcs（发光的折线电弧，存入 `H.arcs`）、staticHair（静电炸毛） |
 | 恶魔 | horns：读取 `recipe.horns: { style, size }`。style 有 curved（弯角）、ram（公羊角）、stub（锯断的角桩）、spire（尖塔角）、bull（牛角）、twin（双对角）、swept（后掠角）、branched（分叉角）、crown（角冠）。size 默认按躯干宽度放大，体型越大角越大 |
 
 ## 特效（FX）
@@ -119,12 +126,19 @@ bald、buzz、short、messy、spiky、long、ponytail、bob、mohawk、afro、bu
 | strandSway | 肌肉条摆动 | `H.strands` |
 | swarm | 皮下小东西蠕动 | `H.swarm` |
 | hivePulse | 腹部翻涌 | `H.hive` |
+| sacPulse | 喉囊随尖叫鼓动 | `H.sac` |
+| sparks | 电火花在头、肩、手边乱跳闪烁（`fx.spark`） | — |
+| arcFlicker | 电弧一闪一灭（`fx.flicker`） | `H.arcs` |
+| fieldPulse | 电场像心跳一样胀缩 | `H.arcs` |
+| bile | 黄绿色胆汁从嘴里滴落 | — |
+| mucus | 脸上的黏液滴落 | — |
 
 ## 画笔（paint.js）
 
 - 基础：`fill`、`blobs`、`band`、`rng`（固定种子：同一个 key 每次结果一样）
 - 磨损：`blood`、`tears`、`veins`、`wounds`、`stitches`、`scabs`
 - 材质：`bone`、`muscle`、`skull`、`rust`、`meld`、`shadow`、`shards`、`char`
+- 皮肤：`lichtenberg`、`rash`
 - 图案：`camo`、`plaid`、`tattoos`
 
 ## 新增一个 3D 部件

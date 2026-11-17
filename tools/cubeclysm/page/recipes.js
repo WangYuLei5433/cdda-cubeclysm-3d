@@ -259,7 +259,7 @@ RECIPES.push(
   // 62.5 L, medium: an ordinary body inside the exoskeleton.
   variant('mon_zombie_soldier', {
     id: 'mon_zombie_armored', desc: 'Despite being encased in a what was once a nigh-impenetrable combat exoskeleton, something still managed to kill this soldier.',
-    pose: 'stand', hair: null, hairStyle: 'bald', outfit: { top: 0x2c3034, pants: 0x2c3034, camo: undefined, gloves: 0x24282c, shoes: 0x24282c }, wear: { blood: 0.5, tears: 0 }, gear: ['exoSuit'],
+    pose: 'stand', hair: null, hairStyle: 'bald', outfit: { top: 0x2c3034, pants: 0x2c3034, camo: undefined, gloves: 0x24282c, shoes: 0x24282c, steel: 0x6a747e }, wear: { blood: 0.25, tears: 0 }, gear: ['exoSuit'],
   }),
   // 72.5 L, medium (a little over a normal zombie): the tough body, not the brute's.
   variant('mon_zombie_tough', {
@@ -281,19 +281,20 @@ RECIPES.push(
   variant('mon_zombie_brute', {
     id: 'mon_zombie_marine_upgrade', desc: "Lumbering about on all fours, this mutated beast's dagger-like claws clack against the ground as it predatorially moves: thick strands of exposed muscle tissue running across its rotting body. The addition of its new bulk has caused the skin along its arms and back to split, and the brute's teeth have extended into spikes of bone. The Marine insignias on the remains of the creature's pulverized gear are the only testaments to the soldier that this hulking abomination used to be.",
     pose: 'prowl', skin: 0x8a8270, face: { eyes: 'narrow', brows: 'furrowed', mouth: 'snarl', marks: ['rot'] },
-    newOutfit: { style: 'tank', top: 0x8a8270, sleeves: 'none', pants: MARPAT[0], camo: MARPAT, shoes: 0x2a2418, insignia: EGA }, wear: { wounds: 0.5, tears: 0.9 }, gear: ['splitSkin', 'claws', 'boneTeeth', 'gearScraps'],
+    clawLength: 0.3,
+    newOutfit: { style: 'tank', top: 0x8a8270, sleeves: 'none', pants: MARPAT[0], camo: MARPAT, shoes: 0x2a2418, insignia: EGA }, wear: { wounds: 0.5, tears: 0.9 }, gear: ['hump', 'splitSkin', 'claws', 'boneTeeth', 'gearScraps'],
   }),
 );
 RECIPES.push(
   variant('mon_zombie_marine_upgrade', {
     id: 'mon_bestial_stalker', desc: "Lumbering about on all fours… The military insignias on the remains of the creature's pulverized gear are the only testaments to the soldier that this hulking abomination used to be.",
-    skin: 0x86806e, outfit: { pants: 0x5a6040, camo: [0x5a6040, 0x3e4430, 0x7a7050, 0x2e3226], insignia: 0xd8d0b0 },
+    skin: 0x948e7c, outfit: { top: 0x948e7c, pants: 0x5a6040, camo: [0x5a6040, 0x3e4430, 0x7a7050, 0x2e3226], insignia: 0xd8d0b0 },
   }),
   // 62.5 L.
   variant('mon_zombie', {
     id: 'mon_zombie_military_pilot', desc: 'Once a pilot, it is wearing a flight suit and a sturdy-looking flight helmet. The head twitches and adjusts constantly, following any and every source of movement.',
     pose: 'stand', hair: null, hairStyle: 'bald', face: { eyes: 'wide', brows: 'raised', mouth: 'frown_teeth', marks: ['blood_mouth'] },
-    newOutfit: { style: 'coveralls', top: 0x6a7254, sleeves: 'long', pants: 0x6a7254, shoes: 0x2a2418, gloves: 0x3a3428, straps: 0x2e3026, patch: 0x2a3a6a, helmet: 0x5a6248 }, wear: { tears: 0.4, blood: 0.4 }, gear: ['flightHelmet'],
+    newOutfit: { style: 'coveralls', top: 0x7a8262, sleeves: 'long', pants: 0x7a8262, shoes: 0x1e1a14, gloves: 0x3a3428, patch: 0x2a3a6a, helmet: 0xb4b8b6, helmetStripe: 0x2a3a6a, gsuit: 0x4e5640 }, wear: { tears: 0.4, blood: 0.4 }, gear: ['flightHelmet', 'pilotKit'],
   }),
   // Test-only id: the soldier, unchanged.
   variant('mon_zombie_soldier', { id: 'mon_zombie_soldier_no_weakpoints', desc: 'This zombie soldier is used by hardcoded dps logic and for testing purposes only. (Same look as the zombie soldier.)' }),
@@ -387,17 +388,18 @@ RECIPES.push(
     pose: 'hunched', skin: 0x949a86, hair: 0x3a2a1e, hairStyle: 'messy', face: { eyes: 'squint_angry', brows: 'angry', mouth: 'gape', marks: ['veins'] },
     newOutfit: { style: 'tshirt', top: 0x4a7a4a, sleeves: 'short', pants: 0x5a5048, shoes: 0x2a2a2a }, wear: { tears: 0.7, blood: 0.7, bloodyHands: true }, gear: ['bigJaw'],
   }),
-  // 31.25 L: blackened skin and massive eyes; on all fours like a beast.
+  // 31.25 L: blackened skin and massive eyes; creeping low with splayed limbs like a spider.
   variant('mon_zombie_child', {
     id: 'mon_zombie_creepy', desc: 'What was once a child is now a mutant beast with blackened skin and massive eyes.  This abomination\'s vile form makes a mockery of its human origin.',
-    pose: 'prowl', bulk: 0.02, skin: 0x1e1c20, hair: null, hairStyle: 'bald', face: { eyes: 'empty', brows: 'none', mouth: 'snarl' }, bigEyes: { color: 0xd8d0a0, size: 0.36 },
+    pose: 'creep', bulk: 0.02, proportions: { upperArm: 0.24, forearm: 0.22, thigh: 0.26, shin: 0.24 }, skin: 0x1e1c20, hair: null, hairStyle: 'bald', face: { eyes: 'empty', brows: 'none', mouth: 'snarl' }, bigEyes: { color: 0xd8d0a0, size: 0.36 },
     newOutfit: { style: 'tshirt', top: 0x1e1c20, sleeves: 'none', pants: 0x3a3438, shoes: 0x1e1c20 }, wear: { tears: 1, wounds: 0.3 }, gear: ['bigEyes'],
   }),
-  // 31.25 L: twitching and flailing in spasms (the twitching needs body animation: a frozen flail here).
+  // 31.25 L: twitching and flailing in spasms (the twitching needs body animation: a frozen spasm
+  // here). "Heavily mutated": bone spurs breaking out of the joints and spine, a swollen throat sac.
   variant('mon_zombie_child', {
     id: 'mon_zombie_shriekling', desc: 'This heavily mutated child zombie twitches and flails its limbs in painful-looking spasms as it runs about.',
-    pose: 'crooked', skin: 0xb0a490, hair: 0xb08a50, hairStyle: 'wild', face: { eyes: 'wide', brows: 'raised', mouth: 'gape', marks: ['veins', 'bruise'] },
-    newOutfit: { style: 'hoodie', top: 0xc04a6a, sleeves: 'long', pants: 0x3a3a4a, shoes: 0xe0e0e0 }, wear: { tears: 0.8, blood: 0.5, wounds: 0.4 }, gear: ['lumps', 'chestSwell'],
+    pose: 'flail', skin: 0xb0a490, hair: 0xb08a50, hairStyle: 'wild', face: { eyes: 'wide', brows: 'raised', mouth: 'gape', marks: ['veins', 'bruise'] },
+    newOutfit: { style: 'tshirt', top: 0x2a8a8a, sleeves: 'short', pants: 0x3a3a4a, shoes: 0xe0e0e0 }, wear: { tears: 0.8, blood: 0.5, wounds: 0.4, veins: 0x7a3a4a }, gear: ['boneSpurs', 'throatSac'], fx: ['sacPulse'],
   }),
   // 31.25 L: swollen and gooey, arms out for a hug.
   variant('mon_zombie_child', {
@@ -426,3 +428,87 @@ RECIPES.push(
 );
 
 
+
+// ── Batch 5: electric (zed_electric.json), explosive (zed_explosive.json) and ferrous
+// (zed_ferrous.json). Sizes checked against CDDA (commit 7136388).
+const ZAP = 0xcfeeff;
+RECIPES.push(
+  // 62.5 L, medium: pale blue flesh crackling with electricity.
+  variant('mon_zombie', {
+    id: 'mon_zombie_electric', desc: 'A human body with pale blue flesh, crackling with electrical energy.',
+    pose: 'reach', skin: 0x9ab4c8, hair: 0x2a2e38, hairStyle: 'short', eye: 0x60c8ff, face: { eyes: 'glow', brows: 'angry', mouth: 'grimace', marks: ['veins'] },
+    newOutfit: { style: 'shirt', top: 0x3a4a6a, sleeves: 'short', pants: 0x2a2e38, shoes: 0x1e1e22 }, wear: { tears: 0.6, veins: 0x6a9ad8 }, gear: ['arcs'], arcs: { size: 0.8, n: 3 }, fx: ['sparks', 'arcFlicker'],
+  }),
+  // 62.5 L: a very pale body, its hair standing on end with static.
+  variant('mon_zombie', {
+    id: 'mon_zombie_static', desc: 'A very pale dead body with the worst case of static hair you have ever seen.  Sparks of electricity frequently jump off it, lighting it up in the dark.  You might not want to touch it with your bare hands, or anything conductive.',
+    pose: 'reach', skin: 0xd8d8d0, hair: 0xe0d8b0, hairStyle: 'bald', eye: 0x60c8ff, face: { eyes: 'wide', brows: 'raised', mouth: 'grin', marks: ['veins'] },
+    newOutfit: { style: 'tshirt', top: 0xa8b0b8, sleeves: 'short', pants: 0x4a5060, shoes: 0x2a2a2a }, wear: { tears: 0.5, blood: 0.3 }, gear: ['staticHair'], fx: ['sparks'],
+  }),
+  // 100 L, medium: the brute body, scarred all over by the lightning arcing out of it.
+  variant('mon_zombie_brute', {
+    id: 'mon_zombie_brute_shocker', desc: 'A huge beast covered in visible scarring from the lightning bolts that arc out of its body.  Being near it, you can hear a slight humming, like that of an electrical transformer.',
+    skin: 0x8a9098, eye: 0x60c8ff, face: { eyes: 'glow', brows: 'furrowed', mouth: 'snarl', marks: ['scar_cheek'] },
+    newOutfit: { style: 'tank', top: 0x8a9098, sleeves: 'none', pants: 0x2a2e38, shoes: 0x3a3e44 }, wear: { lichtenberg: 0xd0e8f8, tears: 0.7 }, gear: ['hump', 'muscles', 'arcs'], arcs: { size: 1.2 }, fx: ['sparks', 'arcFlicker'],
+  }),
+  // 62.5 L: a glowing white silhouette inside a pulsing field of lightning.
+  variant('mon_zombie', {
+    id: 'mon_zombie_nullfield', desc: 'This zombie is visible only as a glowing white silhouette that you have to squint to see, cloaked in a crackling field of lightning that pulses like a beating heart.  It walks slowly and deliberately, the thunderstorm surrounding it eagerly jumping to anything conductive within its grasp.',
+    pose: 'stand', glowAll: true, skin: 0xe8f4ff, hair: null, hairStyle: 'bald', eye: 0xb0e0ff, face: { eyes: 'empty', brows: 'none', mouth: 'small_open' },
+    newOutfit: { style: 'tank', top: 0xe8f4ff, sleeves: 'none', pants: 0xdceeff, shoes: 0xdceeff }, wear: { blood: 0, tears: 0 }, gear: ['arcs'], arcs: { size: 1.6, color: 0xbfe0ff }, fx: ['fieldPulse', 'sparks'],
+  }),
+  // 108.5 L, large: the boomer's bloated body, the ribcage open.
+  variant('mon_boomer', {
+    id: 'mon_boomer_claymore', desc: "This zombie's exposed ribcage is encircled by swollen lungs and other organs.  You would prefer to be far away when they burst.",
+    skin: 0xa09a88, face: { eyes: 'narrow', brows: 'sad', mouth: 'grimace', marks: ['rot'] }, hairStyle: 'bald', hair: null,
+    newOutfit: { style: 'tank', top: 0x5a6a5a, sleeves: 'none', pants: 0x4a4a52, shoes: 0x5a5448 }, wear: { wounds: 0.4, tears: 1 }, gear: ['lungRibs'], fx: ['cystPulse', 'stench'],
+  }),
+  // 108.5 L: a ball of flesh and fat, vestigial limbs, bulging eyes, a gaping maw oozing black sludge.
+  variant('mon_boomer', {
+    id: 'mon_boomer_glutton', desc: 'A large, grotesque ball of flesh and fat.  Seemingly vestigial limbs flop around haphazardly as it rolls across the ground.  You occasionally catch a glimpse of bulging eyes and a distended gaping maw oozing some sort of black sludge.',
+    pose: 'blob', ball: 0.85, skin: 0xb0a48a, hair: null, hairStyle: 'bald', face: { eyes: 'empty', brows: 'none', mouth: 'gape', marks: ['rot'] }, bigEyes: { color: 0xe8e0c0, size: 0.3 },
+    newOutfit: { style: 'tank', top: 0xb0a48a, sleeves: 'none', pants: 0xb0a48a, shoes: 0xb0a48a }, wear: { wounds: 0.4 }, gear: ['fleshBall', 'bigEyes', 'bigJaw'], fx: ['blackOoze', 'heave'],
+  }),
+  // 108.5 L: the boomer firmed up, muscle under hardened skin; its bile has changed colour.
+  variant('mon_boomer', {
+    id: 'mon_boomer_huge', desc: 'This boomer, normally swollen and ready to burst, has strengthened and solidified.  The bile dribbling from its mouth also appears to have changed…',
+    pose: 'hunched', skin: 0x948c76, hair: null, hairStyle: 'bald', face: { eyes: 'narrow', brows: 'furrowed', mouth: 'drool', marks: ['scar_cheek', 'veins'] },
+    newOutfit: { style: 'tank', top: 0x5a5048, sleeves: 'none', pants: 0x3a3a40, shoes: 0x4a4438 }, wear: { wounds: 0.3, tears: 0.8, veins: 0xa8b830 }, gear: ['muscles', 'scabPlates'], fx: ['bile'],
+  }),
+  // 108.5 L: the gasbag in pyjamas, stumbling, swollen with a bluish sweet gas.
+  variant('mon_zombie_gasbag', {
+    id: 'mon_zombie_relax_gasbag', desc: 'A zombie swollen with a bluish, oddly sweet smelling gas.  It stumbles around even more than regular zombies, as if heavily intoxicated.',
+    pose: 'stagger', skin: 0x98a0a8, hair: 0x5a4a3a, hairStyle: 'messy', face: { eyes: 'cloudy', brows: 'sad', mouth: 'drool' }, cystColor: 0x8aa8d0, gasColor: 0x8ab0e0,
+    newOutfit: { style: 'shirt', top: 0xa8c0e0, stripes: undefined, plaid: [0xa8c0e0, 0x7a98c8], sleeves: 'long', pants: 0xa8c0e0, shoes: 0x8a6a5a }, wear: { veins: 0x6a7ab0, tears: 0.4 },
+  }),
+  // 108.5 L: blistered, rashy, face caked in mucus, leaking orange pepper gas.
+  variant('mon_zombie_gasbag', {
+    id: 'mon_zombie_tear_gasbag', desc: 'A bloated corpse, its ballooning skin blistered and rashy and its face caked in mucus.  The off-color orange gas that occasionally leaks from it makes your eyes water and smells faintly of pepper.',
+    skin: 0xb09888, face: { eyes: 'squint_angry', brows: 'sad', mouth: 'grimace', marks: ['rot'] }, cystColor: 0xd89070, gasColor: 0xe08a3a,
+    wear: { rash: 0.8, tears: 0.6 }, more: ['drips'], moreFx: ['mucus'],
+  }),
+  // 62.5 L: impaled with rusted metal, the rust spreading over the skin.
+  variant('mon_zombie', {
+    id: 'mon_zombie_rust', desc: 'A zombie impaled with a multitude of metal fragments, each covered with a thick layer of rust that seems to propagate to other parts of its body.  You can\'t remember the last time you got a tetanus shot, so it would be best not to let this thing touch you.',
+    pose: 'reach', skin: 0x9a8a74, hair: 0x3a2a1e, hairStyle: 'short', face: { eyes: 'oily', brows: 'angry', mouth: 'frown_teeth', marks: ['rot'] },
+    newOutfit: { style: 'coveralls', top: 0x4a5a6a, sleeves: 'long', pants: 0x4a5a6a, shoes: 0x2a2420 }, wear: { rust: 0.8, tears: 0.6, blood: 0.4 }, gear: ['impaled', 'metalShards'],
+  }),
+  // 108.5 L, large: the brute body; rusted metal plates showing through ruptures like armour.
+  variant('mon_zombie_brute', {
+    id: 'mon_zombie_plated', desc: 'Ruptures in this zombie\'s skin expose fragments of metal arranged like armor underneath.  Black sludge can be seen in places where the rust has receded.',
+    skin: 0x8a8070, bulk: 0.03, face: { eyes: 'narrow', brows: 'furrowed', mouth: 'grimace', marks: ['rot'] },
+    newOutfit: { style: 'tank', top: 0x8a8070, sleeves: 'none', pants: 0x3a3630, shoes: 0x2a2420 }, wear: { rust: 0.4, wounds: 0.3 }, gear: ['rustArmor'], fx: ['goo'],
+  }),
+  // 62.5 L: rusted metal fused into the back like a shell, the spine pushed aside.
+  variant('mon_zombie', {
+    id: 'mon_zombie_shell', desc: 'Jagged fragments of rust-bitten metal have fused into this zombie\'s flesh and displaced parts of its spine.',
+    pose: 'hunched', skin: 0x948470, hair: null, hairStyle: 'bald', face: { eyes: 'uneven', brows: 'sad', mouth: 'grimace', marks: ['rot'] },
+    newOutfit: { style: 'tank', top: 0x6a5a4a, sleeves: 'none', pants: 0x3a3630, shoes: 0x2a2420 }, wear: { rust: 0.5, tears: 0.8 }, gear: ['rustShell'],
+  }),
+  // 62.5 L: covered in long rusty spikes.
+  variant('mon_zombie', {
+    id: 'mon_zombie_urchin', desc: 'A spiked horror of a zombie covered in long, rusty spikes.  A walking tetanus infection waiting to happen.',
+    pose: 'reach', skin: 0x8e8270, hair: null, hairStyle: 'bald', face: { eyes: 'squint_angry', brows: 'angry', mouth: 'snarl', marks: ['rot', 'scar_eye'] },
+    newOutfit: { style: 'tank', top: 0x5a4a3e, sleeves: 'none', pants: 0x3a3630, shoes: 0x2a2420 }, wear: { rust: 0.6, tears: 0.9, blood: 0.3 }, gear: ['rustSpikes'],
+  }),
+);
