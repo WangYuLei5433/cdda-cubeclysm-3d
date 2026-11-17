@@ -1,11 +1,11 @@
 ---
 name: cubeclysm
-description: Cubeclysm 风格（Unturned 式方块低模）的 CDDA 怪物与角色 3D 建模与绘制流程：按 CDDA 官方描述和体积写配方（体型、服装贴图、3D 穿戴物、奇异特征、面部部件、发型、独立于骨骼的特效），构建 glb，绑定进 cdda-model-library 的 meshset.json，并在 cdda-voxel-studio 里渲染检查。凡是在 cdda-model-library 里新建或修改丧尸/怪物/人物模型、扩充 Cubeclysm 覆盖、给模型加穿戴物/表情/发型/特效、核对模型的大小或外观是否符合 CDDA、或者问覆盖进度时，都要使用这个技能——即使用户只说"下一批""再做几个僵尸""这个看着不像"。
+description: Cubeclysm 风格（Unturned 式方块低模）的 CDDA 怪物与角色 3D 建模与绘制流程：按 CDDA 官方描述和体积写配方（体型、服装贴图、3D 穿戴物、奇异特征、面部部件、发型、独立于骨骼的特效），构建 glb，绑定进 cdda-cubeclysm-3d 的 meshset.json，并在 cdda-voxel-studio 里渲染检查。凡是在 cdda-cubeclysm-3d 里新建或修改丧尸/怪物/人物模型、扩充 Cubeclysm 覆盖、给模型加穿戴物/表情/发型/特效、核对模型的大小或外观是否符合 CDDA、或者问覆盖进度时，都要使用这个技能——即使用户只说"下一批""再做几个僵尸""这个看着不像"。
 ---
 
 # Cubeclysm：风格与绘制
 
-Cubeclysm 是 cdda-model-library 的主风格：**Unturned 式方块低模**。每个 CDDA id 一个模型，外观照着这个 id 的官方描述做，大小照着官方体积做。所有代码在 `tools/cubeclysm/`，产物绑定进库根的 `meshset.json`（名为 "Cubeclysm"，`"match": "exact"`）。
+Cubeclysm 是 cdda-cubeclysm-3d 的主风格：**Unturned 式方块低模**。每个 CDDA id 一个模型，外观照着这个 id 的官方描述做，大小照着官方体积做。所有代码在 `tools/cubeclysm/`，产物绑定进库根的 `meshset.json`（名为 "Cubeclysm"，`"match": "exact"`）。
 
 先读这两份，按需：
 - `references/style.md`：风格规则（比例、脸、配色、什么必须是 3D、特效规则）。**动手画之前读。**
@@ -89,7 +89,7 @@ node .claude/skills/cubeclysm/scripts/preview.mjs --heads --out /tmp/…/heads.p
 ## 路径
 
 脚本默认目录结构：库、工作室、游戏三个仓库放在同一个父目录下。不在默认位置时，用环境变量 `LIB`、`STUDIO`、`CDDA` 覆盖。
-- 库：`cdda-model-library`（当前仓库）
+- 库：`cdda-cubeclysm-3d`（当前仓库）
 - 工作室：`../cdda-voxel-studio`
 - CDDA 数据：`../Cataclysm-Vox/vendor/cdda/data/json`
 

@@ -50,7 +50,7 @@ for (const group of ['characters', 'monsters', 'items']) {
     const entry = { id: m.id, file };
     for (const k of PLACEMENT) if (m[k] !== undefined) entry[k] = m[k];
     entries.push(built
-      ? { ...entry, author: 'cdda-model-library contributors', license: 'CC-BY-SA-3.0', source: 'tools/cubeclysm/page/recipes.js', style: 'cubeclysm' }
+      ? { ...entry, author: 'cdda-cubeclysm-3d contributors', license: 'CC-BY-SA-3.0', source: 'tools/cubeclysm/page/recipes.js', style: 'cubeclysm' }
       : { ...entry, ...CREDIT, ...(style === 'cubeclysm' ? { style: 'cubeclysm', note: 'Cubeclysm restyle of a DEADWOOD — Last Light model' } : {}) });
   }
 }
@@ -118,7 +118,7 @@ function candidateNames(dir, f) {
 
 const candidates = existsSync(CAND)
   ? ['characters', 'zombies', 'hair'].flatMap((dir) => (existsSync(join(CAND, dir)) ? readdirSync(join(CAND, dir)).filter((f) => f.endsWith('.glb')).sort().map((f) => (archetypeNames.has(f)
-    ? { file: `models/cubeclysm/candidates/${dir}/${f}`, names: archetypeNames.get(f), author: 'cdda-model-library contributors', license: 'CC-BY-SA-3.0', source: `tools/cubeclysm/page/${{ hair: 'hair', characters: 'humans' }[dir] ?? 'archetypes'}.js`, style: 'cubeclysm' }
+    ? { file: `models/cubeclysm/candidates/${dir}/${f}`, names: archetypeNames.get(f), author: 'cdda-cubeclysm-3d contributors', license: 'CC-BY-SA-3.0', source: `tools/cubeclysm/page/${{ hair: 'hair', characters: 'humans' }[dir] ?? 'archetypes'}.js`, style: 'cubeclysm' }
     : { file: `models/cubeclysm/candidates/${dir}/${f}`, ...candidateNames(dir, f), ...CREDIT, style: 'cubeclysm', note: 'Cubeclysm restyle of a DEADWOOD — Last Light model (unbound)' })) : []))
   : [];
 

@@ -19,7 +19,7 @@ supports.
   studio's `vendor/mesh/`:
 
   ```sh
-  ln -s "$PWD" ../cdda-voxel-studio/vendor/mesh/cdda-model-library               # Cubeclysm
+  ln -s "$PWD" ../cdda-voxel-studio/vendor/mesh/cdda-cubeclysm-3d               # Cubeclysm
   ln -s "$PWD/sources/deadwood/export" ../cdda-voxel-studio/vendor/mesh/deadwood-pool  # the DEADWOOD reference
   ```
 
