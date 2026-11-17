@@ -1,0 +1,265 @@
+{
+  "//": "Strict binding of the library's models to CDDA ids: one model per id, only where the model clearly is that object. Everything else stays in the pool (tools/deadwood/export.mjs) unbound. `fit` / `height` / `scale` bring DEADWOOD's sizes (weapons are drawn about twice real size) to real-world metres. Run tools/deadwood/select.mjs after editing. Characters and zombies use the Cubeclysm style (cubeclysm/ in the pool, the library's main style); the DEADWOOD originals stay in the pool as the reference. Weapons and items are DEADWOOD originals for now.",
+  "characters": [
+    {
+      "id": [
+        "player_male",
+        "npc_male"
+      ],
+      "pool": "cubeclysm-new:humans/human_male.glb",
+      "file": "characters/human_male.glb",
+      "style": "cubeclysm",
+      "why": "survivor man: field jacket, jeans, backpack; human face (iris eyes, thick brows, stubble)"
+    },
+    {
+      "id": [
+        "player_female",
+        "npc_female"
+      ],
+      "pool": "cubeclysm-new:humans/human_female.glb",
+      "file": "characters/human_female.glb",
+      "style": "cubeclysm",
+      "why": "survivor woman: grey hoodie, cargo pants, ponytail, backpack; human face (lashes, arched brows, lips)"
+    }
+  ],
+  "monsters": [
+    {
+      "id": "mon_zombie",
+      "pool": "cubeclysm-new:zombies/mon_zombie.glb",
+      "file": "monsters/mon_zombie.glb",
+      "style": "cubeclysm",
+      "why": "shambling corpse in a torn shirt, reaching; oily black eyes"
+    },
+    {
+      "id": "mon_zombie_fat",
+      "pool": "cubeclysm-new:zombies/mon_zombie_fat.glb",
+      "file": "monsters/mon_zombie_fat.glb",
+      "style": "cubeclysm",
+      "why": "fat body, belly pushing out under a riding-up T-shirt; empty black gaze"
+    },
+    {
+      "id": "mon_zombie_tough",
+      "pool": "cubeclysm-new:zombies/mon_zombie_tough.glb",
+      "file": "monsters/mon_zombie_tough.glb",
+      "style": "cubeclysm",
+      "why": "athletic tough body in a tank top; face twisted in rage"
+    },
+    {
+      "id": "mon_zombie_child",
+      "pool": "cubeclysm-new:zombies/mon_zombie_child.glb",
+      "file": "monsters/mon_zombie_child.glb",
+      "style": "cubeclysm",
+      "why": "child body (1.13 m) with a small backpack; hungry eyes"
+    },
+    {
+      "id": "mon_zombie_runner",
+      "pool": "cubeclysm-new:zombies/mon_zombie_runner.glb",
+      "file": "monsters/mon_zombie_runner.glb",
+      "style": "cubeclysm",
+      "why": "lanky, fresh-skinned body in a hoodie; bloody mouth and hands from gnawing at them"
+    },
+    {
+      "id": "mon_zombie_crawler",
+      "pool": "cubeclysm-new:zombies/mon_zombie_crawler.glb",
+      "file": "monsters/mon_zombie_crawler.glb",
+      "style": "cubeclysm",
+      "why": "legless crawler: two ruined stumps with bone showing, dragging itself on its arms"
+    },
+    {
+      "id": "mon_zombie_brute",
+      "pool": "cubeclysm-new:zombies/mon_zombie_brute.glb",
+      "file": "monsters/mon_zombie_brute.glb",
+      "style": "cubeclysm",
+      "why": "brute body: hunched, muscle hump on the back, swollen shoulders, festering wounds"
+    },
+    {
+      "id": "mon_zombie_hulk",
+      "pool": "cubeclysm-new:zombies/mon_zombie_hulk.glb",
+      "file": "monsters/mon_zombie_hulk.glb",
+      "style": "cubeclysm",
+      "why": "giant (2.5 m): lumps of swollen flesh, forearms as wide as trash cans"
+    },
+    {
+      "id": "mon_zombie_cop",
+      "pool": "cubeclysm-new:zombies/mon_zombie_cop.glb",
+      "file": "monsters/mon_zombie_cop.glb",
+      "style": "cubeclysm",
+      "why": "damaged police uniform: peaked cap, badge, duty belt with pouches and holster, radio"
+    },
+    {
+      "id": "mon_zombie_fireman",
+      "pool": "cubeclysm-new:zombies/mon_zombie_fireman.glb",
+      "file": "monsters/mon_zombie_fireman.glb",
+      "style": "cubeclysm",
+      "why": "tattered turnout gear with reflective trim: brimmed helmet, full face mask with regulator, air tank"
+    },
+    {
+      "id": "mon_zombie_soldier",
+      "pool": "cubeclysm-new:zombies/mon_zombie_soldier.glb",
+      "file": "monsters/mon_zombie_soldier.glb",
+      "style": "cubeclysm",
+      "why": "combat gear head to toe: helmet with goggles, plate carrier with pouches, knee pads, camo"
+    },
+    {
+      "id": "mon_zombie_hazmat",
+      "pool": "cubeclysm-new:zombies/mon_zombie_hazmat.glb",
+      "file": "monsters/mon_zombie_hazmat.glb",
+      "style": "cubeclysm",
+      "why": "completely encased in a yellow hazmat suit: hood with visor, respirator with filters"
+    },
+    {
+      "id": "mon_zombie_shrieker",
+      "pool": "cubeclysm-new:zombies/mon_zombie_shrieker.glb",
+      "file": "monsters/mon_zombie_shrieker.glb",
+      "style": "cubeclysm",
+      "why": "elongated body (2 m), swollen chest, a hole where the jaw was"
+    },
+    {
+      "id": "mon_zombie_acidic",
+      "pool": "cubeclysm-new:zombies/mon_zombie_acidic.glb",
+      "file": "monsters/mon_zombie_acidic.glb",
+      "style": "cubeclysm",
+      "why": "sickly thin skin with yellow veins; yellow fluid dripping from chin and fingers, blisters"
+    },
+    {
+      "id": "mon_zombie_miner",
+      "pool": "cubeclysm-new:zombies/mon_zombie_miner.glb",
+      "file": "monsters/mon_zombie_miner.glb",
+      "style": "cubeclysm",
+      "why": "coal-dusted from head to toe: miner's hard hat with a glowing headlamp, lamp battery on the belt, coveralls with reflective trim, work gloves"
+    },
+    {
+      "id": "mon_zombie_medical",
+      "pool": "cubeclysm-new:zombies/mon_zombie_medical.glb",
+      "file": "monsters/mon_zombie_medical.glb",
+      "style": "cubeclysm",
+      "why": "dressed like a doctor: open white lab coat with tails over blue scrubs, stethoscope, ID badge on a lanyard, surgical mask under the chin, glasses, latex gloves"
+    }
+  ],
+  "items": [
+    {
+      "id": "glock_19",
+      "pool": "weapons/pistol.glb",
+      "file": "items/glock_19.glb",
+      "fit": 0.211,
+      "why": "black polymer semi-automatic pistol"
+    },
+    {
+      "id": "sw629",
+      "pool": "weapons/magnum.glb",
+      "file": "items/sw629.glb",
+      "fit": 0.3,
+      "why": "the .44 magnum revolver (DEADWOOD's is gold-plated)"
+    },
+    {
+      "id": "hk_mp5",
+      "pool": "weapons/smg.glb",
+      "file": "items/hk_mp5.glb",
+      "fit": 0.68,
+      "why": "submachine gun with a stock; MP5 is CDDA's archetypal SMG"
+    },
+    {
+      "id": "modular_m4_carbine",
+      "pool": "weapons/assault.glb",
+      "file": "items/modular_m4_carbine.glb",
+      "fit": 0.84,
+      "why": "military assault carbine with handguard and stock"
+    },
+    {
+      "id": "m249",
+      "pool": "weapons/rifle.glb",
+      "file": "items/m249.glb",
+      "fit": 1.035,
+      "why": "DEADWOOD's 'machine gun': box magazine, heavy receiver"
+    },
+    {
+      "id": "remington_870",
+      "pool": "weapons/shotgun.glb",
+      "file": "items/remington_870.glb",
+      "fit": 1.0,
+      "why": "pump-action shotgun with wooden furniture"
+    },
+    {
+      "id": "remington_700",
+      "pool": "weapons/sniper.glb",
+      "file": "items/remington_700.glb",
+      "fit": 1.1,
+      "why": "scoped bolt-action rifle with a wooden stock"
+    },
+    {
+      "id": "m134",
+      "pool": "weapons/minigun.glb",
+      "file": "items/m134.glb",
+      "fit": 0.8,
+      "why": "the minigun"
+    },
+    {
+      "id": "AT4",
+      "pool": "weapons/rocket.glb",
+      "file": "items/AT4.glb",
+      "fit": 1.02,
+      "why": "olive shoulder-fired launcher tube with a sight block"
+    },
+    {
+      "id": "flamethrower",
+      "pool": "weapons/flamethrower.glb",
+      "file": "items/flamethrower.glb",
+      "fit": 0.9,
+      "why": "the flamethrower with its fuel tanks"
+    },
+    {
+      "id": "bat",
+      "pool": "weapons/bat.glb",
+      "file": "items/bat.glb",
+      "fit": 0.864,
+      "why": "wooden baseball bat with a taped grip"
+    },
+    {
+      "id": "fire_ax",
+      "pool": "weapons/fireaxe.glb",
+      "file": "items/fire_ax.glb",
+      "fit": 0.9,
+      "why": "red-headed fire axe"
+    },
+    {
+      "id": "morningstar",
+      "pool": "weapons/hammer.glb",
+      "file": "items/morningstar.glb",
+      "fit": 0.8,
+      "why": "DEADWOOD calls it a hammer, but it is a spiked ball on a haft: a morningstar"
+    },
+    {
+      "id": "katana",
+      "pool": "weapons/katana.glb",
+      "file": "items/katana.glb",
+      "fit": 0.9,
+      "why": "the katana"
+    },
+    {
+      "id": "grenade",
+      "pool": "items/pickup_grenade.glb",
+      "file": "items/grenade.glb",
+      "fit": 0.08,
+      "why": "fragmentation grenade with pin and lever"
+    },
+    {
+      "id": "1st_aid_box",
+      "pool": "items/pickup_health.glb",
+      "file": "items/1st_aid_box.glb",
+      "fit": 0.3,
+      "why": "white first-aid case with a green cross"
+    },
+    {
+      "id": "kevlar",
+      "pool": "items/pickup_armor.glb",
+      "file": "items/kevlar.glb",
+      "fit": 0.6,
+      "why": "tactical vest lying flat"
+    }
+  ],
+  "unbound": {
+    "characters": "Father, Daughter, Max, Lea, Sam, Elder, Raider: specific DEADWOOD characters with no CDDA counterpart",
+    "zombies": "the other heads (Elder, Widow, Teen, Bride, Undertaker, Crone, Drowned, Farmhand…) and the other kind × head combinations: no CDDA monster is that specific",
+    "pickups": "ammo crate, special ammo crate, coin pouch, revive kit: game pickups, not CDDA items"
+  }
+}

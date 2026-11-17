@@ -1,0 +1,697 @@
+{
+  "px": 128,
+  "keys": {
+    "eye": "#ff00ff",
+    "socket": "#00ff00",
+    "brow": "#0000ff",
+    "lid": "#ff0000"
+  },
+  "parts": {
+    "eyes": {
+      "oily": {
+        "file": "eyes/oily.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "empty": {
+        "file": "eyes/empty.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "glow": {
+        "file": "eyes/glow.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "wide": {
+        "file": "eyes/wide.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "narrow": {
+        "file": "eyes/narrow.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "squint_angry": {
+        "file": "eyes/squint_angry.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "uneven": {
+        "file": "eyes/uneven.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "one_eyed": {
+        "file": "eyes/one_eyed.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "cloudy": {
+        "file": "eyes/cloudy.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "hungry": {
+        "file": "eyes/hungry.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "h_dot": {
+        "file": "eyes/h_dot.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "h_iris": {
+        "file": "eyes/h_iris.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "h_almond": {
+        "file": "eyes/h_almond.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "h_tired": {
+        "file": "eyes/h_tired.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "h_narrow": {
+        "file": "eyes/h_narrow.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "h_wide": {
+        "file": "eyes/h_wide.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "h_lashes": {
+        "file": "eyes/h_lashes.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "h_happy": {
+        "file": "eyes/h_happy.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "h_wink": {
+        "file": "eyes/h_wink.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      },
+      "h_heavy_lids": {
+        "file": "eyes/h_heavy_lids.png",
+        "slot": [
+          0.06,
+          0.36,
+          0.94,
+          0.6
+        ]
+      }
+    },
+    "brows": {
+      "angry": {
+        "file": "brows/angry.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "sad": {
+        "file": "brows/sad.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "flat": {
+        "file": "brows/flat.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "raised": {
+        "file": "brows/raised.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "furrowed": {
+        "file": "brows/furrowed.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "uneven": {
+        "file": "brows/uneven.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "none": {
+        "file": "brows/none.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "h_thin": {
+        "file": "brows/h_thin.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "h_thick": {
+        "file": "brows/h_thick.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "h_arched": {
+        "file": "brows/h_arched.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "h_bushy": {
+        "file": "brows/h_bushy.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "h_unibrow": {
+        "file": "brows/h_unibrow.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "h_worried": {
+        "file": "brows/h_worried.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      },
+      "h_stern": {
+        "file": "brows/h_stern.png",
+        "slot": [
+          0.06,
+          0.24,
+          0.94,
+          0.4
+        ]
+      }
+    },
+    "mouth": {
+      "frown_teeth": {
+        "file": "mouth/frown_teeth.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "gape": {
+        "file": "mouth/gape.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "snarl": {
+        "file": "mouth/snarl.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "small_open": {
+        "file": "mouth/small_open.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "gnaw": {
+        "file": "mouth/gnaw.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "stitched": {
+        "file": "mouth/stitched.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "grin": {
+        "file": "mouth/grin.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "drool": {
+        "file": "mouth/drool.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "grimace": {
+        "file": "mouth/grimace.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "jawless": {
+        "file": "mouth/jawless.png",
+        "slot": [
+          0.08,
+          0.58,
+          0.92,
+          1
+        ]
+      },
+      "h_smile": {
+        "file": "mouth/h_smile.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "h_grin": {
+        "file": "mouth/h_grin.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "h_neutral": {
+        "file": "mouth/h_neutral.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "h_smirk": {
+        "file": "mouth/h_smirk.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "h_sad": {
+        "file": "mouth/h_sad.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "h_talk": {
+        "file": "mouth/h_talk.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "h_lips": {
+        "file": "mouth/h_lips.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      },
+      "h_gritted": {
+        "file": "mouth/h_gritted.png",
+        "slot": [
+          0.14,
+          0.6,
+          0.86,
+          0.92
+        ]
+      }
+    },
+    "marks": {
+      "scar_cheek": {
+        "file": "marks/scar_cheek.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "over"
+      },
+      "scar_eye": {
+        "file": "marks/scar_eye.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "over"
+      },
+      "blood_mouth": {
+        "file": "marks/blood_mouth.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "over"
+      },
+      "blood_forehead": {
+        "file": "marks/blood_forehead.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "over"
+      },
+      "bruise": {
+        "file": "marks/bruise.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      },
+      "rot": {
+        "file": "marks/rot.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      },
+      "veins": {
+        "file": "marks/veins.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      },
+      "bandage": {
+        "file": "marks/bandage.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "over"
+      },
+      "coal_dust": {
+        "file": "marks/coal_dust.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      },
+      "stubble": {
+        "file": "marks/stubble.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      },
+      "h_mustache": {
+        "file": "marks/h_mustache.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "over"
+      },
+      "h_goatee": {
+        "file": "marks/h_goatee.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      },
+      "h_full_beard": {
+        "file": "marks/h_full_beard.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      },
+      "h_freckles": {
+        "file": "marks/h_freckles.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      },
+      "h_blush": {
+        "file": "marks/h_blush.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      },
+      "h_mole": {
+        "file": "marks/h_mole.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      },
+      "h_wrinkles": {
+        "file": "marks/h_wrinkles.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      },
+      "h_scar_lip": {
+        "file": "marks/h_scar_lip.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "over"
+      },
+      "h_eyeliner": {
+        "file": "marks/h_eyeliner.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "over"
+      },
+      "h_dimples": {
+        "file": "marks/h_dimples.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      },
+      "h_nose": {
+        "file": "marks/h_nose.png",
+        "slot": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "layer": "under"
+      }
+    }
+  }
+}

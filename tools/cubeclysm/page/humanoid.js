@@ -1,0 +1,1091 @@
+// Cubeclysm humanoids: a body built from boxes on the library's rig (root › body › head,
+// shoulders › upper_arm.L/R › forearm › hand, thigh.L/R › shin), sized by a body type, then
+// dressed with 3D gear (caps, helmets, masks, tanks, vests…) and odd features (bellies, humps,
+// a missing jaw, pustules…) as blocks of their own. 1 unit = 1 m, feet on y = 0, facing −Z.
+import * as THREE from 'three';
+
+import { block } from './atlas.js';
+import { effects } from './fx.js';
+import { FACE_PX, composeFace } from './faces.js';
+import { HAIR } from './hair.js';
+import { band, baseColor, blobs, blood, bone, css, fill, garment, meld, muscle, rng, rust, scabs, shade, shadow, shards, skull, stitches, tattoos, tears, veins, wounds } from './paint.js';
+
+/** Body types (metres). `standard` is a 1.75 m adult; the others override what differs. */
+export const BODIES = {
+  standard: { head: 0.3, neck: 0.02, torsoH: 0.62, torsoW: 0.46, torsoD: 0.24, thigh: 0.4, shin: 0.33, foot: 0.08, footD: 0.26, legW: 0.15, legD: 0.16, armW: 0.13, armD: 0.13, upperArm: 0.3, forearm: 0.25, hand: 0.12, handW: 0.13, hunch: 0, headDrop: 0 },
+  fat: { torsoW: 0.58, torsoD: 0.36, legW: 0.19, legD: 0.2, armW: 0.16, armD: 0.16, head: 0.31, handW: 0.15 },
+  tough: { torsoW: 0.54, torsoD: 0.28, torsoH: 0.64, armW: 0.17, armD: 0.16, legW: 0.17, legD: 0.18, thigh: 0.42, shin: 0.34, handW: 0.16 },
+  bloated: { head: 0.3, neck: 0, torsoH: 0.66, torsoW: 0.6, torsoD: 0.44, thigh: 0.36, shin: 0.3, foot: 0.08, footD: 0.28, legW: 0.19, legD: 0.2, armW: 0.16, armD: 0.16, upperArm: 0.28, forearm: 0.25, hand: 0.13, handW: 0.17, headDrop: -0.03 },
+  female: { head: 0.29, torsoH: 0.58, torsoW: 0.4, torsoD: 0.21, thigh: 0.4, shin: 0.33, foot: 0.07, footD: 0.24, legW: 0.14, legD: 0.15, armW: 0.11, armD: 0.11, upperArm: 0.28, forearm: 0.24, hand: 0.11, handW: 0.11 },
+  teen: { head: 0.29, torsoH: 0.54, torsoW: 0.4, torsoD: 0.2, thigh: 0.36, shin: 0.3, foot: 0.07, footD: 0.24, legW: 0.13, legD: 0.14, armW: 0.11, armD: 0.11, upperArm: 0.27, forearm: 0.23, hand: 0.11, handW: 0.11 },
+  child: { head: 0.27, torsoH: 0.38, torsoW: 0.32, torsoD: 0.17, thigh: 0.22, shin: 0.18, foot: 0.06, footD: 0.18, legW: 0.11, legD: 0.12, armW: 0.09, armD: 0.09, upperArm: 0.18, forearm: 0.15, hand: 0.09, handW: 0.1 },
+  lanky: { head: 0.29, torsoW: 0.4, torsoD: 0.21, torsoH: 0.64, armW: 0.11, armD: 0.11, upperArm: 0.33, forearm: 0.28, legW: 0.13, legD: 0.14, thigh: 0.43, shin: 0.35, handW: 0.11 },
+  elongated: { head: 0.28, torsoW: 0.4, torsoD: 0.22, torsoH: 0.82, armW: 0.11, armD: 0.11, upperArm: 0.34, forearm: 0.3, legW: 0.13, legD: 0.14, thigh: 0.44, shin: 0.36, handW: 0.11 },
+  brute: { head: 0.3, neck: 0, torsoH: 0.74, torsoW: 0.6, torsoD: 0.34, armW: 0.19, armD: 0.19, upperArm: 0.36, forearm: 0.32, hand: 0.16, handW: 0.18, legW: 0.19, legD: 0.2, thigh: 0.42, shin: 0.36, foot: 0.1, footD: 0.32, hunch: 0.1, headDrop: -0.06 },
+  giant: { head: 0.38, neck: 0, torsoH: 1.1, torsoW: 1.18, torsoD: 0.72, armW: 0.4, armD: 0.4, upperArm: 0.5, forearm: 0.48, hand: 0.3, handW: 0.42, legW: 0.36, legD: 0.38, thigh: 0.55, shin: 0.45, foot: 0.12, footD: 0.46, hunch: 0.2, headDrop: -0.12 },
+};
+
+const B = (x0, y0, z0, x1, y1, z1) => new THREE.Box3(new THREE.Vector3(x0, y0, z0), new THREE.Vector3(x1, y1, z1));
+/** A box centred on x and z, from y0 to y1. */
+const C = (w, y0, y1, d, x = 0, z = 0) => B(x - w / 2, y0, z - d / 2, x + w / 2, y1, z + d / 2);
+const joint = (parent, name, x, y, z) => { const g = new THREE.Group(); g.name = name; g.position.set(x, y, z); parent.add(g); return g; };
+
+/** A painter that fills a block in one colour, with an optional extra drawing per side. */
+export const solid = (hex, extra) => (ctx, x, y, w, h, side) => { fill(ctx, x, y, w, h, hex); extra?.(ctx, x, y, w, h, side); };
+
+/** Build a humanoid from a recipe (recipes.js). Returns the root and its blocks (baked later). */
+export function buildHumanoid(recipe) {
+  const b = { ...BODIES.standard, ...BODIES[recipe.body], ...(recipe.bulk ? bulkUp(BODIES[recipe.body] ?? {}, recipe.bulk) : {}) };
+  const blocks = [];
+  const add = (parent, name, box, paint, opts) => { const bl = block(parent, name, box, paint, opts); blocks.push(bl); return bl; };
+  const root = new THREE.Group(); root.name = 'root';
+  const body = joint(root, 'body', 0, 0, 0);
+  const crawler = recipe.body === 'crawler';
+  const legH = crawler ? 0 : b.thigh + b.shin + b.foot;
+  const torsoTop = legH + b.torsoH;
+  const skin = recipe.skin;
+
+  /** The painter of a body part: its base colour from the outfit, garment details, then wear. */
+  const part = (name, extra) => (ctx, x, y, w, h, side) => {
+    const r = rng(`${recipe.id}|${name}|${side}`);
+    const base = baseColor(recipe.outfit, skin, name);
+    fill(ctx, x, y, w, h, base);
+    garment(ctx, x, y, w, h, side, name, recipe.outfit, skin, r);
+    const bare = base === skin;
+    const wear = recipe.wear ?? {};
+    if (wear.tears && !bare && name !== 'foot' && r() < wear.tears) tears(ctx, x, y, w, h, 1 + Math.floor(r() * 2), skin, r);
+    if (wear.veins && bare) veins(ctx, x, y, w, h, wear.veins, 2, r);
+    if (wear.wounds && r() < wear.wounds) wounds(ctx, x, y, w, h, 1 + Math.floor(r() * 2), r);
+    if (wear.blood && r() < wear.blood) blood(ctx, x, y, w, h, 2, r);
+    if (wear.bloodyHands && name === 'hand') blood(ctx, x, y, w, h, 4, r);
+    if (wear.stitches && bare && r() < wear.stitches) stitches(ctx, x, y, w, h, r);
+    if (wear.scab && bare) scabs(ctx, x, y, w, h, skin, r);
+    if (wear.bone && bare) bone(ctx, x, y, w, h, r);
+    if (wear.soot && r() < wear.soot) blobs(ctx, x, y, w, h, 0x2e2a26, 2 + Math.floor(wear.soot * 3), Math.min(w, h) * 0.2, r);
+    if (wear.tattoos && bare && ['torso', 'upper_arm', 'forearm', 'hand'].includes(name) && side !== 'top' && side !== 'bottom' && r() < wear.tattoos) tattoos(ctx, x, y, w, h, r);
+    if (wear.meld && !bare && name !== 'foot' && r() < wear.meld) meld(ctx, x, y, w, h, skin, r);
+    if (wear.acid && !bare && name !== 'foot' && r() < wear.acid) { blobs(ctx, x, y, w, h, skin, 2, Math.min(w, h) * 0.28, r); blobs(ctx, x, y, w, h, 0xc8c43a, 2, Math.min(w, h) * 0.1, r); }
+    if (wear.shards && !bare && r() < wear.shards) shards(ctx, x, y, w, h, r);
+    if (wear.rust && r() < wear.rust) rust(ctx, x, y, w, h, r);
+    if (wear.shadow && r() < wear.shadow) shadow(ctx, x, y, w, h, r);
+    extra?.(ctx, x, y, w, h, side, r);
+  };
+
+  // Torso and neck.
+  add(body, 'torso', C(b.torsoW, legH, torsoTop, b.torsoD), part('torso'));
+  const head = joint(body, 'head', 0, torsoTop + b.neck + b.headDrop, -b.hunch);
+  const hs = b.head;
+  if (b.neck > 0) add(body, 'neck', C(hs * 0.62, torsoTop - 0.03, torsoTop + b.neck + 0.01, hs * 0.62, 0, -b.hunch / 2), solid(skin));
+  // The head gets FACE_PX pixels across, so the face parts keep their detail on any head size.
+  add(head, 'head', C(hs, 0, hs, hs), headPainter(recipe), { ppm: FACE_PX / hs });
+  HAIR[recipe.hair === null ? 'bald' : recipe.hairStyle ?? 'short']?.({ head, hs, add, recipe });
+
+  // Arms.
+  const shoulders = joint(body, 'shoulders', 0, torsoTop - 0.02, 0);
+  const arms = {};
+  for (const [s, L] of [[-1, 'L'], [1, 'R']]) {
+    const upper = joint(shoulders, `upper_arm.${L}`, s * (b.torsoW / 2 + b.armW / 2 + 0.004), 0, 0);
+    add(upper, `upper_arm.${L}`, C(b.armW, -b.upperArm, 0, b.armD), part('upper_arm'));
+    const fore = joint(upper, `forearm.${L}`, 0, -b.upperArm, 0);
+    const fw = b.armW * (b.forearmK ?? 0.95);
+    add(fore, `forearm.${L}`, C(fw, -b.forearm, 0, b.armD * 0.95), part('forearm'));
+    const hand = joint(fore, `hand.${L}`, 0, -b.forearm, 0);
+    add(hand, `hand.${L}`, C(b.handW, -b.hand, 0, b.armD * 1.02), part('hand'));
+    arms[L] = { upper, fore, hand };
+  }
+
+  // Legs (a crawler drags two ruined stumps).
+  const legs = {};
+  for (const [s, L] of [[-1, 'L'], [1, 'R']]) {
+    const thigh = joint(body, `thigh.${L}`, s * (b.torsoW / 2 - b.legW / 2 - 0.01), legH, 0);
+    if (crawler) {
+      const stump = 0.18 + (s > 0 ? 0.06 : 0);
+      add(thigh, `thigh.${L}`, C(b.legW, -stump, 0, b.legD), part('thigh'));
+      add(thigh, `bone.${L}`, C(0.05, -stump - 0.07, -stump, 0.05), solid(0xe8e0c8));
+      add(thigh, `flesh.${L}`, C(b.legW * 0.8, -stump - 0.02, -stump + 0.005, b.legD * 0.8), solid(0x6e1a1a));
+      legs[L] = { thigh };
+      continue;
+    }
+    add(thigh, `thigh.${L}`, C(b.legW, -b.thigh, 0, b.legD), part('thigh'));
+    const shin = joint(thigh, `shin.${L}`, 0, -b.thigh, 0);
+    add(shin, `shin.${L}`, C(b.legW * 0.95, -b.shin, 0, b.legD * 0.95), part('shin'));
+    add(shin, `foot.${L}`, B(-b.legW / 2, -b.shin - b.foot, b.legD / 2 - b.footD, b.legW / 2, -b.shin, b.legD / 2), part('foot'));
+    legs[L] = { thigh, shin };
+  }
+
+  /** Drop blocks by name (a feature that replaces a part, e.g. a torn-off forearm). */
+  const remove = (pred) => { for (let i = blocks.length - 1; i >= 0; i--) if (pred(blocks[i].name)) blocks.splice(i, 1); };
+  const fx = effects(recipe.id);
+  const H = { root, body, head, shoulders, arms, legs, b, legH, torsoTop, hs, add, remove, part, skin, recipe, fx };
+  for (const g of recipe.gear ?? []) GEAR[g](H);
+  for (const f of recipe.fx ?? []) FX[f](H);
+  pose(H, recipe.pose ?? (crawler ? 'crawl' : 'stand'));
+  blocks.push(...fx.blocks);
+  const clip = fx.clip();
+  return { root, blocks, clips: clip ? [clip] : [] };
+}
+
+/** Bulkier clothes (a hazmat suit, a firefighter's coat): every part a little thicker. */
+function bulkUp(base, k) {
+  const s = { ...BODIES.standard, ...base };
+  return { torsoW: s.torsoW + k, torsoD: s.torsoD + k, armW: s.armW + k * 0.6, armD: s.armD + k * 0.6, legW: s.legW + k * 0.5, legD: s.legD + k * 0.5, handW: s.handW + k * 0.4 };
+}
+
+/** Poses: standing (arms hanging), reaching (the classic shamble), crawling. */
+function pose(H, name) {
+  const { body, head, arms, legs } = H;
+  if (name === 'reach') {
+    for (const L of ['L', 'R']) { arms[L].upper.rotation.x = 1.25 + (L === 'L' ? 0.1 : -0.05); arms[L].fore.rotation.x = 0.15; }
+  } else if (name === 'crawl') {
+    body.rotation.x = -1.4;
+    head.rotation.x = 1.15;
+    // Arms stretched forward along the ground, hands level with the chest (which lies on the
+    // ground): reaching down any further would prop the body up off the floor.
+    for (const L of ['L', 'R']) { arms[L].upper.rotation.x = 2.6; arms[L].upper.rotation.z = (L === 'L' ? -1 : 1) * 0.15; arms[L].fore.rotation.x = 0; }
+    for (const L of ['L', 'R']) legs[L].thigh.rotation.z = (L === 'L' ? -1 : 1) * 0.12;
+  } else if (name === 'prowl') {
+    // On all fours: the torso pitched forward, the knees bent, the arms reaching the ground as
+    // front legs. Heights are solved from the body's own proportions so hands and feet both land.
+    const { b, legH, torsoTop } = H, th = -1.25;
+    const reach = b.upperArm + b.forearm + b.hand * 0.85, legFull = b.thigh + b.shin;
+    // The shins stay upright (feet flat); only the thighs swing forward to lower the hips.
+    const hipH = Math.max(b.foot + b.shin + b.thigh * 0.15, Math.min(b.foot + legFull * 0.98, reach - (torsoTop - 0.02 - legH) * Math.cos(th)));
+    const a = Math.acos(Math.min(1, (hipH - b.foot - b.shin) / b.thigh));
+    body.rotation.x = th;
+    body.position.set(0, hipH - legH * Math.cos(th), -legH * Math.sin(th));
+    for (const L of ['L', 'R']) { legs[L].thigh.rotation.x = -th + a; legs[L].shin.rotation.x = -a; legs[L].thigh.rotation.z = (L === 'L' ? -1 : 1) * 0.1; }
+    const shoulderY = hipH + (torsoTop - 0.02 - legH) * Math.cos(th);
+    const phi = shoulderY < reach ? Math.acos(shoulderY / reach) : 0;
+    for (const L of ['L', 'R']) { arms[L].upper.rotation.x = -th + phi; arms[L].upper.rotation.z = (L === 'L' ? -1 : 1) * 0.12; arms[L].fore.rotation.x = 0; }
+    head.rotation.x = -th * 0.85;
+  } else if (name === 'drag') {
+    // Hunched, arms swung back so what they end in drags on the ground behind.
+    for (const L of ['L', 'R']) { arms[L].upper.rotation.x = -0.3; arms[L].upper.rotation.z = (L === 'L' ? -1 : 1) * 0.1; }
+  } else if (name === 'crooked') {
+    // Bent and leaning to one side, one arm hanging lower.
+    body.rotation.z = 0.12;
+    body.rotation.x = -0.12;
+    head.rotation.z = -0.3;
+    arms.L.upper.rotation.z = -0.25; arms.R.upper.rotation.x = 0.4;
+  } else if (name === 'hunched') {
+    for (const L of ['L', 'R']) { arms[L].upper.rotation.z = (L === 'L' ? -1 : 1) * 0.12; arms[L].upper.rotation.x = 0.25; }
+  } else {
+    for (const L of ['L', 'R']) arms[L].upper.rotation.z = (L === 'L' ? -1 : 1) * 0.05;
+  }
+}
+
+/** The head: hair on top and at the back (unless bald), the face on the front. */
+function headPainter(recipe) {
+  const { skin, hair = null } = recipe;
+  return (ctx, x, y, w, h, side) => {
+    fill(ctx, x, y, w, h, skin);
+    if (hair !== null) {
+      if (side === 'top') fill(ctx, x, y, w, h, hair);
+      if (side === 'back') fill(ctx, x, y, w, h * 0.62, hair);
+      if (side === 'left' || side === 'right') { fill(ctx, x, y, w, h * 0.28, hair); fill(ctx, side === 'left' ? x : x + w * 0.6, y, w * 0.4, h * 0.55, hair); }
+    }
+    if (recipe.wear?.scab && side !== 'front') scabs(ctx, x, y, w, h, skin, rng(`${recipe.id}|head-scab|${side}`));
+    if (recipe.wear?.bone && side === 'top') bone(ctx, x, y, w, h, rng(`${recipe.id}|head-bone`));
+    if (recipe.wear?.veins && side !== 'top' && side !== 'bottom' && side !== 'front') veins(ctx, x, y, w, h, recipe.wear.veins, 2, rng(`${recipe.id}|head|${side}`));
+    if (recipe.wear?.soot && side !== 'front') blobs(ctx, x, y, w, h, 0x2e2a26, 3, Math.min(w, h) * 0.2, rng(`${recipe.id}|head-soot|${side}`));
+    if (recipe.wear?.shadow && side !== 'front') shadow(ctx, x, y, w, h, rng(`${recipe.id}|head-shadow|${side}`));
+    if (recipe.skull) { if (side === 'front') skull(ctx, x, y, w, h); else bone(ctx, x, y, w, h, rng(`${recipe.id}|skull|${side}`)); return; }
+    if (side === 'front') {
+      // A painted fringe under the 3D hair, for the styles that have one.
+      if (hair !== null && HAIR[recipe.hairStyle ?? 'short']?.fringe) fill(ctx, x, y, w, h * 0.14, hair);
+      composeFace(ctx, x, y, w, h, { skin, hair, eye: recipe.eye ?? 0x0a0a0a, face: recipe.face ?? {} });
+    }
+    if (recipe.wear?.wounds && side === 'left') wounds(ctx, x, y, w, h, 1, rng(`${recipe.id}|head-w`));
+  };
+}
+
+// ── Gear and features: each adds blocks to a joint ─────────────────────────────────────────
+const GOLD = 0xc9a33a, BLACK = 0x1c1c1e;
+
+export const GEAR = {
+  /** Police: peaked cap with a badge, chest badge, duty belt with pouches and holster, shoulder radio. */
+  policeCap(H) {
+    const { hs, head, add } = H, navy = H.recipe.outfit.top;
+    add(head, 'cap', B(-hs * 0.54, hs * 0.84, -hs * 0.54, hs * 0.54, hs * 1.08, hs * 0.54), solid(navy, (ctx, x, y, w, h, side) => {
+      if (side !== 'top' && side !== 'bottom') band(ctx, x, y, w, h, BLACK, 0.62, 0.38);
+      if (side === 'front') { fill(ctx, x + w * 0.42, y + h * 0.12, w * 0.16, h * 0.4, GOLD); fill(ctx, x + w * 0.46, y + h * 0.2, w * 0.08, h * 0.2, shade(GOLD, 0.7)); }
+    }));
+    add(head, 'cap-brim', B(-hs * 0.46, hs * 0.83, -hs * 0.54 - 0.075, hs * 0.46, hs * 0.865, -hs * 0.54), solid(BLACK));
+  },
+  badge(H) {
+    const { b, body, torsoTop, add } = H;
+    add(body, 'badge', B(-b.torsoW * 0.36, torsoTop - 0.21, -b.torsoD / 2 - 0.012, -b.torsoW * 0.22, torsoTop - 0.12, -b.torsoD / 2), solid(GOLD, (ctx, x, y, w, h, side) => { if (side === 'front') fill(ctx, x + w * 0.3, y + h * 0.3, w * 0.4, h * 0.4, shade(GOLD, 0.7)); }));
+  },
+  dutyBelt(H) {
+    const { b, body, legH, add } = H, w = b.torsoW / 2, d = b.torsoD / 2;
+    add(body, 'belt', B(-w - 0.015, legH - 0.01, -d - 0.015, w + 0.015, legH + 0.06, d + 0.015), solid(BLACK, (ctx, x, y, ww, hh, side) => { if (side === 'front') fill(ctx, x + ww * 0.44, y + hh * 0.25, ww * 0.12, hh * 0.5, 0x8a8a8a); }));
+    for (const px of [-0.14, 0.02]) add(body, 'pouch', B(px - 0.04, legH - 0.005, -d - 0.05, px + 0.04, legH + 0.065, -d - 0.015), solid(0x232325));
+    add(body, 'holster', B(w + 0.005, legH - 0.12, -0.06, w + 0.06, legH + 0.05, 0.05), solid(0x18181a));
+  },
+  radio(H) {
+    const { b, body, torsoTop, add } = H;
+    add(body, 'radio', B(b.torsoW * 0.18, torsoTop - 0.14, -b.torsoD / 2 - 0.03, b.torsoW * 0.32, torsoTop - 0.03, -b.torsoD / 2), solid(BLACK, (ctx, x, y, w, h, side) => { if (side === 'front') fill(ctx, x + w * 0.2, y + h * 0.2, w * 0.6, h * 0.3, 0x3a3a3a); }));
+  },
+  /** Firefighter: wide-brimmed helmet with a front shield, full face mask with regulator, air tank. */
+  fireHelmet(H) {
+    const { hs, head, add } = H, shell = 0xb8891a;
+    add(head, 'helmet', B(-hs * 0.58, hs * 0.82, -hs * 0.58, hs * 0.58, hs * 1.14, hs * 0.58), solid(shell, (ctx, x, y, w, h, side) => { if (side === 'top') fill(ctx, x + w * 0.45, y, w * 0.1, h, shade(shell, 0.8)); }));
+    add(head, 'helmet-brim', B(-hs * 0.72, hs * 0.8, -hs * 0.7, hs * 0.72, hs * 0.86, hs * 0.98), solid(shade(shell, 0.85)));
+    add(head, 'helmet-shield', B(-hs * 0.2, hs * 0.86, -hs * 0.63, hs * 0.2, hs * 1.18, -hs * 0.58), solid(0x8a1c1c, (ctx, x, y, w, h, side) => { if (side === 'front') { fill(ctx, x + w * 0.25, y + h * 0.25, w * 0.5, h * 0.5, 0xe0d8c0); fill(ctx, x + w * 0.4, y + h * 0.35, w * 0.2, h * 0.3, 0x8a1c1c); } }));
+  },
+  fireMask(H) {
+    const { hs, head, add } = H;
+    add(head, 'mask', B(-hs * 0.44, hs * 0.1, -hs * 0.5 - 0.035, hs * 0.44, hs * 0.84, -hs * 0.5), solid(BLACK, (ctx, x, y, w, h, side) => {
+      if (side !== 'front') return;
+      // A clear visor: the dim face behind it, a glare across it.
+      fill(ctx, x + w * 0.1, y + h * 0.08, w * 0.8, h * 0.62, 0x5a6c74);
+      fill(ctx, x + w * 0.26, y + h * 0.32, w * 0.12, h * 0.1, 0x101010); fill(ctx, x + w * 0.62, y + h * 0.32, w * 0.12, h * 0.1, 0x101010);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(x + w * 0.16, y + h * 0.12, w * 0.14, h * 0.5);
+    }));
+    add(head, 'regulator', B(-hs * 0.13, hs * 0.08, -hs * 0.5 - 0.1, hs * 0.13, hs * 0.32, -hs * 0.5 - 0.03), solid(0x2a2a2c, (ctx, x, y, w, h, side) => { if (side === 'front') fill(ctx, x + w * 0.3, y + h * 0.3, w * 0.4, h * 0.4, 0x555555); }));
+  },
+  airTank(H) {
+    const { b, body, torsoTop, add } = H, d = b.torsoD / 2;
+    add(body, 'air-tank', B(-0.095, torsoTop - 0.58, d, 0.095, torsoTop - 0.06, d + 0.18), solid(0xb0b4b8, (ctx, x, y, w, h, side) => { if (side !== 'top' && side !== 'bottom') { band(ctx, x, y, w, h, 0x7a7e82, 0.1, 0.06); band(ctx, x, y, w, h, 0xd0a020, 0.8, 0.05); } }));
+    add(body, 'air-valve', B(-0.03, torsoTop - 0.06, d + 0.06, 0.03, torsoTop + 0.02, d + 0.12), solid(0x333333));
+  },
+  /** Soldier: helmet with goggles, plate carrier with pouches, knee pads. */
+  combatHelmet(H) {
+    const { hs, head, add, recipe } = H, olive = recipe.outfit.helmet ?? recipe.outfit.camo?.[0] ?? 0x4a5236;
+    add(head, 'helmet', B(-hs * 0.58, hs * 0.78, -hs * 0.6, hs * 0.58, hs * 1.12, hs * 0.6), solid(olive, (ctx, x, y, w, h, side) => {
+      const r = rng(`${recipe.id}|helmet|${side}`);
+      if (recipe.outfit.camo && !recipe.outfit.helmet) for (const c of recipe.outfit.camo.slice(1)) { ctx.fillStyle = css(c); for (let i = 0; i < 4; i++) ctx.fillRect(x + r() * w, y + r() * h, w * 0.2, h * 0.15); }
+    }));
+    add(head, 'goggles', B(-hs * 0.4, hs * 0.86, -hs * 0.63, hs * 0.4, hs * 0.98, -hs * 0.59), solid(0x1a1a1a, (ctx, x, y, w, h, side) => { if (side === 'front') { fill(ctx, x + w * 0.08, y + h * 0.2, w * 0.36, h * 0.6, 0x3a4a3a); fill(ctx, x + w * 0.56, y + h * 0.2, w * 0.36, h * 0.6, 0x3a4a3a); } }));
+  },
+  tacticalVest(H) {
+    const { b, body, legH, torsoTop, add } = H, w = b.torsoW / 2, d = b.torsoD / 2, vest = H.recipe.outfit.vest ?? 0x5b5440, o = H.recipe.outfit;
+    const text = H.recipe.outfit.text;
+    add(body, 'vest', B(-w - 0.02, legH + b.torsoH * 0.3, -d - 0.035, w + 0.02, torsoTop - 0.05, d + 0.035), solid(vest, (ctx, x, y, ww, hh, side) => {
+      if (side === 'front' || side === 'back') band(ctx, x, y, ww, hh, shade(vest, 0.75), 0.15, 0.05);
+      // Lettering (a military police vest): big across the back, a small tab over the chest.
+      if (text && side === 'back') { fill(ctx, x + ww * 0.1, y + hh * 0.3, ww * 0.8, hh * 0.32, 0x1a1a1a); ctx.fillStyle = '#f0f0f0'; ctx.font = `bold ${Math.round(hh * 0.26)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, x + ww / 2, y + hh * 0.47); }
+      if (text && side === 'front' && o.textFront) { ctx.fillStyle = '#f0f0f0'; ctx.font = `bold ${Math.round(hh * 0.24)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, x + ww / 2, y + hh * 0.3); }
+      else if (text && side === 'front') { fill(ctx, x + ww * 0.3, y + hh * 0.22, ww * 0.4, hh * 0.18, 0x1a1a1a); ctx.fillStyle = '#f0f0f0'; ctx.font = `bold ${Math.round(hh * 0.14)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, x + ww / 2, y + hh * 0.31); }
+    }));
+    // A unit insignia on the chest (Marines: eagle, globe and anchor, in gold on black).
+    if (o.insignia) add(body, 'insignia', B(-w * 0.75, torsoTop - 0.16, -d - 0.04, -w * 0.4, torsoTop - 0.07, -d - 0.03), solid(0x141414, (ctx, x, y, ww, hh, side) => { if (side === 'front') { fill(ctx, x + ww * 0.3, y + hh * 0.2, ww * 0.4, hh * 0.45, o.insignia); fill(ctx, x + ww * 0.46, y + hh * 0.55, ww * 0.08, hh * 0.3, o.insignia); fill(ctx, x + ww * 0.3, y + hh * 0.75, ww * 0.4, hh * 0.08, o.insignia); } }));
+    for (const px of [-0.15, -0.05, 0.05, 0.15]) add(body, 'mag-pouch', B(px - 0.04, legH + b.torsoH * 0.32, -d - 0.075, px + 0.04, legH + b.torsoH * 0.55, -d - 0.035), solid(shade(vest, 0.9), (ctx, x, y, ww, hh, side) => { if (side === 'front') fill(ctx, x, y, ww, hh * 0.25, shade(vest, 0.7)); }));
+  },
+  kneePads(H) {
+    const { b, legs, add } = H;
+    for (const L of ['L', 'R']) add(legs[L].shin, `knee-pad.${L}`, B(-b.legW / 2 - 0.01, -0.12, -b.legD / 2 - 0.03, b.legW / 2 + 0.01, 0.03, -b.legD / 2 + 0.02), solid(0x2c2c26));
+  },
+  /** Hazmat: a hood that encloses the head, a visor with the face dimly behind it, a respirator. */
+  hazmatHood(H) {
+    const { hs, head, add, recipe } = H, suit = recipe.outfit.top;
+    add(head, 'hood', B(-hs * 0.62, -0.05, -hs * 0.62, hs * 0.62, hs * 1.14, hs * 0.62), solid(suit, (ctx, x, y, w, h, side) => {
+      if (side === 'front') {
+        fill(ctx, x + w * 0.12, y + h * 0.18, w * 0.76, h * 0.42, 0x1b2f3a);
+        fill(ctx, x + w * 0.28, y + h * 0.34, w * 0.1, h * 0.07, 0x0a0a0a); fill(ctx, x + w * 0.62, y + h * 0.34, w * 0.1, h * 0.07, 0x0a0a0a);
+        ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(x + w * 0.16, y + h * 0.2, w * 0.1, h * 0.38);
+        fill(ctx, x + w * 0.1, y + h * 0.16, w * 0.8, h * 0.03, 0x2a2a2a);
+      }
+      if (side !== 'top' && side !== 'bottom') band(ctx, x, y, w, h, shade(suit, 0.8), 0.92, 0.05);
+    }));
+    add(head, 'respirator', B(-hs * 0.15, hs * 0.04, -hs * 0.62 - 0.07, hs * 0.15, hs * 0.26, -hs * 0.62), solid(0x2a2a2a));
+    for (const s of [-1, 1]) add(head, 'filter', B(s * hs * 0.32 - 0.045, hs * 0.02, -hs * 0.62 - 0.08, s * hs * 0.32 + 0.045, hs * 0.16, -hs * 0.62 - 0.01), solid(0x8a6a1e, (ctx, x, y, w, h, side) => { if (side === 'front') fill(ctx, x + w * 0.2, y + h * 0.2, w * 0.6, h * 0.6, 0x5a4410); }));
+  },
+  /** Miner: a hard hat with a headlamp (its lens glows) and the lamp's battery on the belt. */
+  minerHelmet(H) {
+    const { hs, head, add, recipe } = H, shell = 0xd6c44a;
+    const dusty = (base) => (ctx, x, y, w, h, side) => { fill(ctx, x, y, w, h, base); blobs(ctx, x, y, w, h, 0x2e2a26, 3, Math.min(w, h) * 0.25, rng(`${recipe.id}|helmet|${side}`)); };
+    add(head, 'helmet', B(-hs * 0.56, hs * 0.8, -hs * 0.58, hs * 0.56, hs * 1.12, hs * 0.56), dusty(shell));
+    add(head, 'helmet-ridge', B(-hs * 0.07, hs * 1.12, -hs * 0.5, hs * 0.07, hs * 1.17, hs * 0.5), dusty(shade(shell, 0.9)));
+    add(head, 'helmet-brim', B(-hs * 0.62, hs * 0.78, -hs * 0.72, hs * 0.62, hs * 0.83, hs * 0.62), dusty(shade(shell, 0.85)));
+    add(head, 'lamp', B(-hs * 0.12, hs * 0.86, -hs * 0.7, hs * 0.12, hs * 1.04, -hs * 0.58), solid(0x2a2a2a));
+    add(head, 'lamp-lens', B(-hs * 0.085, hs * 0.89, -hs * 0.72, hs * 0.085, hs * 1.01, -hs * 0.7), solid(0xfff0a8, (ctx, x, y, w, h, side) => { if (side === 'front') fill(ctx, x + w * 0.25, y + h * 0.25, w * 0.5, h * 0.5, 0xffffff); }), { glow: true });
+    add(head, 'lamp-cable', B(-0.01, hs * 0.2, hs * 0.5, 0.01, hs * 0.86, hs * 0.54), solid(0x1a1a1a));
+  },
+  lampBattery(H) {
+    const { b, body, legH, add } = H, d = b.torsoD / 2;
+    add(body, 'lamp-battery', B(-0.08, legH + 0.01, d, 0.08, legH + 0.13, d + 0.06), solid(0x2a2a2c, (ctx, x, y, w, h, side) => { if (side === 'back') fill(ctx, x + w * 0.2, y + h * 0.3, w * 0.6, h * 0.15, 0xb0a040); }));
+  },
+  // ── Archetypes (archetypes.js): clothes and props that say who the zombie was ──────────────
+  /** A long-skirted dress or robe: a skirt block from the waist down (`outfit.skirt`: length in m). */
+  skirt(H) {
+    const { b, body, legH, add, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2, len = recipe.outfit.skirt ?? 0.45, c = recipe.outfit.skirtColor ?? recipe.outfit.top;
+    add(body, 'skirt', B(-w - 0.03, legH - len, -d - 0.04, w + 0.03, legH + 0.06, d + 0.04), (ctx, x, y, ww, hh, side) => {
+      fill(ctx, x, y, ww, hh, c);
+      if (side !== 'top' && side !== 'bottom') { band(ctx, x, y, ww, hh, shade(c, 0.82), 0.9, 0.1); blood(ctx, x, y, ww, hh, 1, rng(`${recipe.id}|skirt|${side}`)); }
+    });
+  },
+  beard(H) {
+    const { hs, head, add, recipe } = H, c = recipe.beard ?? recipe.hair ?? 0x8a8a80;
+    add(head, 'beard', B(-hs * 0.4, -hs * 0.28, -hs * 0.54, hs * 0.4, hs * 0.3, -hs * 0.3), solid(c, (ctx, x, y, w, h, side) => { if (side === 'front') for (let i = 0; i < w; i += 4) fill(ctx, x + i, y, 1, h, shade(c, 0.8)); }));
+  },
+  veil(H) {
+    const { hs, head, add, recipe } = H, c = recipe.veil ?? 0x1a181e, long = recipe.veilLength ?? 0.5;
+    add(head, 'veil-top', B(-hs * 0.56, hs * 0.94, -hs * 0.56, hs * 0.56, hs * 1.06, hs * 0.56), solid(c));
+    add(head, 'veil-back', B(-hs * 0.58, hs * 0.94 - long, hs * 0.5, hs * 0.58, hs * 1.04, hs * 0.6), solid(c, (ctx, x, y, w, h) => { ctx.globalAlpha = 0.25; fill(ctx, x, y, w, h, 0xffffff); ctx.globalAlpha = 1; }));
+    if (recipe.veilFace) add(head, 'veil-front', B(-hs * 0.52, hs * 0.55, -hs * 0.53, hs * 0.52, hs * 0.94, -hs * 0.51), (ctx, x, y, w, h) => { ctx.globalAlpha = 0.45; fill(ctx, x, y, w, h, c); ctx.globalAlpha = 1; });
+  },
+  strawHat(H) {
+    const { hs, head, add, recipe } = H, straw = 0xd2b866;
+    const weave = (ctx, x, y, w, h) => { fill(ctx, x, y, w, h, straw); for (let i = 0; i < w; i += 3) fill(ctx, x + i, y, 1, h, shade(straw, 0.85)); blobs(ctx, x, y, w, h, shade(straw, 0.7), 2, 4, rng(`${recipe.id}|straw`)); };
+    add(head, 'hat-brim', B(-hs * 0.95, hs * 0.86, -hs * 0.95, hs * 0.95, hs * 0.91, hs * 0.95), weave);
+    add(head, 'hat-crown', B(-hs * 0.5, hs * 0.9, -hs * 0.5, hs * 0.5, hs * 1.22, hs * 0.5), (ctx, x, y, w, h, side) => { weave(ctx, x, y, w, h); if (side !== 'top' && side !== 'bottom') band(ctx, x, y, w, h, 0x7a2a1a, 0.62, 0.22); });
+  },
+  glasses(H) {
+    const { hs, head, add } = H;
+    add(head, 'glasses', B(-hs * 0.46, hs * 0.48, -hs * 0.52, hs * 0.46, hs * 0.6, -hs * 0.5), solid(0x1a1a1a, (ctx, x, y, w, h, side) => { if (side === 'front') { fill(ctx, x + w * 0.08, y + h * 0.2, w * 0.36, h * 0.6, 0x9ab0b8); fill(ctx, x + w * 0.56, y + h * 0.2, w * 0.36, h * 0.6, 0x9ab0b8); } }));
+  },
+  headphones(H) {
+    const { hs, head, add, recipe } = H, c = recipe.gadget ?? 0x2a2a2e;
+    add(head, 'headphones-band', B(-hs * 0.58, hs * 1.0, -hs * 0.06, hs * 0.58, hs * 1.08, hs * 0.06), solid(c));
+    for (const s of [-1, 1]) add(head, 'headphones-cup', B(s > 0 ? hs * 0.5 : -hs * 0.6, hs * 0.38, -hs * 0.14, s > 0 ? hs * 0.6 : -hs * 0.5, hs * 0.66, hs * 0.14), solid(c, (ctx, x, y, w, h, side) => { if (side === 'right' || side === 'left') fill(ctx, x + w * 0.3, y + h * 0.3, w * 0.4, h * 0.4, 0xc03030); }));
+  },
+  /** Cracked skull: a piece of the crown gone, the brain showing, bone shards around it. */
+  crackedSkull(H) {
+    const { hs, head, add } = H;
+    add(head, 'skull-wound', B(-hs * 0.32, hs * 0.92, -hs * 0.28, hs * 0.18, hs * 1.03, hs * 0.18), solid(0x8a3a44, (ctx, x, y, w, h, side) => { if (side === 'top') for (let i = 0; i < 4; i++) fill(ctx, x + w * (0.15 + i * 0.2), y + h * 0.2, 2, h * 0.6, 0x5a1a22); }));
+    for (const [x, z] of [[-0.36, -0.3], [0.2, -0.3], [-0.36, 0.2], [0.22, 0.18]]) add(head, 'skull-shard', B(hs * x, hs * 0.98, hs * z, hs * (x + 0.1), hs * 1.06, hs * (z + 0.1)), solid(0xe0d8c0));
+  },
+  topHat(H) {
+    const { hs, head, add } = H;
+    add(head, 'hat-brim', B(-hs * 0.7, hs * 0.92, -hs * 0.7, hs * 0.7, hs * 0.96, hs * 0.7), solid(0x141416));
+    add(head, 'hat-crown', B(-hs * 0.45, hs * 0.95, -hs * 0.45, hs * 0.45, hs * 1.55, hs * 0.45), solid(0x18181c, (ctx, x, y, w, h, side) => { if (side !== 'top' && side !== 'bottom') band(ctx, x, y, w, h, 0x3a3a40, 0.8, 0.12); }));
+  },
+  /** Drowned: strands of weed hanging from the head and shoulders. */
+  seaweed(H) {
+    const { hs, head, body, b, torsoTop, add, recipe } = H, weed = 0x3a5a2a, r = rng(`${recipe.id}|weed`);
+    for (let i = 0; i < 4; i++) { const x = (r() - 0.5) * hs * 0.8; add(head, 'weed', B(x - 0.012, hs * (0.3 + r() * 0.3), hs * 0.5, x + 0.012, hs * 1.04, hs * 0.53), solid(weed)); }
+    for (const s of [-1, 1]) add(body, 'weed', B(s * b.torsoW * 0.3 - 0.015, torsoTop - 0.4, -b.torsoD / 2 - 0.012, s * b.torsoW * 0.3 + 0.015, torsoTop + 0.02, -b.torsoD / 2), solid(shade(weed, 1.2)));
+  },
+  bouquet(H) {
+    const { arms, b, add } = H, hand = arms.R.hand;
+    add(hand, 'bouquet-stems', B(-0.02, -b.hand - 0.12, -0.02, 0.02, -b.hand * 0.3, 0.02), solid(0x4a6a30));
+    add(hand, 'bouquet-flowers', B(-0.07, -b.hand - 0.22, -0.07, 0.07, -b.hand - 0.11, 0.07), (ctx, x, y, w, h) => { fill(ctx, x, y, w, h, 0x6a3a40); blobs(ctx, x, y, w, h, 0xd8d0c8, 4, 4, rng('bouquet')); });
+  },
+  beret(H) {
+    const { hs, head, add, recipe } = H, c = recipe.hat ?? 0x3a4a2a;
+    add(head, 'beret', B(-hs * 0.56, hs * 0.92, -hs * 0.5, hs * 0.6, hs * 1.12, hs * 0.56), solid(c, (ctx, x, y, w, h, side) => { if (side === 'front') fill(ctx, x + w * 0.2, y + h * 0.3, w * 0.14, h * 0.4, 0xc0a040); }));
+  },
+  shawl(H) {
+    const { b, body, torsoTop, add, recipe } = H, c = recipe.shawl ?? 0x5a3a4a, w = b.torsoW / 2, d = b.torsoD / 2;
+    add(body, 'shawl', B(-w - 0.04, torsoTop - 0.28, -d - 0.03, w + 0.04, torsoTop + 0.03, d + 0.03), solid(c, (ctx, x, y, ww, hh, side) => { if (side !== 'top' && side !== 'bottom') for (let i = 0; i < ww; i += 5) fill(ctx, x + i, y + hh * 0.85, 2, hh * 0.15, shade(c, 0.7)); }));
+  },
+  cane(H) {
+    const { arms, b, torsoTop, add } = H;
+    // From the hand down to the ground (the hand hangs at shoulder height minus the arm).
+    const toGround = torsoTop - 0.02 - b.upperArm - b.forearm;
+    add(arms.R.hand, 'cane', B(-0.015, -toGround + 0.01, -0.015, 0.015, -b.hand * 0.4, 0.015), solid(0x4a3020));
+    add(arms.R.hand, 'cane-handle', B(-0.015, -b.hand * 0.5, -0.07, 0.015, -b.hand * 0.4 + 0.02, 0.015), solid(0x4a3020));
+  },
+  surgicalCap(H) {
+    const { hs, head, add } = H;
+    add(head, 'surgical-cap', B(-hs * 0.53, hs * 0.72, -hs * 0.53, hs * 0.53, hs * 1.06, hs * 0.53), solid(0x4a8a9a, (ctx, x, y, w, h) => blobs(ctx, x, y, w, h, 0x3a7080, 3, 3, rng('cap'))));
+  },
+  surgicalMask(H) {
+    const { hs, head, add } = H;
+    add(head, 'surgical-mask', B(-hs * 0.4, hs * 0.08, -hs * 0.53, hs * 0.4, hs * 0.42, -hs * 0.5), solid(0x9ac0c8, (ctx, x, y, w, h, side) => { if (side === 'front') { for (const k of [0.3, 0.55, 0.8]) band(ctx, x, y, w, h, 0x82a8b0, k, 0.06); blood(ctx, x, y, w, h, 1, rng('mask')); } }));
+    for (const s of [-1, 1]) add(head, 'mask-strap', B(s > 0 ? hs * 0.49 : -hs * 0.51, hs * 0.3, -hs * 0.5, s > 0 ? hs * 0.51 : -hs * 0.49, hs * 0.34, hs * 0.2), solid(0xe0e0e0));
+  },
+  truckerCap(H) {
+    const { hs, head, add, recipe } = H, c = recipe.hat ?? 0x8a2a2a;
+    add(head, 'cap', B(-hs * 0.53, hs * 0.82, -hs * 0.53, hs * 0.53, hs * 1.08, hs * 0.53), solid(c, (ctx, x, y, w, h, side) => { if (side === 'back' || side === 'left' || side === 'right') fill(ctx, x, y, w, h * 0.7, 0xe8e4d8); if (side === 'front') fill(ctx, x + w * 0.3, y + h * 0.3, w * 0.4, h * 0.3, 0xe8e4d8); }));
+    add(head, 'cap-bill', B(-hs * 0.42, hs * 0.82, -hs * 0.53 - 0.09, hs * 0.42, hs * 0.86, -hs * 0.53), solid(c));
+  },
+  bandanaNeck(H) {
+    const { b, body, torsoTop, add, hs } = H;
+    add(body, 'bandana', B(-hs * 0.38, torsoTop - 0.04, -b.torsoD / 2 - 0.02, hs * 0.38, torsoTop + 0.03, b.torsoD / 2 * 0.6), solid(0xa02a2a, (ctx, x, y, w, h) => blobs(ctx, x, y, w, h, 0xe0d0c0, 3, 2, rng('bandana'))));
+    add(body, 'bandana-tip', B(-0.04, torsoTop - 0.12, -b.torsoD / 2 - 0.025, 0.04, torsoTop - 0.03, -b.torsoD / 2 - 0.005), solid(0xa02a2a));
+  },
+  /** Torn: the left forearm and hand torn away, a bone stub and ragged flesh left. */
+  missingForearm(H) {
+    const { arms, b, add, remove } = H;
+    remove((n) => n === 'forearm.L' || n === 'hand.L');
+    add(arms.L.fore, 'stub-flesh', C(b.armW * 0.95, -0.06, 0, b.armD * 0.95), solid(0x6e1a1a));
+    add(arms.L.fore, 'stub-bone', C(0.04, -0.14, -0.05, 0.04), solid(0xe8e0c8));
+  },
+  /** Doctor: the lab coat's tails below the waist, open at the front. */
+  coatTails(H) {
+    const { b, body, legH, add, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2, c = recipe.outfit.top, len = 0.42;
+    const cloth = (ctx, x, y, ww, hh, side) => { fill(ctx, x, y, ww, hh, c); if (side !== 'top' && side !== 'bottom') { band(ctx, x, y, ww, hh, shade(c, 0.85), 0.92, 0.08); blood(ctx, x, y, ww, hh, 1, rng(`${recipe.id}|tails|${side}`)); } };
+    add(body, 'coat-back', B(-w - 0.02, legH - len, d, w + 0.02, legH + 0.04, d + 0.025), cloth);
+    for (const s of [-1, 1]) {
+      add(body, 'coat-side', B(s > 0 ? w : -w - 0.025, legH - len, -d - 0.02, s > 0 ? w + 0.025 : -w, legH + 0.04, d + 0.02), cloth);
+      add(body, 'coat-front', B(s > 0 ? w * 0.36 : -w - 0.02, legH - len, -d - 0.025, s > 0 ? w + 0.02 : -w * 0.36, legH + 0.04, -d), cloth);
+    }
+  },
+  /** A stethoscope round the neck: tubes down the chest, earpieces, the chest piece. */
+  stethoscope(H) {
+    const { b, body, torsoTop, add } = H, d = b.torsoD / 2, tube = 0x1a1a1e, steel = 0xc0c4c8;
+    add(body, 'steth-neck', B(-0.1, torsoTop - 0.015, -d - 0.02, 0.1, torsoTop + 0.01, d * 0.5), solid(tube));
+    add(body, 'steth-left', B(-0.1, torsoTop - 0.28, -d - 0.02, -0.08, torsoTop, -d - 0.005), solid(tube));
+    add(body, 'steth-right', B(0.08, torsoTop - 0.2, -d - 0.02, 0.1, torsoTop, -d - 0.005), solid(tube));
+    add(body, 'steth-ears', B(0.07, torsoTop - 0.23, -d - 0.03, 0.13, torsoTop - 0.2, -d - 0.005), solid(steel));
+    add(body, 'steth-chestpiece', B(-0.125, torsoTop - 0.33, -d - 0.035, -0.055, torsoTop - 0.27, -d - 0.005), solid(steel, (ctx, x, y, w, h, side) => { if (side === 'front') fill(ctx, x + w * 0.25, y + h * 0.25, w * 0.5, h * 0.5, 0x8a8e92); }));
+  },
+  /** A hospital ID badge on a lanyard. */
+  idBadge(H) {
+    const { b, body, torsoTop, add } = H, d = b.torsoD / 2;
+    add(body, 'lanyard', B(0.13, torsoTop - 0.3, -d - 0.012, 0.15, torsoTop - 0.02, -d - 0.004), solid(0x2a5ab0));
+    add(body, 'badge-card', B(0.1, torsoTop - 0.4, -d - 0.016, 0.18, torsoTop - 0.29, -d - 0.006), solid(0xf0f0f0, (ctx, x, y, w, h, side) => { if (side === 'front') { fill(ctx, x + w * 0.15, y + h * 0.15, w * 0.35, h * 0.4, 0x8a9aa8); fill(ctx, x + w * 0.15, y + h * 0.65, w * 0.7, h * 0.08, 0x2a5ab0); fill(ctx, x + w * 0.15, y + h * 0.8, w * 0.5, h * 0.06, 0x3a3a3a); } }));
+  },
+  /** A surgical mask pulled down under the chin. */
+  maskDown(H) {
+    const { hs, head, add } = H;
+    add(head, 'mask-down', B(-hs * 0.42, -hs * 0.08, -hs * 0.56, hs * 0.42, hs * 0.14, -hs * 0.2), solid(0x9ac0c8, (ctx, x, y, w, h, side) => { if (side === 'front') band(ctx, x, y, w, h, 0x82a8b0, 0.45, 0.12); }));
+    for (const s of [-1, 1]) add(head, 'mask-strap', B(s > 0 ? hs * 0.49 : -hs * 0.51, hs * 0.05, -hs * 0.5, s > 0 ? hs * 0.51 : -hs * 0.49, hs * 0.38, hs * 0.1), solid(0xe0e0e0));
+  },
+  /** Raider: a bandana tied over the nose and mouth. */
+  faceBandana(H) {
+    const { hs, head, add, recipe } = H, c = recipe.bandana ?? 0x8a1a1a;
+    add(head, 'face-bandana', B(-hs * 0.53, hs * 0.0, -hs * 0.535, hs * 0.53, hs * 0.44, hs * 0.53), solid(c, (ctx, x, y, w, h, side) => { blobs(ctx, x, y, w, h, 0xe0d0c0, 4, 2, rng(`${recipe.id}|bandana|${side}`)); if (side === 'back') fill(ctx, x + w * 0.4, y + h * 0.3, w * 0.2, h * 0.5, shade(c, 0.8)); }));
+    add(head, 'bandana-knot', B(-hs * 0.08, hs * 0.1, hs * 0.53, hs * 0.08, hs * 0.3, hs * 0.62), solid(shade(c, 0.85)));
+  },
+  // ── Mutants: the shapes their effects come from ─────────────────────────────────────────
+  /** Boomer: rolls of fat round the middle and a belly that heaves (its own fx node). */
+  fatRolls(H) {
+    const { b, body, legH, add, skin, recipe, fx } = H, w = b.torsoW / 2, d = b.torsoD / 2;
+    const flesh = (k) => (ctx, x, y, ww, hh, side) => { fill(ctx, x, y, ww, hh, shade(skin, k)); band(ctx, x, y, ww, hh, shade(skin, k * 0.75), 0.85, 0.15); blobs(ctx, x, y, ww, hh, shade(skin, 0.8), 2, 4, rng(`${recipe.id}|roll|${side}`)); };
+    for (const [y0, y1, out] of [[0.12, 0.3, 0.06], [0.36, 0.52, 0.045]]) add(body, 'fat-roll', B(-w - out, legH + b.torsoH * y0, -d - out, w + out, legH + b.torsoH * y1, d + out), flesh(0.95));
+    const belly = fx.node(body, 'belly', new THREE.Vector3(0, legH + b.torsoH * 0.32, -d));
+    add(belly, 'belly', B(-w * 0.75, -b.torsoH * 0.22, -0.16, w * 0.75, b.torsoH * 0.22, 0.02), flesh(1.02));
+    H.belly = belly;
+  },
+  /** Gasbag: cysts all over, each on a node of its own so it can swell (FX cysts). */
+  cysts(H) {
+    const { b, body, legH, torsoTop, arms, head, hs, add, skin, recipe, fx } = H, r = rng(`${recipe.id}|cysts`), w = b.torsoW / 2, d = b.torsoD / 2;
+    const cyst = (ctx, x, y, ww, hh) => { fill(ctx, x, y, ww, hh, shade(skin, 1.12)); fill(ctx, x + ww * 0.25, y + hh * 0.2, ww * 0.35, hh * 0.3, 0xd8d0b0); fill(ctx, x, y + hh * 0.8, ww, hh * 0.2, shade(skin, 0.8)); };
+    H.cysts = [];
+    const put = (parent, at, s) => { const n = fx.node(parent, 'cyst', at); add(n, 'cyst', B(-s / 2, -s / 2, -s / 2, s / 2, s / 2, s / 2), cyst); H.cysts.push(n); };
+    for (let i = 0; i < 7; i++) {
+      const face = r() < 0.5 ? -1 : 1, front = r() < 0.6;
+      put(body, front ? new THREE.Vector3((r() - 0.5) * w * 1.6, legH + b.torsoH * (0.15 + r() * 0.75), face * 0 - d - 0.01) : new THREE.Vector3(face * (w + 0.01), legH + b.torsoH * (0.2 + r() * 0.6), (r() - 0.5) * d), 0.07 + r() * 0.07);
+    }
+    for (const L of ['L', 'R']) put(arms[L].upper, new THREE.Vector3(L === 'L' ? -b.armW / 2 - 0.01 : b.armW / 2 + 0.01, -b.upperArm * 0.4, 0), 0.08);
+    put(head, new THREE.Vector3(hs * 0.35, hs * 0.75, -hs * 0.5), 0.07);
+    void torsoTop;
+  },
+  /** Scabbed: raised crusts of scar tissue on the torso, shoulders and shins. */
+  scabPlates(H) {
+    const { b, body, legH, torsoTop, arms, legs, add, skin, recipe } = H, r = rng(`${recipe.id}|plates`), w = b.torsoW / 2, d = b.torsoD / 2;
+    const crust = (ctx, x, y, ww, hh, side) => { fill(ctx, x, y, ww, hh, shade(skin, 0.82)); scabs(ctx, x, y, ww, hh, skin, rng(`${recipe.id}|crust|${side}${ww}`)); };
+    for (let i = 0; i < 5; i++) { const x0 = (r() - 0.5) * w * 1.4, y0 = legH + b.torsoH * (0.1 + r() * 0.75); add(body, 'crust', B(x0 - 0.07, y0 - 0.05, -d - 0.025, x0 + 0.07, y0 + 0.05, -d + 0.01), crust); }
+    for (let i = 0; i < 3; i++) { const x0 = (r() - 0.5) * w * 1.4, y0 = legH + b.torsoH * (0.2 + r() * 0.6); add(body, 'crust', B(x0 - 0.08, y0 - 0.06, d - 0.01, x0 + 0.08, y0 + 0.06, d + 0.025), crust); }
+    for (const L of ['L', 'R']) { add(arms[L].upper, 'crust', C(b.armW * 1.18, -0.16, 0.02, b.armD * 1.18), crust); add(legs[L].shin, 'crust', C(b.legW * 1.12, -b.shin * 0.6, -b.shin * 0.2, b.legD * 1.12), crust); }
+    void torsoTop;
+  },
+  /** Skeletal: bone armour (chest plate, pauldrons, bracers, greaves, a skull ridge) and black goo at the joints. */
+  bonePlates(H) {
+    const { b, body, legH, torsoTop, arms, legs, head, hs, add, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2;
+    const plate = (k) => (ctx, x, y, ww, hh, side) => bone(ctx, x, y, ww, hh, rng(`${recipe.id}|bone|${k}|${side}`));
+    const goo = solid(0x141014, (ctx, x, y, ww, hh) => fill(ctx, x + ww * 0.2, y + hh * 0.2, ww * 0.3, hh * 0.25, 0x3a3440));
+    add(body, 'chest-plate', B(-w * 0.85, legH + b.torsoH * 0.45, -d - 0.04, w * 0.85, torsoTop - 0.03, -d + 0.01), plate('chest'));
+    add(body, 'ab-plate', B(-w * 0.6, legH + b.torsoH * 0.12, -d - 0.03, w * 0.6, legH + b.torsoH * 0.4, -d + 0.01), plate('abs'));
+    add(body, 'back-plate', B(-w * 0.8, legH + b.torsoH * 0.3, d - 0.01, w * 0.8, torsoTop - 0.03, d + 0.04), plate('back'));
+    add(body, 'neck-goo', C(hs * 0.66, torsoTop - 0.02, torsoTop + 0.04, hs * 0.66), goo);
+    add(head, 'skull-ridge', B(-hs * 0.12, hs * 0.92, -hs * 0.56, hs * 0.12, hs * 1.12, hs * 0.5), plate('ridge'));
+    for (const L of ['L', 'R']) {
+      const sx = L === 'L' ? -1 : 1;
+      add(arms[L].upper, 'pauldron', B(-b.armW * 0.75, -0.12, -b.armD * 0.75, b.armW * 0.75, 0.06, b.armD * 0.75), plate(`p${L}`));
+      add(arms[L].fore, 'bracer', C(b.armW * 1.15, -b.forearm * 0.85, -b.forearm * 0.15, b.armD * 1.15), plate(`b${L}`));
+      add(arms[L].fore, 'elbow-goo', C(b.armW * 1.05, -0.03, 0.03, b.armD * 1.05), goo);
+      add(legs[L].shin, 'greave', B(-b.legW * 0.6, -b.shin * 0.85, -b.legD * 0.6 - 0.02, b.legW * 0.6, -b.shin * 0.1, -b.legD * 0.3), plate(`g${L}`));
+      add(legs[L].shin, 'knee-goo', C(b.legW * 1.04, -0.03, 0.03, b.legD * 1.04), goo);
+      void sx;
+    }
+  },
+  /**
+   * Skeletal: the body is bare bone and muscle. The solid torso and limbs are replaced by a rib
+   * cage (ribs with gaps, sternum, spine, collarbone, pelvis) round dark muscle, limb bones with
+   * knobbed joints and blocks of exposed muscle, bony hands and feet; black goo at the joints.
+   * `recipe.boneScale` thickens everything (the brute).
+   */
+  skeletalBody(H) {
+    const { b, body, legH, torsoTop, arms, legs, add, remove, recipe } = H, k = recipe.boneScale ?? 1, w = b.torsoW / 2, d = b.torsoD / 2;
+    remove((n) => /^(torso|neck|upper_arm|forearm|hand|thigh|shin|foot)(\.|$)/.test(n));
+    const BONE = (key) => (ctx, x, y, ww, hh, side) => bone(ctx, x, y, ww, hh, rng(`${recipe.id}|${key}|${side}`));
+    const MEAT = (key) => (ctx, x, y, ww, hh, side) => muscle(ctx, x, y, ww, hh, rng(`${recipe.id}|${key}|${side}`));
+    const goo = solid(0x141014, (ctx, x, y, ww, hh) => fill(ctx, x + ww * 0.2, y + hh * 0.2, ww * 0.3, hh * 0.25, 0x3a3440));
+    // Torso: muscle and organs inside, the rib cage round them.
+    add(body, 'core', C(b.torsoW * 0.5, legH + b.torsoH * 0.15, torsoTop - 0.06, b.torsoD * 0.5), MEAT('core'));
+    add(body, 'spine', C(0.06 * k, legH - 0.02, torsoTop + 0.03, 0.06 * k, 0, d * 0.6), BONE('spine'));
+    add(body, 'sternum', C(0.05 * k, torsoTop - b.torsoH * 0.55, torsoTop - 0.05, 0.035 * k, 0, -d + 0.02), BONE('sternum'));
+    add(body, 'collarbone', B(-w - 0.01, torsoTop - 0.05, -d * 0.4, w + 0.01, torsoTop, d * 0.2), BONE('collar'));
+    const ribs = 5, t = 0.028 * k;
+    for (let i = 0; i < ribs; i++) {
+      const y = torsoTop - 0.09 - i * (b.torsoH * 0.55) / ribs, rw = w * (0.95 - i * 0.04);
+      for (const s of [-1, 1]) {
+        add(body, 'rib', B(s > 0 ? 0.025 : -rw, y - t, -d, s > 0 ? rw : -0.025, y, -d + t), BONE(`rf${i}${s}`));
+        add(body, 'rib', B(s > 0 ? rw - t : -rw, y - t, -d, s > 0 ? rw : -rw + t, y, d * 0.6), BONE(`rs${i}${s}`));
+        add(body, 'rib', B(s > 0 ? 0 : -rw, y - t, d * 0.6 - t, s > 0 ? rw : 0, y, d * 0.6), BONE(`rb${i}${s}`));
+      }
+    }
+    add(body, 'pelvis', B(-w * 0.78, legH - 0.05, -d * 0.55, w * 0.78, legH + 0.11, d * 0.55), (ctx, x, y, ww, hh, side) => { bone(ctx, x, y, ww, hh, rng(`${recipe.id}|pelvis|${side}`)); if (side === 'front') { fill(ctx, x + ww * 0.2, y + hh * 0.3, ww * 0.18, hh * 0.45, 0x2a1a1a); fill(ctx, x + ww * 0.62, y + hh * 0.3, ww * 0.18, hh * 0.45, 0x2a1a1a); } });
+    // Arms.
+    for (const L of ['L', 'R']) {
+      const { upper, fore, hand } = arms[L];
+      add(upper, `humerus.${L}`, C(0.05 * k, -b.upperArm, 0.02, 0.05 * k), BONE(`hum${L}`));
+      add(upper, `biceps.${L}`, C(b.armW * 0.75, -b.upperArm * 0.8, -0.05, b.armD * 0.55, 0, -b.armD * 0.15), MEAT(`bic${L}`));
+      add(upper, `shoulder.${L}`, C(0.09 * k, -0.06, 0.03, 0.09 * k), BONE(`sh${L}`));
+      add(fore, `elbow.${L}`, C(0.08 * k, -0.04, 0.03, 0.08 * k), goo);
+      for (const s of [-1, 1]) add(fore, `forearm-bone.${L}`, C(0.028 * k, -b.forearm, -0.02, 0.03 * k, s * 0.022 * k), BONE(`fa${L}${s}`));
+      add(fore, `forearm-muscle.${L}`, C(b.armW * 0.6, -b.forearm * 0.55, -0.04, b.armD * 0.45, 0, b.armD * 0.12), MEAT(`fm${L}`));
+      add(hand, `palm.${L}`, C(b.handW * 0.75, -b.hand * 0.45, 0, 0.035 * k), BONE(`palm${L}`));
+      for (const fx of [-0.3, -0.1, 0.1, 0.3]) add(hand, `finger.${L}`, C(0.014 * k, -b.hand * 1.05, -b.hand * 0.42, 0.016 * k, fx * b.handW), BONE(`fi${L}${fx}`));
+    }
+    // Legs.
+    for (const L of ['L', 'R']) {
+      const { thigh, shin } = legs[L];
+      if (!shin) continue;
+      add(thigh, `femur.${L}`, C(0.06 * k, -b.thigh, 0.02, 0.06 * k), BONE(`fem${L}`));
+      add(thigh, `thigh-muscle.${L}`, C(b.legW * 0.8, -b.thigh * 0.85, -0.06, b.legD * 0.55, 0, -b.legD * 0.15), MEAT(`tm${L}`));
+      add(shin, `knee.${L}`, C(0.09 * k, -0.045, 0.035, 0.09 * k), goo);
+      add(shin, `tibia.${L}`, C(0.05 * k, -b.shin, -0.02, 0.05 * k), BONE(`tib${L}`));
+      add(shin, `calf.${L}`, C(b.legW * 0.55, -b.shin * 0.6, -0.08, b.legD * 0.4, 0, b.legD * 0.18), MEAT(`calf${L}`));
+      add(shin, `foot-bone.${L}`, B(-b.legW * 0.4, -b.shin - b.foot, b.legD / 2 - b.footD * 0.9, b.legW * 0.4, -b.shin - b.foot * 0.3, b.legD / 2 - 0.02), BONE(`ft${L}`));
+      add(shin, `heel.${L}`, C(0.06 * k, -b.shin - b.foot, -b.shin + 0.01, 0.06 * k, 0, b.legD * 0.2), BONE(`heel${L}`));
+    }
+  },
+  /** Skeletal brute: distorted plates of calcified bone grown over the shoulders and back. */
+  calcified(H) {
+    const { b, body, legH, torsoTop, arms, add, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2;
+    const plate = (k) => (ctx, x, y, ww, hh, side) => bone(ctx, x, y, ww, hh, rng(`${recipe.id}|calc|${k}|${side}`));
+    add(body, 'calc-back', B(-w * 0.85, legH + b.torsoH * 0.35, d * 0.6, w * 0.85, torsoTop - 0.02, d * 0.6 + 0.06), plate('back'));
+    for (const L of ['L', 'R']) add(arms[L].upper, 'calc-pauldron', B(-b.armW * 0.7, -0.14, -b.armD * 0.7, b.armW * 0.7, 0.07, b.armD * 0.7), plate(`p${L}`));
+  },
+  /** Skeletal brute: calcified spikes jutting from the shoulders and back. */
+  boneSpikes(H) {
+    const { b, body, torsoTop, arms, add, recipe } = H, d = b.torsoD / 2;
+    const plate = (k) => (ctx, x, y, ww, hh, side) => bone(ctx, x, y, ww, hh, rng(`${recipe.id}|spike|${k}|${side}`));
+    for (const [x, y, h] of [[-0.18, -0.12, 0.2], [0, -0.06, 0.26], [0.18, -0.12, 0.2], [-0.1, -0.35, 0.16], [0.1, -0.35, 0.16]]) add(body, 'back-spike', B(x - 0.035, torsoTop + y, d + 0.03, x + 0.035, torsoTop + y + 0.07, d + 0.03 + h), plate(`b${x}${y}`));
+    for (const L of ['L', 'R']) add(arms[L].upper, 'shoulder-spike', B(-0.03, 0.04, -0.03, 0.03, 0.22, 0.03), plate(`s${L}`));
+  },
+  // ── Variants (batch 2): the gear that sets each variant apart from its base ─────────────
+  /** Prisoner: steel cuffs on both wrists, a snapped chain hanging from one. */
+  cuffs(H) {
+    const { b, arms, add } = H, steel = 0x8a8e92, fw = b.armW * (b.forearmK ?? 0.95), fd = b.armD * 0.95;
+    const metal = solid(steel, (ctx, x, y, w, h, side) => { if (side !== 'top' && side !== 'bottom') band(ctx, x, y, w, h, 0xc8ccd0, 0.3, 0.2); });
+    for (const L of ['L', 'R']) add(arms[L].fore, `cuff.${L}`, C(fw + 0.03, -b.forearm + 0.005, -b.forearm + 0.05, fd + 0.03), metal);
+    for (let i = 0; i < 3; i++) {
+      const y = -b.forearm - 0.01 - i * 0.045;
+      add(arms.R.fore, 'chain-link', i % 2 ? C(0.014, y - 0.04, y, 0.04, 0, -fd / 2 - 0.03) : C(0.04, y - 0.04, y, 0.014, 0, -fd / 2 - 0.03), solid(shade(steel, 0.9)));
+    }
+  },
+  /** Military: a soft patrol cap in the uniform's camo (or plain), with a short brim. */
+  patrolCap(H) {
+    const { hs, head, add, recipe } = H, o = recipe.outfit, c = o.cap ?? o.camo?.[0] ?? o.top;
+    add(head, 'cap', B(-hs * 0.53, hs * 0.84, -hs * 0.53, hs * 0.53, hs * 1.06, hs * 0.53), solid(c, (ctx, x, y, w, h, side) => {
+      const r = rng(`${recipe.id}|cap|${side}`);
+      if (o.camo && !o.cap) for (const k of o.camo.slice(1)) { ctx.fillStyle = css(k); for (let i = 0; i < 3; i++) ctx.fillRect(x + r() * w, y + r() * h, w * 0.22, h * 0.18); }
+      if (side !== 'top' && side !== 'bottom') band(ctx, x, y, w, h, shade(c, 0.75), 0.88, 0.1);
+    }));
+    add(head, 'cap-brim', B(-hs * 0.4, hs * 0.84, -hs * 0.53 - 0.07, hs * 0.4, hs * 0.88, -hs * 0.53), solid(shade(c, 0.85)));
+  },
+  /** Sailor: a battered navy cap beaten down into the skull, crooked, with blood from under it. */
+  sailorCap(H) {
+    const { hs, head, add, recipe } = H, navy = 0x1c2638;
+    const tilt = joint(head, 'cap_tilt', 0, hs * 0.8, 0);
+    tilt.rotation.set(0.12, 0, 0.22);
+    add(tilt, 'cap', B(-hs * 0.55, -hs * 0.1, -hs * 0.55, hs * 0.55, hs * 0.16, hs * 0.55), solid(navy, (ctx, x, y, w, h, side) => {
+      const r = rng(`${recipe.id}|cap|${side}`);
+      blobs(ctx, x, y, w, h, shade(navy, 0.6), 2, Math.min(w, h) * 0.3, r);
+      if (side === 'front') { fill(ctx, x + w * 0.3, y + h * 0.25, w * 0.4, h * 0.3, 0xd0b050); fill(ctx, x + w * 0.38, y + h * 0.32, w * 0.24, h * 0.16, navy); }
+      if (side === 'top') fill(ctx, x + w * 0.2, y + h * 0.4, w * 0.5, h * 0.2, shade(navy, 0.55));
+    }));
+    add(tilt, 'cap-brim', B(-hs * 0.42, -hs * 0.1, -hs * 0.55 - 0.08, hs * 0.42, -hs * 0.06, -hs * 0.55), solid(shade(navy, 0.8)));
+    add(head, 'cap-blood', B(hs * 0.3, hs * 0.45, -hs * 0.505, hs * 0.38, hs * 0.82, -hs * 0.49), solid(0x5a0e0e));
+  },
+  /** Naval officer: a white-topped peaked cap with a black band, gold badge and black visor. */
+  officerCap(H) {
+    const { hs, head, add } = H, white = 0xe8e6e0;
+    add(head, 'cap-band', B(-hs * 0.53, hs * 0.82, -hs * 0.53, hs * 0.53, hs * 0.98, hs * 0.53), solid(BLACK, (ctx, x, y, w, h, side) => {
+      if (side === 'front') { fill(ctx, x + w * 0.38, y + h * 0.1, w * 0.24, h * 0.8, GOLD); fill(ctx, x + w * 0.45, y + h * 0.25, w * 0.1, h * 0.5, 0xe0e0e0); }
+    }));
+    add(head, 'cap-crown', B(-hs * 0.62, hs * 0.98, -hs * 0.66, hs * 0.62, hs * 1.1, hs * 0.58), solid(white, (ctx, x, y, w, h, side) => { blobs(ctx, x, y, w, h, 0x8a2020, 1, Math.min(w, h) * 0.2, rng(`officer-cap|${side}`)); }));
+    add(head, 'cap-visor', B(-hs * 0.44, hs * 0.8, -hs * 0.53 - 0.08, hs * 0.44, hs * 0.84, -hs * 0.53), solid(BLACK, (ctx, x, y, w, h, side) => { if (side === 'top') fill(ctx, x, y, w, h * 0.2, GOLD); }));
+  },
+  /** Officer: the chest torn open, ribs and muscle bared through the shredded jacket. */
+  tornChest(H) {
+    const { b, body, legH, torsoTop, add, recipe } = H, d = b.torsoD / 2, w = b.torsoW / 2;
+    const y0 = legH + b.torsoH * 0.35, y1 = torsoTop - 0.1, x0 = -w * 0.15, x1 = w * 0.75;
+    add(body, 'chest-wound', B(x0, y0, -d - 0.006, x1, y1, -d + 0.01), (ctx, x, y, ww, hh, side) => muscle(ctx, x, y, ww, hh, rng(`${recipe.id}|wound|${side}`)));
+    for (let i = 0; i < 4; i++) {
+      const y = y1 - 0.03 - i * (y1 - y0 - 0.04) / 4;
+      add(body, 'bare-rib', B(x0 + 0.02, y - 0.022, -d - 0.028, x1 - 0.015, y, -d - 0.004), (ctx, x, yy, ww, hh, side) => bone(ctx, x, yy, ww, hh, rng(`${recipe.id}|rib${i}|${side}`)));
+    }
+    // Ragged flaps of the jacket peeled back at the edges of the wound.
+    add(body, 'flap', B(x1, y0 - 0.02, -d - 0.035, x1 + 0.05, y1 + 0.02, -d - 0.005), solid(shade(recipe.outfit.top, 0.85)));
+    add(body, 'flap', B(x0 - 0.05, y0 + 0.04, -d - 0.03, x0, y1, -d - 0.005), solid(shade(recipe.outfit.top, 0.9)));
+  },
+  /** Kevlar: heavy ballistic panels sewn into the uniform, flesh grown over their edges. */
+  kevlarPlates(H) {
+    const { b, body, legH, torsoTop, arms, add, skin, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2, k = 0x2c3226;
+    const panel = (key) => (ctx, x, y, ww, hh, side) => { fill(ctx, x, y, ww, hh, k); band(ctx, x, y, ww, hh, shade(k, 0.7), 0.5, 0.04); if (side !== 'top' && side !== 'bottom') meld(ctx, x, y, ww, hh, skin, rng(`${recipe.id}|kev|${key}|${side}`)); };
+    add(body, 'kevlar-front', B(-w - 0.01, legH + b.torsoH * 0.18, -d - 0.05, w + 0.01, torsoTop - 0.03, -d), panel('f'));
+    add(body, 'kevlar-back', B(-w - 0.01, legH + b.torsoH * 0.18, d, w + 0.01, torsoTop - 0.03, d + 0.05), panel('b'));
+    add(body, 'kevlar-collar', B(-w * 0.7, torsoTop - 0.04, -d - 0.04, w * 0.7, torsoTop + 0.05, d + 0.04), panel('c'));
+    for (const L of ['L', 'R']) add(arms[L].upper, `kevlar-shoulder.${L}`, C(b.armW * 1.35, -0.13, 0.04, b.armD * 1.35), panel(`s${L}`));
+  },
+  /** Gear grown into the body: lumps of raw flesh gripping the collar, cuffs, hems and edges. */
+  meldLumps(H) {
+    const { b, body, legH, torsoTop, arms, legs, add, skin, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2, r = rng(`${recipe.id}|lumps`);
+    const flesh = (key) => (ctx, x, y, ww, hh, side) => { fill(ctx, x, y, ww, hh, shade(skin, 0.9)); meld(ctx, x, y, ww, hh, skin, rng(`${recipe.id}|lump|${key}|${side}`)); veins(ctx, x, y, ww, hh, 0x6a2a2a, 1, rng(`${recipe.id}|lv|${key}|${side}`)); };
+    for (const s of [-1, 1]) {
+      add(body, 'meld-collar', B(s * w * 0.35 - 0.06, torsoTop - 0.1, -d - 0.07, s * w * 0.35 + 0.06, torsoTop + 0.02, -d + 0.02), flesh(`c${s}`));
+      add(body, 'meld-side', B(s > 0 ? w - 0.02 : -w - 0.05, legH + b.torsoH * (0.3 + r() * 0.3), -0.06, s > 0 ? w + 0.05 : -w + 0.02, legH + b.torsoH * (0.55 + r() * 0.2), 0.08), flesh(`s${s}`));
+    }
+    for (const L of ['L', 'R']) {
+      add(arms[L].fore, `meld-cuff.${L}`, C(b.armW * 1.25, -b.forearm + 0.01, -b.forearm + 0.07, b.armD * 1.2), flesh(`f${L}`));
+      if (legs[L].shin) add(legs[L].shin, `meld-boot.${L}`, C(b.legW * 1.18, -b.shin + 0.02, -b.shin + 0.1, b.legD * 1.15), flesh(`b${L}`));
+    }
+  },
+  /** Rust fist: hands crushed into blocks of rusted scrap, the forearms banded with it. */
+  hammerFists(H) {
+    const { b, arms, add, remove, recipe } = H;
+    remove((n) => /^hand\./.test(n));
+    const scrap = (key) => (ctx, x, y, w, h, side) => { fill(ctx, x, y, w, h, 0x5e5c56); rust(ctx, x, y, w, h, rng(`${recipe.id}|scrap|${key}|${side}`)); if (side !== 'top') band(ctx, x, y, w, h, 0x3a3834, 0.2, 0.06); };
+    for (const L of ['L', 'R']) {
+      add(arms[L].hand, `hammer.${L}`, C(b.handW * 1.9, -b.hand * 1.9, 0.03, b.armD * 1.9), scrap(`h${L}`));
+      add(arms[L].hand, `hammer-spike.${L}`, C(0.05, -b.hand * 2.2, -b.hand * 1.85, 0.05, (L === 'L' ? -1 : 1) * b.handW * 0.4), scrap(`s${L}`));
+      add(arms[L].fore, `scrap-band.${L}`, C(b.armW * 1.3, -b.forearm * 0.7, -b.forearm * 0.35, b.armD * 1.3), scrap(`b${L}`));
+      add(arms[L].fore, `scrap-plate.${L}`, B(-b.armW * 0.6, -b.forearm * 0.95, -b.armD / 2 - 0.04, b.armW * 0.6, -b.forearm * 0.6, -b.armD / 2 + 0.01), scrap(`p${L}`));
+    }
+  },
+  /** Rust fist: chunks of rusted metal detritus stuck into the body. */
+  metalShards(H) {
+    const { b, body, legH, torsoTop, arms, add, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2, r = rng(`${recipe.id}|shards`);
+    const scrap = (key) => (ctx, x, y, ww, hh, side) => { fill(ctx, x, y, ww, hh, 0x6a665e); rust(ctx, x, y, ww, hh, rng(`${recipe.id}|chunk|${key}|${side}`)); };
+    for (let i = 0; i < 6; i++) {
+      const back = i >= 4, x0 = (r() - 0.5) * w * 1.5, y0 = legH + b.torsoH * (0.15 + r() * 0.75), s = 0.05 + r() * 0.06, out = 0.05 + r() * 0.07;
+      add(body, 'scrap', back ? B(x0 - s / 2, y0 - s / 2, d - 0.02, x0 + s / 2, y0 + s / 2, d + out) : B(x0 - s / 2, y0 - s / 2, -d - out, x0 + s / 2, y0 + s / 2, -d + 0.02), scrap(i));
+    }
+    add(body, 'scrap-pipe', B(w * 0.2, torsoTop - 0.1, d - 0.02, w * 0.2 + 0.04, torsoTop + 0.25, d + 0.04), scrap('pipe'));
+    for (const L of ['L', 'R']) add(arms[L].upper, `scrap.${L}`, B(-b.armW * 0.4, -0.12, -b.armD / 2 - 0.06, b.armW * 0.3, -0.03, -b.armD / 2 + 0.02), scrap(`u${L}`));
+  },
+  /** Black ops: a balaclava over the whole head, only the eyes showing through a slot. */
+  balaclava(H) {
+    const { hs, head, add, recipe } = H, c = 0x18181a;
+    add(head, 'balaclava', B(-hs * 0.52, -0.01, -hs * 0.525, hs * 0.52, hs * 0.86, hs * 0.52), solid(c, (ctx, x, y, w, h, side) => {
+      if (side !== 'front') return;
+      fill(ctx, x + w * 0.1, y + h * 0.42, w * 0.8, h * 0.16, recipe.skin);
+      for (const px of [0.28, 0.62]) { fill(ctx, x + w * px, y + h * 0.45, w * 0.12, h * 0.1, 0xe8e8e0); fill(ctx, x + w * (px + 0.03), y + h * 0.46, w * 0.06, h * 0.08, recipe.eye ?? 0x0a0a0a); }
+    }));
+  },
+  /** Night-vision goggles flipped up on the helmet's front mount. */
+  nvg(H) {
+    const { hs, head, add } = H;
+    add(head, 'nvg-mount', B(-hs * 0.1, hs * 0.98, -hs * 0.66, hs * 0.1, hs * 1.12, -hs * 0.58), solid(0x2a2a2a));
+    add(head, 'nvg', B(-hs * 0.24, hs * 1.08, -hs * 0.82, hs * 0.24, hs * 1.22, -hs * 0.64), solid(0x1e2420));
+    for (const s of [-1, 1]) add(head, 'nvg-tube', B(s * hs * 0.13 - hs * 0.07, hs * 1.1, -hs * 0.98, s * hs * 0.13 + hs * 0.07, hs * 1.2, -hs * 0.82), solid(0x161a16, (ctx, x, y, w, h, side) => { if (side === 'front') fill(ctx, x + w * 0.2, y + h * 0.2, w * 0.6, h * 0.6, 0x3a8a3a); }), { glow: true });
+  },
+  /** Hunter-killer: wisps of living shadow streaming off the shoulders, back and arms (they sway: FX). */
+  shadowWisps(H) {
+    const { b, body, torsoTop, legH, arms, head, hs, add, fx, recipe } = H, d = b.torsoD / 2, w = b.torsoW / 2, r = rng(`${recipe.id}|wisps`);
+    const smoke = (key) => (ctx, x, y, ww, hh, side) => shadow(ctx, x, y, ww, hh, rng(`${recipe.id}|wisp|${key}|${side}`));
+    H.wisps = [];
+    const wisp = (parent, at, size) => { const n = fx.node(parent, 'wisp', at); add(n, 'wisp', B(-size[0] / 2, 0, -size[2] / 2, size[0] / 2, size[1], size[2] / 2), smoke(H.wisps.length)); H.wisps.push(n); };
+    for (let i = 0; i < 5; i++) wisp(body, new THREE.Vector3((r() - 0.5) * w * 1.6, legH + b.torsoH * (0.4 + r() * 0.55), d + 0.02), [0.05 + r() * 0.04, 0.14 + r() * 0.12, 0.04]);
+    for (const L of ['L', 'R']) { wisp(arms[L].upper, new THREE.Vector3(0, 0.0, 0), [b.armW * 0.8, 0.16, b.armD * 0.8]); wisp(arms[L].fore, new THREE.Vector3((L === 'L' ? -1 : 1) * b.armW * 0.5, -b.forearm * 0.5, 0), [0.03, 0.12, 0.05]); }
+    wisp(head, new THREE.Vector3(0, hs, hs * 0.2), [hs * 0.6, 0.14, hs * 0.5]);
+    void torsoTop;
+  },
+  /** Mercenary ghost: shards of its gear split off and hanging just apart from the body (they shudder: FX). */
+  glassShards(H) {
+    const { b, body, legH, torsoTop, arms, legs, head, hs, add, fx, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2, r = rng(`${recipe.id}|glass`);
+    const cam = recipe.outfit.camo ?? [recipe.outfit.top];
+    const glass = (key) => (ctx, x, y, ww, hh, side) => { fill(ctx, x, y, ww, hh, cam[Math.floor(r() * cam.length)]); shards(ctx, x, y, ww, hh, rng(`${recipe.id}|gl|${key}|${side}`)); fill(ctx, x, y, ww, Math.max(1, hh * 0.15), 0xd8e8f0); };
+    H.shards = [];
+    const shard = (parent, at, s) => { const n = fx.node(parent, 'shard', at); add(n, 'shard', B(-s[0] / 2, -s[1] / 2, -s[2] / 2, s[0] / 2, s[1] / 2, s[2] / 2), glass(H.shards.length)); H.shards.push(n); };
+    for (let i = 0; i < 6; i++) { const side = r() < 0.5 ? -1 : 1; shard(body, new THREE.Vector3((r() - 0.5) * w * 1.6, legH + b.torsoH * (0.15 + r() * 0.8), side * (d + 0.05 + r() * 0.04)), [0.07 + r() * 0.06, 0.06 + r() * 0.08, 0.02]); }
+    for (const L of ['L', 'R']) {
+      const sx = L === 'L' ? -1 : 1;
+      shard(arms[L].upper, new THREE.Vector3(sx * (b.armW / 2 + 0.05), -b.upperArm * 0.4, 0), [0.02, 0.09, 0.08]);
+      if (legs[L].shin) shard(legs[L].thigh, new THREE.Vector3(sx * (b.legW / 2 + 0.04), -b.thigh * 0.5, -0.02), [0.02, 0.1, 0.07]);
+    }
+    shard(head, new THREE.Vector3(hs * 0.62, hs * 0.9, 0), [0.025, 0.08, 0.09]);
+    void torsoTop;
+  },
+  /** Bilious soldier: a burnt gas mask fused to the face, a hard fleshy proboscis pushing out through it. */
+  fusedGasMask(H) {
+    const { hs, head, add, skin, recipe } = H, rubber = 0x262420;
+    add(head, 'gas-mask', B(-hs * 0.47, hs * 0.06, -hs * 0.55, hs * 0.47, hs * 0.78, -hs * 0.48), solid(rubber, (ctx, x, y, w, h, side) => {
+      const r = rng(`${recipe.id}|mask|${side}`);
+      blobs(ctx, x, y, w, h, 0x4a3a28, 3, Math.min(w, h) * 0.25, r);
+      if (side === 'front') {
+        for (const px of [0.14, 0.56]) { fill(ctx, x + w * px, y + h * 0.18, w * 0.3, h * 0.26, 0x5a5a3a); ctx.strokeStyle = 'rgba(220,220,180,0.8)'; ctx.beginPath(); ctx.moveTo(x + w * (px + 0.05), y + h * 0.2); ctx.lineTo(x + w * (px + 0.2), y + h * 0.4); ctx.stroke(); }
+        meld(ctx, x, y + h * 0.7, w, h * 0.3, skin, r);
+        blobs(ctx, x, y + h * 0.55, w, h * 0.45, 0xb0a83a, 2, Math.min(w, h) * 0.08, r);
+      }
+      if (side === 'left' || side === 'right') meld(ctx, x, y, w, h, skin, r);
+    }));
+    for (const s of [-1, 1]) add(head, 'mask-strap', B(s > 0 ? hs * 0.49 : -hs * 0.51, hs * 0.38, -hs * 0.48, s > 0 ? hs * 0.51 : -hs * 0.49, hs * 0.48, hs * 0.5), solid(rubber));
+    // The proboscis: segments stepping forward and down from where the filter was.
+    const flesh = (k) => (ctx, x, y, w, h, side) => { fill(ctx, x, y, w, h, shade(0x8a6a50, k)); band(ctx, x, y, w, h, shade(0x8a6a50, k * 0.7), 0.2, 0.12); veins(ctx, x, y, w, h, 0xb0a83a, 1, rng(`${recipe.id}|prob|${k}|${side}`)); };
+    let z = -hs * 0.55, y = hs * 0.3, s = hs * 0.34;
+    for (let i = 0; i < 5; i++) {
+      add(head, 'proboscis', B(-s / 2, y - s / 2, z - 0.085, s / 2, y + s / 2, z + 0.005), flesh(1.25 - i * 0.07));
+      z -= 0.08; y -= 0.03 + i * 0.018; s *= 0.82;
+    }
+    H.tip = { node: head, at: new THREE.Vector3(0, y - s * 0.3, z + 0.02) };
+  },
+  /** Caustic soldier: cracked, melted armour plates fused to the hide, sagging in drips of slag. */
+  meltedPlates(H) {
+    const { b, body, legH, torsoTop, arms, legs, add, skin, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2;
+    const plate = (key) => (ctx, x, y, ww, hh, side) => { const r = rng(`${recipe.id}|melt|${key}|${side}`); fill(ctx, x, y, ww, hh, 0x50544a); shards(ctx, x, y, ww, hh, r); blobs(ctx, x, y, ww, hh, 0x8a8a2a, 2, Math.min(ww, hh) * 0.15, r); meld(ctx, x, y + hh * 0.7, ww, hh * 0.3, skin, r); };
+    add(body, 'melt-chest', B(-w * 0.9, legH + b.torsoH * 0.5, -d - 0.045, w * 0.55, torsoTop - 0.04, -d + 0.01), plate('c'));
+    add(body, 'melt-belly', B(-w * 0.2, legH + b.torsoH * 0.12, -d - 0.04, w * 0.85, legH + b.torsoH * 0.48, -d + 0.01), plate('b'));
+    add(body, 'melt-back', B(-w * 0.8, legH + b.torsoH * 0.3, d - 0.01, w * 0.8, torsoTop - 0.05, d + 0.045), plate('k'));
+    for (const [x, y, len] of [[-w * 0.6, legH + b.torsoH * 0.5, 0.1], [-w * 0.1, legH + b.torsoH * 0.5, 0.06], [w * 0.5, legH + b.torsoH * 0.12, 0.09]]) add(body, 'slag', B(x - 0.02, y - len, -d - 0.035, x + 0.02, y, -d - 0.005), plate(`s${x}`));
+    for (const L of ['L', 'R']) {
+      add(arms[L].upper, `melt-pauldron.${L}`, C(b.armW * 1.3, -0.14, 0.04, b.armD * 1.3), plate(`p${L}`));
+      if (legs[L].shin) add(legs[L].thigh, `melt-thigh.${L}`, B(-b.legW * 0.55, -b.thigh * 0.6, -b.legD / 2 - 0.035, b.legW * 0.55, -b.thigh * 0.1, -b.legD / 2 + 0.01), plate(`t${L}`));
+    }
+  },
+  /** Caustic soldier: mutated tubes on the face and arms that pulse and drip acid (FX). */
+  acidTubes(H) {
+    const { b, arms, head, hs, add, fx, recipe } = H;
+    const tube = (key) => (ctx, x, y, w, h, side) => { fill(ctx, x, y, w, h, 0x8a9a4a); band(ctx, x, y, w, h, 0x5a6a2a, 0.5, 0.12); veins(ctx, x, y, w, h, 0xd8d040, 1, rng(`${recipe.id}|tube|${key}|${side}`)); };
+    H.tubes = [];
+    const put = (parent, at, size, tipY) => { const n = fx.node(parent, 'tube', at); add(n, 'tube', B(-size[0] / 2, tipY, -size[2] / 2, size[0] / 2, tipY + size[1], size[2] / 2), tube(H.tubes.length)); H.tubes.push({ node: n, tip: new THREE.Vector3(0, tipY, 0) }); };
+    put(head, new THREE.Vector3(-hs * 0.32, hs * 0.35, -hs * 0.53), [0.035, 0.14, 0.035], -0.08);
+    put(head, new THREE.Vector3(hs * 0.38, hs * 0.5, -hs * 0.53), [0.03, 0.1, 0.03], -0.07);
+    for (const L of ['L', 'R']) {
+      const sx = L === 'L' ? -1 : 1;
+      put(arms[L].fore, new THREE.Vector3(sx * (b.armW / 2 + 0.018), -b.forearm * 0.35, 0), [0.035, 0.16, 0.035], -0.12);
+      put(arms[L].upper, new THREE.Vector3(sx * (b.armW / 2 + 0.018), -b.upperArm * 0.5, -0.02), [0.03, 0.1, 0.03], -0.06);
+    }
+  },
+  /** Sawbones: scrubs draped over the bone, hanging in ragged panels, and a stethoscope. */
+  drapedScrubs(H) {
+    const { b, body, legH, torsoTop, arms, add, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2, c = recipe.outfit.drape ?? 0x5a8aa8;
+    const cloth = (key) => (ctx, x, y, ww, hh, side) => { const r = rng(`${recipe.id}|drape|${key}|${side}`); fill(ctx, x, y, ww, hh, c); band(ctx, x, y, ww, hh, shade(c, 0.8), 0.1, 0.05); tears(ctx, x, y, ww, hh, 1, 0x141014, r); blood(ctx, x, y, ww, hh, 1, r); };
+    add(body, 'drape-front-l', B(-w * 1.02, legH + b.torsoH * 0.35, -d - 0.05, -w * 0.15, torsoTop + 0.01, -d - 0.03), cloth('fl'));
+    add(body, 'drape-front-r', B(w * 0.25, legH + b.torsoH * 0.55, -d - 0.05, w * 1.02, torsoTop + 0.01, -d - 0.03), cloth('fr'));
+    add(body, 'drape-back', B(-w * 1.02, legH + b.torsoH * 0.25, d * 0.6 + 0.02, w * 1.02, torsoTop + 0.01, d * 0.6 + 0.04), cloth('b'));
+    add(body, 'drape-shoulders', B(-w * 1.02, torsoTop, -d - 0.05, w * 1.02, torsoTop + 0.02, d * 0.6 + 0.04), cloth('s'));
+    for (const L of ['L', 'R']) add(arms[L].upper, `drape-sleeve.${L}`, C(b.armW * 1.05, -b.upperArm * 0.45, 0.02, b.armD * 1.05), cloth(`sl${L}`));
+  },
+  /** Wretched puker: trash (cans, bottles, plastic bags, scraps) stuck in black goo on the body. */
+  trash(H) {
+    const { b, body, legH, torsoTop, arms, legs, add, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2, r = rng(`${recipe.id}|trash`);
+    const goo = solid(0x141014, (ctx, x, y, ww, hh) => { fill(ctx, x + ww * 0.2, y + hh * 0.15, ww * 0.35, hh * 0.2, 0x3a3440); });
+    const can = solid(0xb02a2a, (ctx, x, y, ww, hh, side) => { if (side !== 'top' && side !== 'bottom') { band(ctx, x, y, ww, hh, 0xd0d0d0, 0.08, 0.12); band(ctx, x, y, ww, hh, 0xd0d0d0, 0.92, 0.12); fill(ctx, x + ww * 0.2, y + hh * 0.4, ww * 0.6, hh * 0.15, 0xf0f0f0); } });
+    const bottle = solid(0x2a6a3a, (ctx, x, y, ww, hh, side) => { if (side !== 'top' && side !== 'bottom') fill(ctx, x + ww * 0.15, y + hh * 0.4, ww * 0.7, hh * 0.25, 0xe0d8b0); });
+    const bag = solid(0xe0e0d8, (ctx, x, y, ww, hh, side) => blobs(ctx, x, y, ww, hh, 0xa8a8a0, 2, Math.min(ww, hh) * 0.2, rng(`${recipe.id}|bag|${side}`)));
+    const card = solid(0x9a7a4a, (ctx, x, y, ww, hh) => fill(ctx, x, y + hh * 0.45, ww, hh * 0.1, 0x6a5030));
+    const spot = (parent, x, y, z, front, item, size) => {
+      const out = front ? -1 : 1;
+      add(parent, 'goo', B(x - size * 0.9, y - size * 0.8, z + out * 0.035 - 0.02, x + size * 0.9, y + size * 0.8, z + out * 0.035 + 0.02), goo);
+      const [sx, sy, sz] = item === can ? [0.05, 0.08, 0.05] : item === bottle ? [0.04, 0.14, 0.04] : item === bag ? [0.1, 0.08, 0.06] : [0.09, 0.07, 0.015];
+      add(parent, 'trash', B(x - sx / 2 + size * 0.2, y - sy / 2, z + out * (0.03 + sz) - sz / 2, x + sx / 2 + size * 0.2, y + sy / 2, z + out * (0.03 + sz) + sz / 2), item);
+    };
+    spot(body, -w * 0.4, legH + b.torsoH * 0.6, -d, true, can, 0.07);
+    spot(body, w * 0.45, legH + b.torsoH * 0.3, -d, true, bag, 0.08);
+    spot(body, w * 0.2, legH + b.torsoH * 0.75, d, false, bottle, 0.07);
+    spot(body, -w * 0.4, legH + b.torsoH * 0.35, d, false, card, 0.07);
+    spot(arms.R.upper, 0, -b.upperArm * 0.5, -b.armD / 2, true, can, 0.05);
+    if (legs.L.shin) spot(legs.L.thigh, 0, -b.thigh * 0.5, -b.legD / 2, true, bottle, 0.05);
+    for (let i = 0; i < 4; i++) add(body, 'goo', B((r() - 0.5) * w * 1.6 - 0.04, legH + b.torsoH * r(), -d - 0.025, (r() - 0.5) * w * 1.6 + 0.04, legH + b.torsoH * r() + 0.08, -d + 0.01), goo);
+    void torsoTop;
+  },
+  /** Small gold hoop earrings. */
+  earrings(H) {
+    const { hs, head, add } = H;
+    for (const s of [-1, 1]) add(head, 'earring', B(s * hs * 0.5 + (s > 0 ? 0 : -0.02), hs * 0.22, -0.01, s * hs * 0.5 + (s > 0 ? 0.02 : 0), hs * 0.36, 0.01), solid(GOLD));
+  },
+  /** Resort staff: a sun visor (band and brim, no crown). */
+  visorCap(H) {
+    const { hs, head, add, recipe } = H, c = recipe.outfit.logo ?? 0xe0e0e0;
+    add(head, 'visor-band', B(-hs * 0.53, hs * 0.8, -hs * 0.53, hs * 0.53, hs * 0.9, hs * 0.53), solid(c));
+    add(head, 'visor', B(-hs * 0.44, hs * 0.8, -hs * 0.53 - 0.09, hs * 0.44, hs * 0.84, -hs * 0.53), solid(shade(c, 0.85)));
+  },
+  // ── Batch 3: military, armoured and acid ────────────────────────────────────────────────
+  /**
+   * Armoured: a powered combat exoskeleton round the whole body (enclosed helmet, chest and back
+   * plates with the power pack, pauldrons, gauntlets, thigh plates, greaves, servo joints),
+   * cracked, blood leaking from the cracks.
+   */
+  exoSuit(H) {
+    const { b, body, legH, torsoTop, arms, legs, head, hs, add, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2;
+    const steel = 0x3c4248, dark = 0x24282c;
+    const plate = (key, c = steel) => (ctx, x, y, ww, hh, side) => {
+      const r = rng(`${recipe.id}|exo|${key}|${side}`);
+      fill(ctx, x, y, ww, hh, c); fill(ctx, x, y, ww, Math.max(1, hh * 0.08), shade(c, 1.35));
+      if (side !== 'top' && side !== 'bottom') { band(ctx, x, y, ww, hh, shade(c, 0.7), 0.5, 0.03); if (r() < 0.6) { shards(ctx, x, y, ww, hh, r); blood(ctx, x, y, ww, hh, 1, r); } }
+    };
+    const servo = solid(dark, (ctx, x, y, ww, hh, side) => { if (side !== 'top' && side !== 'bottom') fill(ctx, x + ww * 0.3, y + hh * 0.3, ww * 0.4, hh * 0.4, 0x6a7078); });
+    // Helmet: encloses the head, a dead visor slit across the front.
+    add(head, 'exo-helmet', B(-hs * 0.6, -0.03, -hs * 0.6, hs * 0.6, hs * 1.1, hs * 0.58), (ctx, x, y, ww, hh, side) => {
+      plate('helm')(ctx, x, y, ww, hh, side);
+      if (side === 'front') { fill(ctx, x + ww * 0.1, y + hh * 0.36, ww * 0.8, hh * 0.16, 0x101418); fill(ctx, x + ww * 0.14, y + hh * 0.38, ww * 0.3, hh * 0.04, 0x3a6a8a); shards(ctx, x + ww * 0.1, y + hh * 0.36, ww * 0.8, hh * 0.16, rng(`${recipe.id}|visor`)); fill(ctx, x + ww * 0.3, y + hh * 0.66, ww * 0.4, hh * 0.18, dark); }
+    });
+    for (const s of [-1, 1]) add(head, 'exo-ear', B(s > 0 ? hs * 0.6 : -hs * 0.68, hs * 0.3, -hs * 0.2, s > 0 ? hs * 0.68 : -hs * 0.6, hs * 0.6, hs * 0.2), servo);
+    // Torso.
+    add(body, 'exo-collar', C(b.torsoW * 0.8, torsoTop - 0.03, torsoTop + 0.06, b.torsoD + 0.08), plate('collar', dark));
+    add(body, 'exo-chest', B(-w - 0.03, legH + b.torsoH * 0.42, -d - 0.06, w + 0.03, torsoTop - 0.01, -d + 0.01), plate('chest'));
+    for (let i = 0; i < 3; i++) { const y0 = legH + b.torsoH * (0.06 + i * 0.12); add(body, 'exo-ab', B(-w * 0.7, y0, -d - 0.045, w * 0.7, y0 + b.torsoH * 0.1, -d + 0.01), plate(`ab${i}`)); }
+    add(body, 'exo-back', B(-w - 0.02, legH + b.torsoH * 0.2, d - 0.01, w + 0.02, torsoTop - 0.01, d + 0.04), plate('back'));
+    add(body, 'exo-pack', B(-0.15, torsoTop - b.torsoH * 0.7, d + 0.04, 0.15, torsoTop - 0.04, d + 0.17), solid(dark, (ctx, x, y, ww, hh, side) => { if (side === 'back') { for (let k = 0; k < 4; k++) fill(ctx, x + ww * 0.15, y + hh * (0.15 + k * 0.12), ww * 0.7, hh * 0.05, 0x101214); fill(ctx, x + ww * 0.4, y + hh * 0.72, ww * 0.2, hh * 0.1, 0x8a2a1a); } }));
+    add(body, 'exo-hip', B(-w - 0.025, legH - 0.04, -d - 0.03, w + 0.025, legH + 0.05, d + 0.03), plate('hip', dark));
+    // Arms and legs.
+    for (const L of ['L', 'R']) {
+      const sx = L === 'L' ? -1 : 1, { upper, fore, hand } = arms[L];
+      add(upper, `exo-pauldron.${L}`, B(-b.armW * 0.78, -0.13, -b.armD * 0.78, b.armW * 0.78, 0.07, b.armD * 0.78), plate(`p${L}`));
+      add(upper, `exo-strut.${L}`, B(sx > 0 ? b.armW / 2 : -b.armW / 2 - 0.025, -b.upperArm, -0.02, sx > 0 ? b.armW / 2 + 0.025 : -b.armW / 2, -0.12, 0.02), servo);
+      add(fore, `exo-elbow.${L}`, C(b.armW * 1.18, -0.04, 0.04, b.armD * 1.18), servo);
+      add(fore, `exo-gauntlet.${L}`, C(b.armW * 1.22, -b.forearm + 0.01, -0.06, b.armD * 1.22), plate(`g${L}`));
+      add(hand, `exo-knuckles.${L}`, B(-b.handW * 0.55, -b.hand * 0.6, -b.armD * 0.6, b.handW * 0.55, -b.hand * 0.1, -b.armD * 0.35), plate(`k${L}`, dark));
+      const { thigh, shin } = legs[L];
+      if (!shin) continue;
+      add(thigh, `exo-thigh.${L}`, B(-b.legW * 0.62, -b.thigh * 0.85, -b.legD * 0.62, b.legW * 0.62, -0.05, b.legD * 0.2), plate(`t${L}`));
+      add(shin, `exo-knee.${L}`, C(b.legW * 1.2, -0.05, 0.05, b.legD * 1.2), servo);
+      add(shin, `exo-greave.${L}`, C(b.legW * 1.22, -b.shin + 0.02, -0.06, b.legD * 1.22), plate(`s${L}`));
+      add(shin, `exo-boot.${L}`, B(-b.legW * 0.62, -b.shin - b.foot - 0.01, b.legD / 2 - b.footD - 0.02, b.legW * 0.62, -b.shin + 0.01, b.legD / 2 + 0.02), plate(`b${L}`, dark));
+    }
+  },
+  /** Kevlar brute/hulk: scraps of Kevlar and armour grown into the hide, edged with split skin. */
+  kevlarHide(H) {
+    const { b, body, legH, torsoTop, arms, legs, add, skin, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2, r = rng(`${recipe.id}|hide`);
+    const k = 0x3a3e30;
+    const patch = (key) => (ctx, x, y, ww, hh, side) => { const rr = rng(`${recipe.id}|kh|${key}|${side}`); fill(ctx, x, y, ww, hh, k); band(ctx, x, y, ww, hh, shade(k, 0.7), 0.5, 0.06); meld(ctx, x, y, ww, hh, skin, rr); };
+    for (let i = 0; i < 7; i++) {
+      const back = i >= 4, x0 = (r() - 0.5) * w * 1.5, y0 = legH + b.torsoH * (0.1 + r() * 0.8), sw = w * (0.3 + r() * 0.35), sh = b.torsoH * (0.12 + r() * 0.14);
+      add(body, 'kevlar', back ? B(x0 - sw / 2, y0 - sh / 2, d - 0.01, x0 + sw / 2, y0 + sh / 2, d + 0.025) : B(x0 - sw / 2, y0 - sh / 2, -d - 0.025, x0 + sw / 2, y0 + sh / 2, -d + 0.01), patch(i));
+    }
+    for (const L of ['L', 'R']) {
+      add(arms[L].upper, `kevlar.${L}`, B(-b.armW * 0.58, -b.upperArm * 0.7, -b.armD * 0.58, b.armW * 0.58, -b.upperArm * 0.25, b.armD * 0.1), patch(`u${L}`));
+      if (legs[L].shin) add(legs[L].thigh, `kevlar-thigh.${L}`, B(-b.legW * 0.58, -b.thigh * 0.7, -b.legD * 0.58, b.legW * 0.58, -b.thigh * 0.3, -b.legD * 0.3), patch(`t${L}`));
+    }
+    void torsoTop;
+  },
+  /** Kevlar brute: hands fused into big leathery cudgels. */
+  cudgelHands(H) {
+    const { b, arms, add, remove, skin, recipe } = H;
+    remove((n) => /^hand\./.test(n));
+    const leather = (key) => (ctx, x, y, w, h, side) => { const r = rng(`${recipe.id}|cudgel|${key}|${side}`); fill(ctx, x, y, w, h, shade(skin, 0.72)); blobs(ctx, x, y, w, h, shade(skin, 0.55), 3, Math.min(w, h) * 0.2, r); fill(ctx, x + w * 0.2, y + h * 0.3, w * 0.4, h * 0.2, 0x3a3e30); stitches(ctx, x, y, w, h, r); };
+    for (const L of ['L', 'R']) {
+      add(arms[L].hand, `cudgel.${L}`, C(b.handW * 1.35, -b.hand * 2.1, 0.02, b.armD * 1.35), leather(L));
+      add(arms[L].hand, `cudgel-knot.${L}`, C(b.handW * 1.6, -b.hand * 1.9, -b.hand * 1.2, b.armD * 1.6), leather(`k${L}`));
+    }
+  },
+  /** Kevlar hulk: forearms twisted into enormous clubs of misshapen bone, reaching the ground behind (pose: drag). */
+  boneClubs(H) {
+    const { b, arms, add, remove, torsoTop, recipe } = H;
+    remove((n) => /^(forearm|hand)\./.test(n));
+    const BONE = (key) => (ctx, x, y, w, h, side) => bone(ctx, x, y, w, h, rng(`${recipe.id}|club|${key}|${side}`));
+    // The arm hangs 0.3 rad back (pose drag): from the elbow to the ground along the arm.
+    // Less the dip of the club head's back corner, which the swing lowers by depth/2 · sin(0.3).
+    const len = (torsoTop - 0.02) / Math.cos(0.3) - b.upperArm - b.armD * 0.8 * Math.sin(0.3) - 0.01;
+    for (const L of ['L', 'R']) {
+      const fore = arms[L].fore, sx = L === 'L' ? -1 : 1;
+      add(fore, `club.${L}`, C(b.armW * 1.05, -len * 0.7, 0.02, b.armD * 1.05), BONE(`a${L}`));
+      add(fore, `club-head.${L}`, C(b.armW * 1.7, -len + 0.01, -len * 0.62, b.armD * 1.6), BONE(`h${L}`));
+      add(fore, `club-lump.${L}`, C(b.armW * 0.7, -len * 0.75, -len * 0.45, b.armD * 0.8, sx * b.armW * 0.75, 0), BONE(`l${L}`));
+      add(fore, `club-knob.${L}`, C(b.armW * 0.6, -len * 0.4, -len * 0.25, b.armD * 0.6, 0, -b.armD * 0.6), BONE(`n${L}`));
+    }
+  },
+  /** Bestial stalker: dagger-like claws reaching forward from each hand. */
+  claws(H) {
+    const { b, arms, add, recipe } = H;
+    for (const L of ['L', 'R']) for (const fx of [-0.32, 0, 0.32]) add(arms[L].hand, `claw.${L}`, B(fx * b.handW - 0.012, -b.hand * 0.95, -b.armD / 2 - 0.17, fx * b.handW + 0.012, -b.hand * 0.75, -b.armD / 2 + 0.02), (ctx, x, y, w, h, side) => bone(ctx, x, y, w, h, rng(`${recipe.id}|claw|${L}${fx}|${side}`)));
+  },
+  /** Bestial stalker: the skin split along the back and arms, strands of muscle showing through. */
+  splitSkin(H) {
+    const { b, body, legH, torsoTop, arms, add, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2;
+    const MEAT = (key) => (ctx, x, y, ww, hh, side) => muscle(ctx, x, y, ww, hh, rng(`${recipe.id}|split|${key}|${side}`));
+    for (const x of [-w * 0.55, -w * 0.15, w * 0.3, w * 0.65]) add(body, 'muscle-strand', B(x - 0.03, legH + b.torsoH * 0.15, d - 0.01, x + 0.03, torsoTop - 0.04, d + 0.03), MEAT(`b${x}`));
+    for (const L of ['L', 'R']) {
+      const sx = L === 'L' ? -1 : 1;
+      add(arms[L].upper, `muscle-strand.${L}`, B(sx > 0 ? b.armW / 2 - 0.01 : -b.armW / 2 - 0.025, -b.upperArm * 0.9, -0.03, sx > 0 ? b.armW / 2 + 0.025 : -b.armW / 2 + 0.01, -0.03, 0.03), MEAT(`u${L}`));
+      add(arms[L].fore, `muscle-strand.${L}`, B(-0.03, -b.forearm * 0.85, b.armD / 2 - 0.01, 0.03, -0.03, b.armD / 2 + 0.025), MEAT(`f${L}`));
+    }
+  },
+  /** Bestial stalker: teeth grown into spikes of bone, jutting from the mouth. */
+  boneTeeth(H) {
+    const { hs, head, add, recipe } = H;
+    const BONE = (k) => (ctx, x, y, w, h, side) => bone(ctx, x, y, w, h, rng(`${recipe.id}|tooth|${k}|${side}`));
+    for (const [x, up] of [[-0.3, 1], [-0.12, 0], [0.08, 1], [0.26, 0], [0.38, 1]]) {
+      const y0 = up ? hs * 0.06 : hs * 0.2, y1 = up ? hs * 0.3 : hs * 0.42;
+      add(head, 'bone-tooth', B(x * hs - 0.012, y0, -hs * 0.5 - 0.05, x * hs + 0.012, y1, -hs * 0.5 + 0.01), BONE(`${x}`));
+    }
+  },
+  /** Bestial stalker: the pulverised remains of its gear (a strip of vest, a cracked helmet shell, the unit insignia). */
+  gearScraps(H) {
+    const { b, body, legH, torsoTop, head, hs, add, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2, o = recipe.outfit;
+    const cam = o.camo ?? [0x5a6040, 0x3e4430];
+    const camo = (key) => (ctx, x, y, ww, hh, side) => { const r = rng(`${recipe.id}|scrap|${key}|${side}`); fill(ctx, x, y, ww, hh, cam[0]); for (const c of cam.slice(1)) { ctx.fillStyle = css(c); for (let i = 0; i < 3; i++) ctx.fillRect(x + r() * ww, y + r() * hh, ww * 0.25, hh * 0.2); } tears(ctx, x, y, ww, hh, 1, 0x3a1a1a, r); };
+    add(body, 'vest-scrap', B(-w * 0.9, torsoTop - b.torsoH * 0.45, -d - 0.04, w * 0.1, torsoTop - 0.02, -d + 0.01), camo('vest'));
+    add(body, 'strap-scrap', B(-w * 0.9, legH + b.torsoH * 0.5, -d - 0.035, -w * 0.6, torsoTop, d + 0.035), solid(0x2a2a22));
+    add(head, 'helmet-shard', B(-hs * 0.58, hs * 0.8, -hs * 0.2, hs * 0.1, hs * 1.08, hs * 0.6), camo('helm'));
+    if (o.insignia) add(body, 'insignia', B(w * 0.2, torsoTop - 0.16, -d - 0.03, w * 0.55, torsoTop - 0.07, -d - 0.02), solid(0x141414, (ctx, x, y, ww, hh, side) => { if (side === 'front') { fill(ctx, x + ww * 0.3, y + hh * 0.2, ww * 0.4, hh * 0.45, o.insignia); fill(ctx, x + ww * 0.46, y + hh * 0.55, ww * 0.08, hh * 0.3, o.insignia); } }));
+  },
+  /** Pilot: a flight helmet with its tinted visor raised, the oxygen mask hanging off one side on its hose. */
+  flightHelmet(H) {
+    const { b, body, torsoTop, hs, head, add, recipe } = H, shell = recipe.outfit.helmet ?? 0x5a6248, d = b.torsoD / 2;
+    add(head, 'flight-helmet', B(-hs * 0.6, hs * 0.3, -hs * 0.56, hs * 0.6, hs * 1.14, hs * 0.62), solid(shell, (ctx, x, y, w, h, side) => {
+      if (side === 'front') { fill(ctx, x, y + h * 0.55, w, h * 0.45, recipe.skin); fill(ctx, x + w * 0.05, y + h * 0.5, w * 0.9, h * 0.06, 0x1a1a1a); }
+      if (side === 'left' || side === 'right') { fill(ctx, x + w * 0.3, y + h * 0.45, w * 0.4, h * 0.35, shade(shell, 0.8)); fill(ctx, x + w * 0.4, y + h * 0.55, w * 0.2, h * 0.15, 0x1a1a1a); }
+    }));
+    add(head, 'visor-housing', B(-hs * 0.5, hs * 0.98, -hs * 0.66, hs * 0.5, hs * 1.12, -hs * 0.54), solid(shade(shell, 0.85)));
+    add(head, 'visor', B(-hs * 0.46, hs * 1.0, -hs * 0.68, hs * 0.46, hs * 1.1, -hs * 0.64), solid(0x2a2418, (ctx, x, y, w, h, side) => { if (side === 'front') { ctx.fillStyle = 'rgba(255,220,150,0.35)'; ctx.fillRect(x + w * 0.1, y + h * 0.2, w * 0.15, h * 0.6); } }));
+    // The mask hangs by one strap at the left cheek; the hose runs down to the chest connector.
+    add(head, 'oxygen-mask', B(-hs * 0.72, hs * 0.02, -hs * 0.5, -hs * 0.5, hs * 0.3, -hs * 0.2), solid(0x3a3e36, (ctx, x, y, w, h, side) => { if (side === 'front' || side === 'left') fill(ctx, x + w * 0.3, y + h * 0.3, w * 0.4, h * 0.4, 0x1a1a1a); }));
+    add(body, 'oxygen-hose', B(-0.16, torsoTop - 0.3, -d - 0.035, -0.12, torsoTop + 0.03, -d - 0.005), solid(0x2a2c26, (ctx, x, y, w, h) => { for (let k = 0; k < 6; k++) fill(ctx, x, y + h * k / 6, w, 1, 0x1a1a18); }));
+    add(body, 'oxygen-connector', B(-0.18, torsoTop - 0.34, -d - 0.04, -0.1, torsoTop - 0.28, -d - 0.005), solid(0x8a8a80));
+  },
+  /** SWAT: a protective mask (rubber, two lenses, a filter) under a black helmet. */
+  swatMask(H) {
+    const { hs, head, add } = H, rubber = 0x1e2022;
+    add(head, 'swat-mask', B(-hs * 0.48, hs * 0.04, -hs * 0.55, hs * 0.48, hs * 0.8, -hs * 0.46), solid(rubber, (ctx, x, y, w, h, side) => {
+      if (side !== 'front') return;
+      for (const px of [0.12, 0.56]) { fill(ctx, x + w * px, y + h * 0.2, w * 0.32, h * 0.28, 0x6a7478); fill(ctx, x + w * (px + 0.1), y + h * 0.28, w * 0.1, h * 0.1, 0x0a0a0a); ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(x + w * (px + 0.03), y + h * 0.22, w * 0.05, h * 0.2); }
+    }));
+    add(head, 'swat-filter', B(-hs * 0.16, hs * 0.04, -hs * 0.55 - 0.08, hs * 0.16, hs * 0.26, -hs * 0.55), solid(0x2a2c2e, (ctx, x, y, w, h, side) => { if (side === 'front') { for (let k = 0; k < 3; k++) fill(ctx, x + w * 0.2, y + h * (0.25 + k * 0.2), w * 0.6, h * 0.08, 0x0a0a0a); } }));
+    for (const s of [-1, 1]) add(head, 'mask-strap', B(s > 0 ? hs * 0.49 : -hs * 0.51, hs * 0.45, -hs * 0.46, s > 0 ? hs * 0.51 : -hs * 0.49, hs * 0.55, hs * 0.5), solid(rubber));
+  },
+  /** Corrosive: lumps of semi-congealed acid holding the bloated body together (they swell: FX cystPulse), a swollen acid sac at the throat. */
+  acidGel(H) {
+    const { b, body, legH, torsoTop, arms, legs, head, hs, add, fx, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2, r = rng(`${recipe.id}|gel`);
+    const gel = (key) => (ctx, x, y, ww, hh, side) => { fill(ctx, x, y, ww, hh, 0xb8c03a); fill(ctx, x + ww * 0.15, y + hh * 0.15, ww * 0.3, hh * 0.2, 0xf0f4a0); blobs(ctx, x, y, ww, hh, 0x8a9420, 2, Math.min(ww, hh) * 0.2, rng(`${recipe.id}|gel|${key}|${side}`)); };
+    H.cysts = [];
+    const put = (parent, at, s) => { const n = fx.node(parent, 'gel', at); add(n, 'gel', B(-s[0] / 2, -s[1] / 2, -s[2] / 2, s[0] / 2, s[1] / 2, s[2] / 2), gel(H.cysts.length)); H.cysts.push(n); };
+    for (let i = 0; i < 6; i++) put(body, new THREE.Vector3((r() - 0.5) * w * 1.5, legH + b.torsoH * (0.1 + r() * 0.75), -d - 0.01), [0.1 + r() * 0.08, 0.06 + r() * 0.08, 0.05]);
+    for (let i = 0; i < 3; i++) put(body, new THREE.Vector3((r() - 0.5) * w * 1.5, legH + b.torsoH * (0.2 + r() * 0.6), d + 0.01), [0.12, 0.08, 0.05]);
+    for (const s of [-1, 1]) put(body, new THREE.Vector3(s * (w + 0.01), legH + b.torsoH * (0.3 + r() * 0.4), 0), [0.05, 0.14, 0.12]);
+    for (const L of ['L', 'R']) { put(arms[L].upper, new THREE.Vector3(0, -b.upperArm * 0.5, -b.armD / 2 - 0.01), [b.armW * 0.9, 0.08, 0.04]); if (legs[L].shin) put(legs[L].thigh, new THREE.Vector3(0, -b.thigh * 0.4, -b.legD / 2 - 0.01), [b.legW * 0.9, 0.08, 0.04]); }
+    put(head, new THREE.Vector3(0, hs * 0.02, -hs * 0.35), [hs * 0.7, hs * 0.28, hs * 0.4]);
+    void torsoTop;
+  },
+  /** Spitter: the puckered mouth that fills most of the face, drooping cheeks either side. */
+  puckerMouth(H) {
+    const { hs, head, add, skin } = H;
+    add(head, 'pucker', B(-hs * 0.22, hs * 0.06, -hs * 0.5 - 0.075, hs * 0.22, hs * 0.5, -hs * 0.5 + 0.01), solid(shade(skin, 0.92), (ctx, x, y, w, h, side) => {
+      if (side !== 'front') return;
+      ctx.strokeStyle = css(shade(skin, 0.6)); ctx.lineWidth = 2;
+      for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2; ctx.beginPath(); ctx.moveTo(x + w / 2 + Math.cos(a) * w * 0.14, y + h / 2 + Math.sin(a) * h * 0.14); ctx.lineTo(x + w / 2 + Math.cos(a) * w * 0.45, y + h / 2 + Math.sin(a) * h * 0.45); ctx.stroke(); }
+      fill(ctx, x + w * 0.38, y + h * 0.38, w * 0.24, h * 0.24, 0x2a0a0a); fill(ctx, x + w * 0.44, y + h * 0.6, w * 0.12, h * 0.15, 0xc8c040);
+    }));
+    for (const s of [-1, 1]) add(head, 'cheek', B(s > 0 ? hs * 0.24 : -hs * 0.48, -0.07, -hs * 0.5 - 0.035, s > 0 ? hs * 0.48 : -hs * 0.24, hs * 0.32, -hs * 0.5 + 0.01), solid(shade(skin, 0.95), (ctx, x, y, w, h, side) => { if (side === 'front') { fill(ctx, x, y + h * 0.8, w, h * 0.2, shade(skin, 0.75)); veins(ctx, x, y, w, h, shade(skin, 0.6), 1, rng(`spitter-cheek|${s}`)); } }));
+  },
+  /** Spitter: a swollen, nearly translucent yellow stomach (it swells: FX stomachPulse). */
+  translucentBelly(H) {
+    const { b, body, legH, add, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2;
+    const belly = H.fx.node(body, 'belly', new THREE.Vector3(0, legH + b.torsoH * 0.3, -d));
+    add(belly, 'belly', B(-w * 0.8, -b.torsoH * 0.24, -0.15, w * 0.8, b.torsoH * 0.2, 0.02), (ctx, x, y, ww, hh, side) => {
+      const r = rng(`${recipe.id}|belly|${side}`);
+      fill(ctx, x, y, ww, hh, 0xd8d078); fill(ctx, x + ww * 0.2, y + hh * 0.2, ww * 0.6, hh * 0.5, 0xe8e4a0);
+      veins(ctx, x, y, ww, hh, 0x9a8a3a, 3, r); blobs(ctx, x, y, ww, hh, 0xb8a840, 2, Math.min(ww, hh) * 0.15, r);
+    });
+    H.belly = belly;
+  },
+  /** Child: a small backpack. */
+  backpack(H) {
+    const { b, body, legH, torsoTop, add } = H, d = b.torsoD / 2, pack = 0x7a4a8e;
+    add(body, 'backpack', B(-b.torsoW * 0.36, legH + b.torsoH * 0.2, d, b.torsoW * 0.36, torsoTop - 0.03, d + 0.1), solid(pack, (ctx, x, y, w, h, side) => { if (side === 'back') { fill(ctx, x + w * 0.15, y + h * 0.5, w * 0.7, h * 0.35, shade(pack, 0.8)); fill(ctx, x + w * 0.45, y + h * 0.1, w * 0.1, h * 0.1, 0xe0c040); } }));
+  },
+  /** Fat: a belly pushing out under a shirt that rides up. */
+  belly(H) {
+    const { b, body, legH, add, recipe } = H, d = b.torsoD / 2;
+    add(body, 'belly', B(-b.torsoW * 0.42, legH + 0.05, -d - 0.1, b.torsoW * 0.42, legH + b.torsoH * 0.62, -d), (ctx, x, y, w, h, side) => {
+      fill(ctx, x, y, w, h, recipe.skin);
+      if (side === 'front' || side === 'left' || side === 'right' || side === 'top') fill(ctx, x, y, w, h * (side === 'top' ? 1 : 0.38), recipe.outfit.top);
+      if (side === 'front') { fill(ctx, x + w * 0.47, y + h * 0.62, w * 0.06, h * 0.06, shade(recipe.skin, 0.6)); blood(ctx, x, y + h * 0.4, w, h * 0.6, 1, rng(`${recipe.id}|belly`)); }
+    });
+  },
+  /** Brute: a hump of muscle on the back and swollen shoulders, with festering wounds. */
+  hump(H) {
+    const { b, body, torsoTop, add, skin, recipe } = H, d = b.torsoD / 2;
+    const flesh = (ctx, x, y, w, h, side) => { fill(ctx, x, y, w, h, skin); wounds(ctx, x, y, w, h, 2, rng(`${recipe.id}|hump|${side}`)); };
+    add(body, 'hump', B(-b.torsoW * 0.32, torsoTop - 0.34, d - 0.02, b.torsoW * 0.32, torsoTop + 0.08, d + 0.14), flesh);
+  },
+  muscles(H) {
+    const { b, arms, add, skin, recipe } = H;
+    for (const L of ['L', 'R']) add(arms[L].upper, `muscle.${L}`, C(b.armW * 1.4, -b.upperArm * 0.55, 0.05, b.armD * 1.35), (ctx, x, y, w, h, side) => { fill(ctx, x, y, w, h, skin); wounds(ctx, x, y, w, h, 1, rng(`${recipe.id}|muscle${L}|${side}`)); veins(ctx, x, y, w, h, shade(skin, 0.6), 1, rng(`${recipe.id}|mv${L}${side}`)); });
+  },
+  /** Hulk: lumps of swollen flesh on the back and arms, forearms as wide as trash cans. */
+  lumps(H) {
+    const { b, body, torsoTop, arms, add, skin, recipe } = H, d = b.torsoD / 2;
+    const flesh = (k) => (ctx, x, y, w, h, side) => { fill(ctx, x, y, w, h, shade(skin, k)); wounds(ctx, x, y, w, h, 1, rng(`${recipe.id}|lump${k}|${side}`)); };
+    add(body, 'lump-back', B(-b.torsoW * 0.38, torsoTop - 0.5, d - 0.02, b.torsoW * 0.1, torsoTop + 0.1, d + 0.22), flesh(0.95));
+    add(body, 'lump-back2', B(b.torsoW * 0.05, torsoTop - 0.75, d - 0.02, b.torsoW * 0.4, torsoTop - 0.3, d + 0.16), flesh(0.9));
+    for (const L of ['L', 'R']) add(arms[L].fore, `fore-lump.${L}`, C(b.armW * 1.25, -b.forearm * 0.85, -b.forearm * 0.15, b.armD * 1.25), flesh(1.02));
+  },
+  /** Shrieker: a swollen chest, and ragged stumps where the jaw was torn away. */
+  chestSwell(H) {
+    const { b, body, torsoTop, add, skin, recipe } = H, d = b.torsoD / 2;
+    add(body, 'chest', B(-b.torsoW * 0.36, torsoTop - 0.36, -d - 0.08, b.torsoW * 0.36, torsoTop - 0.04, -d), (ctx, x, y, w, h, side) => { fill(ctx, x, y, w, h, shade(skin, 1.05)); veins(ctx, x, y, w, h, shade(skin, 0.55), 3, rng(`${recipe.id}|chest|${side}`)); });
+  },
+  jawStumps(H) {
+    const { hs, head, add } = H;
+    for (const s of [-1, 1]) add(head, 'jaw-stump', B(s > 0 ? hs * 0.3 : -hs * 0.5, -0.05, -hs * 0.5 - 0.025, s > 0 ? hs * 0.5 : -hs * 0.3, hs * 0.18, -hs * 0.3), solid(0x7a2a2a, (ctx, x, y, w, h, side) => { if (side === 'front') fill(ctx, x, y, w, h * 0.3, 0xd9d2b8); }));
+    add(head, 'tongue', B(-hs * 0.07, -0.12, -hs * 0.48, hs * 0.07, hs * 0.1, -hs * 0.36), solid(0x8a3038));
+  },
+  /** Acidic: yellow fluid dripping from the chin and fingers, blisters swollen with it. */
+  drips(H) {
+    const { hs, head, arms, add, recipe } = H, acid = recipe.wear?.veins ?? 0xd8c020;
+    add(head, 'drip', B(-0.015, -0.07, -hs * 0.5 - 0.01, 0.015, 0.01, -hs * 0.5 + 0.02), solid(acid));
+    for (const L of ['L', 'R']) {
+      add(arms[L].hand, `drip.${L}`, B(-0.012, -H.b.hand - 0.06, -0.012, 0.012, -H.b.hand, 0.012), solid(acid));
+      add(arms[L].fore, `blister.${L}`, C(0.05, -0.16, -0.1, 0.05, L === 'L' ? -H.b.armW / 2 - 0.015 : H.b.armW / 2 + 0.015), solid(shade(acid, 0.95), (ctx, x, y, w, h) => fill(ctx, x + w * 0.3, y + h * 0.3, w * 0.4, h * 0.3, 0xf8f0a0)));
+    }
+  },
+};
+
+// ── Effects (fx.js): looping, independent of the rig ─────────────────────────────────────────
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+export const FX = {
+  /** Boomer: putrid pink sludge dribbling from the mouth. */
+  sludge(H) { H.fx.drip(H.head, V(0, H.hs * 0.22, -H.hs * 0.52), { color: 0xd8849a, size: 0.045, drop: 0.55, n: 3 }); },
+  /** Boomer: the stench rising off it. */
+  stench(H) { H.fx.puff(H.body, V(0, H.torsoTop - 0.1, 0), { color: 0x8a9a5a, size: 0.07, rise: 0.6, n: 4 }); },
+  /** Boomer: the belly heaving. */
+  heave(H) { if (H.belly) H.fx.pulse(H.belly, { amount: 0.08 }); },
+  /** Gasbag: the cysts swelling one after another, putrid gas leaking from some. */
+  cystPulse(H) { (H.cysts ?? []).forEach((c, i) => H.fx.pulse(c, { amount: 0.25, phase: i / (H.cysts.length || 1) })); },
+  gasLeak(H) { for (const c of (H.cysts ?? []).slice(0, 3)) H.fx.puff(c.parent, c.position, { color: 0x9aa070, size: 0.05, rise: 0.4, n: 2 }); },
+  /** Scabbed: flakes of scab dropping off the arms and chest. */
+  scabFlakes(H) {
+    for (const L of ['L', 'R']) H.fx.flake(H.arms[L].upper, V(0, -0.1, -H.b.armD / 2 - 0.01), { color: shade(H.skin, 0.75), n: 2 });
+    H.fx.flake(H.body, V(0, H.legH + H.b.torsoH * 0.6, -H.b.torsoD / 2 - 0.02), { color: shade(H.skin, 0.7), n: 3 });
+  },
+  /** Sailor, wretched puker: black ooze dripping from the hanging mouth. */
+  blackOoze(H) { H.fx.drip(H.head, V(0, H.hs * 0.2, -H.hs * 0.52), { color: 0x141014, size: 0.04, drop: 0.5, n: 3 }); },
+  /** Bilious soldier: corrosive fluid leaking from the proboscis tip, steaming. */
+  proboscisAcid(H) {
+    if (!H.tip) return;
+    H.fx.drip(H.tip.node, H.tip.at, { color: 0xc8d030, size: 0.035, drop: 0.55, n: 3 });
+    H.fx.puff(H.tip.node, H.tip.at, { color: 0xd8dcc8, size: 0.04, rise: 0.35, n: 2 });
+  },
+  /** Caustic soldier: the tubes pulsing in turn, acid dripping from their ends. */
+  tubeDrip(H) {
+    (H.tubes ?? []).forEach(({ node, tip }, i) => {
+      H.fx.pulse(node, { amount: 0.2, phase: i / H.tubes.length });
+      if (i % 2 === 0) H.fx.drip(node, tip, { color: 0xc8d030, size: 0.025, drop: 0.3, n: 1 });
+    });
+  },
+  /** Acid from the hands (a corroded doctor). */
+  acidHands(H) { for (const L of ['L', 'R']) H.fx.drip(H.arms[L].hand, V(0, -H.b.hand - 0.01, 0), { color: 0xd8c020, size: 0.03, drop: 0.4, n: 1 }); },
+  /** Black ops: shadowy smoke radiating off the skin. */
+  shadowSmoke(H) {
+    const c = 0x1a1a22;
+    H.fx.puff(H.body, V(0, H.torsoTop - 0.05, H.b.torsoD / 2), { color: c, size: 0.08, rise: 0.4, n: 3 });
+    for (const L of ['L', 'R']) H.fx.puff(H.arms[L].fore, V(0, -H.b.forearm * 0.5, 0), { color: c, size: 0.06, rise: 0.3, n: 2 });
+    H.fx.puff(H.head, V(0, H.hs, 0), { color: c, size: 0.06, rise: 0.3, n: 2 });
+  },
+  /** Hunter-killer: the wisps of shadow swelling and swaying. */
+  wispSway(H) { (H.wisps ?? []).forEach((n, i) => H.fx.sway(n, { amount: 0.25, phase: i / H.wisps.length })); },
+  /** Mercenary ghost: the shards shuddering in and out of place. */
+  shardJitter(H) { (H.shards ?? []).forEach((n, i) => H.fx.jitter(n, { amount: 0.03, phase: i / H.shards.length })); },
+  /** Corrosive: drops of acid falling from the congealed lumps. */
+  gelDrip(H) { (H.cysts ?? []).slice(0, 4).forEach((c, i) => H.fx.drip(c.parent, c.position.clone().add(V(0, -0.05, 0)), { color: 0xc8d030, size: 0.03, drop: 0.45, n: 1 + (i % 2) })); },
+  /** Spitter: the swollen stomach swelling and settling. */
+  stomachPulse(H) { if (H.belly) H.fx.pulse(H.belly, { amount: 0.12 }); },
+  /** Skeletal: black goo seeping from the neck, elbows and knees. */
+  goo(H) {
+    const black = 0x141014;
+    H.fx.drip(H.body, V(H.hs * 0.2, H.torsoTop - 0.02, -H.b.torsoD / 2 - 0.02), { color: black, size: 0.035, drop: 0.4, n: 2 });
+    for (const L of ['L', 'R']) {
+      H.fx.drip(H.arms[L].fore, V(0, -0.02, -H.b.armD / 2 - 0.01), { color: black, size: 0.03, drop: 0.35, n: 1 });
+      if (H.legs[L].shin) H.fx.drip(H.legs[L].shin, V(0, -0.02, -H.b.legD / 2 - 0.01), { color: black, size: 0.03, drop: 0.3, n: 1 });
+    }
+  },
+};
