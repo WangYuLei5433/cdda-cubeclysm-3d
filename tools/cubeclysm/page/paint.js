@@ -165,6 +165,21 @@ export function meld(ctx, x, y, w, h, skin, r) {
   blobs(ctx, x, y, w, h, 0x8a3a34, 1, Math.min(w, h) * 0.15, r);
 }
 
+/** Burnt: a charred black crust with grey ash and raw red cracks where it split (scorched zombies). */
+export function char(ctx, x, y, w, h, r) {
+  fill(ctx, x, y, w, h, 0x302822);
+  blobs(ctx, x, y, w, h, 0x4a3e34, 3, Math.min(w, h) * 0.25, r);
+  blobs(ctx, x, y, w, h, 0x6a645c, 2, Math.min(w, h) * 0.12, r);
+  ctx.lineWidth = Math.max(1, Math.min(w, h) * 0.05);
+  for (let i = 0; i < Math.max(3, Math.round((w * h) / 350)); i++) {
+    ctx.strokeStyle = css(i % 2 ? 0x7a2418 : 0x9a3a1e);
+    let px = x + r() * w, py = y + r() * h;
+    ctx.beginPath(); ctx.moveTo(px, py);
+    for (let k = 0; k < 3; k++) { px += (r() - 0.5) * w * 0.5; py += r() * h * 0.3; ctx.lineTo(px, py); }
+    ctx.stroke();
+  }
+}
+
 /** Living shadow: the surface dark and smoky, a faint sheen where it moves. */
 export function shadow(ctx, x, y, w, h, r) {
   ctx.globalAlpha = 0.8; fill(ctx, x, y, w, h, 0x101016); ctx.globalAlpha = 1;

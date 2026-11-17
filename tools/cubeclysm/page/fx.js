@@ -23,13 +23,13 @@ export function effects(seed) {
   let count = 0;
 
   /** A particle node at `at` on `parent`, its block centred on the node. */
-  function particle(parent, kind, at, size, color) {
+  function particle(parent, kind, at, size, color, glow = false) {
     const g = new THREE.Group();
     g.name = `fx_${kind}_${count++}`;
     g.position.copy(at);
     parent.add(g);
     const h = size / 2;
-    blocks.push(block(g, g.name, B(-h, -h, -h, h, h, h), (ctx, x, y, w, hh) => { fill(ctx, x, y, w, hh, color); fill(ctx, x, y, w, Math.max(1, hh * 0.3), shade(color, 1.25)); }));
+    blocks.push(block(g, g.name, B(-h, -h, -h, h, h, h), (ctx, x, y, w, hh) => { fill(ctx, x, y, w, hh, color); fill(ctx, x, y, w, Math.max(1, hh * 0.3), shade(color, 1.25)); }, { glow }));
     return g;
   }
 
@@ -70,6 +70,18 @@ export function effects(seed) {
         const dx = (r() - 0.5) * 0.25, dz = (r() - 0.5) * 0.25;
         const node = particle(parent, 'puff', at.clone().add(v((r() - 0.5) * 0.1, 0, (r() - 0.5) * 0.1)), size, color);
         animate(node, i / n, (u) => ({ p: v(dx * u, rise * u, dz * u), s: u < 0.2 ? u / 0.2 : 1 + u * 1.2 - (u > 0.8 ? (u - 0.8) * 10 : 0) }));
+      }
+    },
+    /**
+     * Flames: glowing tongues of fire that flicker up from a surface, swaying, shrinking and
+     * going out (yellow at the core, orange, a red tip). Emissive, so they light up in the dark.
+     */
+    flame(parent, at, { size = 0.06, rise = 0.25, n = 3 }) {
+      const colors = [0xffd040, 0xff8a1a, 0xe8401a];
+      for (let i = 0; i < n; i++) {
+        const dx = (r() - 0.5) * 0.06, sway = 0.015 + r() * 0.02, k = 2 + Math.floor(r() * 3);
+        const node = particle(parent, 'flame', at.clone().add(v((r() - 0.5) * size, 0, (r() - 0.5) * size)), size * (1 - i * 0.18), colors[i % colors.length], true);
+        animate(node, i / n + r() * 0.15, (u) => ({ p: v(dx * u + Math.sin(u * Math.PI * 2 * k) * sway, rise * u, Math.cos(u * Math.PI * 2 * k) * sway * 0.5), s: u < 0.12 ? u / 0.12 : Math.max(0.05, 1 - (u - 0.12) / 0.88) * (1 + 0.15 * Math.sin(u * 40)) }));
       }
     },
     /** Swell and shrink a node that is already part of the model (a cyst, a belly). */

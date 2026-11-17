@@ -21,13 +21,14 @@ it supports. Cataclysm-Vox (a 3D CDDA renderer, to be open-sourced) renders it, 
 
 | | Count |
 | --- | --- |
-| Zombies bound to their CDDA id | 54 of 327 zombie-species monsters (humanoid, variant, military, acid and mutant groups) |
+| Zombies bound to their CDDA id | 69 of 327 zombie-species monsters (humanoid, variant, military, acid, mutant, burnt and child groups) |
 | Characters | `player_male`/`npc_male`, `player_female`/`npc_female` |
 | Weapons and items (DEADWOOD) | 17: `glock_19`, `sw629`, `hk_mp5`, `modular_m4_carbine`, `m249`, `remington_870`, `remington_700`, `m134`, `AT4`, `flamethrower`, `bat`, `fire_ax`, `morningstar`, `katana`, `grenade`, `1st_aid_box`, `kevlar` |
 | Unbound candidates | 24 archetype zombies, 22 hair-style samples, 9 survivors (to browse and try on) |
 
-Next: the remaining humanoid zombies, then the fungal and dusted ones. Animals and the other
-mutants come later.
+Next: the remaining humanoid zombies (68), then the fungal and dusted ones, then the other
+mutants and the animals. Body animations (`Idle`, `Walk`, `Attack`, `Death`) come last, once the
+humanoids are done; twitching and spasms in the descriptions wait for them.
 
 ## Using it
 

@@ -317,3 +317,112 @@ RECIPES.push(
     newOutfit: { style: 'tank', top: 0x6a6a5a, sleeves: 'none', pants: 0x4a4a3a, shoes: 0x2a2a2a }, wear: { veins: 0xc8c030, tears: 0.8 }, gear: ['puckerMouth', 'translucentBelly'], fx: ['stomachPulse'],
   }),
 );
+
+// ── Batch 4: the burnt (zed_burned.json) and the children (zed_children.json). Sizes checked
+// against CDDA (commit 7136388).
+const CHAR = 0x3a302a; // charred skin (the crust itself is painted by wear.char)
+RECIPES.push(
+  // 62.5 L, medium.
+  {
+    id: 'mon_zombie_scorched', desc: 'A heavily burned zombie that still reeks of charred meat.  Its now leathery flesh has mended into patches, giving it a more armored appearance.',
+    body: 'standard', pose: 'reach', skin: CHAR, hair: null, hairStyle: 'bald', eye: 0xd86a20, face: { eyes: 'glow', brows: 'none', mouth: 'frown_teeth', marks: ['rot'] },
+    outfit: { style: 'tank', top: 0x5a4a3a, sleeves: 'none', pants: 0x2e2a26, shoes: 0x1e1a18 },
+    wear: { char: 0.85, tears: 1, soot: 0.8 }, gear: ['charPlates'], fx: ['charSmoke'],
+  },
+);
+RECIPES.push(
+  // 62.5 L: the scorched zombie with metal fragments sticking out of its body.
+  variant('mon_zombie_scorched', {
+    id: 'mon_zombie_scorched_rust', desc: 'A heavily burned zombie that still reeks of charred meat.  Its now leathery flesh has mended into patches, giving it a more armored appearance.  This one appears to have metal fragments sticking out of its body.',
+    pose: 'hunched', face: { eyes: 'narrow', brows: 'furrowed', mouth: 'snarl', marks: ['scar_cheek'] }, newOutfit: { style: 'shirt', top: 0x3a4a5a, sleeves: 'short', pants: 0x3a3430, shoes: 0x1e1a18 }, more: ['metalShards'],
+  }),
+  // 100 L, medium: the brute body under a cracked shell of melted skin.
+  {
+    id: 'mon_zombie_scorched_brute', desc: 'An oversized charred human form.  The remains of its burnt and blackened musculature are clearly visible between the cracks of the shell formed from its melted skin.',
+    body: 'brute', pose: 'hunched', skin: 0x4a221c, hair: null, hairStyle: 'bald', eye: 0xd86a20, face: { eyes: 'glow', brows: 'furrowed', mouth: 'snarl', marks: ['rot'] },
+    outfit: { style: 'tank', top: 0x4a221c, sleeves: 'none', pants: 0x2a2420, shoes: 0x1e1a18 },
+    wear: { char: 0.6, tears: 1, wounds: 0.5 }, gear: ['charShell'], fx: ['charSmoke'],
+  },
+);
+RECIPES.push(
+  // 100 L: the scorched brute with metal fragments.
+  variant('mon_zombie_scorched_brute', {
+    id: 'mon_zombie_fiend_rust', desc: 'An oversized charred human form.  The remains of its burnt and blackened musculature are clearly visible between the cracks of the shell formed from its melted skin.  This one appears to have metal fragments sticking out of its body.',
+    face: { eyes: 'narrow', mouth: 'grimace', marks: ['scar_eye'] }, more: ['metalShards'],
+  }),
+  // 62.5 L, medium: an ordinary body with unnaturally long arms dragging behind it.
+  {
+    id: 'mon_zombie_scorched_lasher', desc: 'A heavily burned corpse with unnaturally long arms dragging behind it as it moves.  The burnt scar tissue covering it gives it a mildly armored appearance.',
+    body: 'standard', proportions: { upperArm: 0.66, forearm: 0.66, hand: 0.15, armW: 0.11, armD: 0.11 }, pose: 'trail', skin: CHAR, hair: null, hairStyle: 'bald', eye: 0xd86a20,
+    face: { eyes: 'wide', brows: 'none', mouth: 'gape', marks: ['rot'] },
+    outfit: { style: 'tank', top: 0x3a3430, sleeves: 'none', pants: 0x2a2622, shoes: 0x1e1a18 },
+    wear: { char: 0.9, tears: 1 }, gear: ['charPlates'], fx: ['charSmoke'],
+  },
+  // 875 L, huge: the giant body knuckle-walking like a gorilla on long arms. The horns and the
+  // flames are not in CDDA's description: added at the user's request.
+  {
+    id: 'mon_zombie_fiend', desc: 'A monstrous burnt vaguely humanoid creature, walking around on its knuckles like a gorilla.  Tattered and blackened strands of muscle fibers dangle all around its body, with patches of fused melded skin and bone visible between.  Its forelimbs end in lengthy skeletal claws.',
+    body: 'giant', proportions: { upperArm: 0.66, forearm: 0.6, thigh: 0.45, shin: 0.4, head: 0.42, headDrop: 0.04, hunch: 0.1 }, pose: 'knuckle', skin: 0x3a221c, hair: null, hairStyle: 'bald', eye: 0xd86a20,
+    face: { eyes: 'glow', brows: 'furrowed', mouth: 'snarl', marks: ['rot'] },
+    outfit: { style: 'tank', top: 0x3a221c, sleeves: 'none', pants: 0x2a201c, shoes: 0x3a221c },
+    wear: { char: 1, wounds: 0.5, bone: true }, gear: ['charShell', 'calcified', 'muscleStrands', 'claws', 'horns'], horns: { style: 'curved', size: 1.8 }, fx: ['strandSway', 'flames', 'charSmoke'],
+  },
+  // 31.25 L, small: a child, burnt and emaciated, the clothes still clinging to it.
+  {
+    id: 'mon_zombie_child_scorched', desc: 'A diminutive humanoid figure, its body ravaged by fire into a blackened, charred shell.  Its leathery flesh has mended in patches, and the tattered clothing is still clinging to its emaciated frame making it clear it once was - and still is - the body of a child.',
+    body: 'child', proportions: { torsoW: 0.29, armW: 0.08, armD: 0.08, legW: 0.1 }, pose: 'reach', skin: CHAR, hair: null, hairStyle: 'bald', eye: 0xd86a20,
+    face: { eyes: 'hungry', brows: 'none', mouth: 'small_open', marks: ['rot'] },
+    outfit: { style: 'tshirt', top: 0x6a5a8a, sleeves: 'short', pants: 0x3a4a6a, shoes: 0x2a2a2a },
+    wear: { char: 0.8, tears: 1, soot: 1 }, gear: ['charPlates'], fx: ['charSmoke'],
+  },
+  // 31.25 L. Same description as mon_zombie_child: told apart by the dress and the pigtails.
+  variant('mon_zombie_child', {
+    id: 'mon_zombie_child_base', desc: "It was only a child, and little is different about it now aside from the hungry look in its eyes.  You'd be hard-pressed to not feel like you were killing an actual child by putting it down.",
+    skin: 0xa4a898, hair: 0x2a1e18, hairStyle: 'pigtails', face: { eyes: 'hungry', brows: 'sad', mouth: 'gnaw', marks: ['blood_mouth', 'bruise'] },
+    newOutfit: { style: 'dress', top: 0x5a8ac0, sleeves: 'short', pants: 0xa4a898, shoes: 0x8a3a3a, skirt: 0.24 }, wear: { tears: 0.4, blood: 0.4 }, gear: ['skirt'],
+  }),
+  // 31.25 L: massive gaping jaws.
+  variant('mon_zombie_child', {
+    id: 'mon_zombie_anklebiter', desc: 'This horrifying little mutated wretch looks to have once been a child, but its massive gaping jaws are now far more suggestive of a predatory beast.',
+    pose: 'hunched', skin: 0x949a86, hair: 0x3a2a1e, hairStyle: 'messy', face: { eyes: 'squint_angry', brows: 'angry', mouth: 'gape', marks: ['veins'] },
+    newOutfit: { style: 'tshirt', top: 0x4a7a4a, sleeves: 'short', pants: 0x5a5048, shoes: 0x2a2a2a }, wear: { tears: 0.7, blood: 0.7, bloodyHands: true }, gear: ['bigJaw'],
+  }),
+  // 31.25 L: blackened skin and massive eyes; on all fours like a beast.
+  variant('mon_zombie_child', {
+    id: 'mon_zombie_creepy', desc: 'What was once a child is now a mutant beast with blackened skin and massive eyes.  This abomination\'s vile form makes a mockery of its human origin.',
+    pose: 'prowl', bulk: 0.02, skin: 0x1e1c20, hair: null, hairStyle: 'bald', face: { eyes: 'empty', brows: 'none', mouth: 'snarl' }, bigEyes: { color: 0xd8d0a0, size: 0.36 },
+    newOutfit: { style: 'tshirt', top: 0x1e1c20, sleeves: 'none', pants: 0x3a3438, shoes: 0x1e1c20 }, wear: { tears: 1, wounds: 0.3 }, gear: ['bigEyes'],
+  }),
+  // 31.25 L: twitching and flailing in spasms (the twitching needs body animation: a frozen flail here).
+  variant('mon_zombie_child', {
+    id: 'mon_zombie_shriekling', desc: 'This heavily mutated child zombie twitches and flails its limbs in painful-looking spasms as it runs about.',
+    pose: 'crooked', skin: 0xb0a490, hair: 0xb08a50, hairStyle: 'wild', face: { eyes: 'wide', brows: 'raised', mouth: 'gape', marks: ['veins', 'bruise'] },
+    newOutfit: { style: 'hoodie', top: 0xc04a6a, sleeves: 'long', pants: 0x3a3a4a, shoes: 0xe0e0e0 }, wear: { tears: 0.8, blood: 0.5, wounds: 0.4 }, gear: ['lumps', 'chestSwell'],
+  }),
+  // 31.25 L: swollen and gooey, arms out for a hug.
+  variant('mon_zombie_child', {
+    id: 'mon_zombie_snotgobbler', desc: "This swollen, gooey-looking mutant child looks bad, even for a zombie.  Maybe that's why it seems to want a hug so badly.",
+    bulk: 0.03, skin: 0xa0ac7a, hair: 0x6a5a3a, hairStyle: 'short', face: { eyes: 'oily', brows: 'sad', mouth: 'drool', marks: ['rot'] },
+    newOutfit: { style: 'tshirt', top: 0xe0c040, sleeves: 'short', pants: 0x7a5a8a, shoes: 0x3a6a3a }, wear: { veins: 0x7a9a30, tears: 0.6, acid: 0.5 }, gear: ['belly', 'drips'], fx: ['snot'],
+  }),
+  // 31.25 L: crouching, huge black eyes, clawed fingertips.
+  variant('mon_zombie_child', {
+    id: 'mon_zombie_sproglodyte', desc: "This crouching child-mutant's face is dominated by a pair of huge black eyes, and its fingertips end in sharp claws.",
+    pose: 'crouch', bulk: 0.02, skin: 0x8a8c80, hair: null, hairStyle: 'bald', face: { eyes: 'empty', brows: 'none', mouth: 'small_open' }, bigEyes: { color: 0x050505, size: 0.4 },
+    newOutfit: { style: 'tank', top: 0x6a6458, sleeves: 'none', pants: 0x4a4438, shorts: true, shoes: 0x8a8c80 }, wear: { tears: 1, blood: 0.3 }, gear: ['bigEyes', 'claws'],
+  }),
+  // 31.25 L: skin stretched over tiny brittle bones (the skeletal body: the volume reads low by design).
+  variant('mon_zombie_child', {
+    id: 'mon_zombie_waif', desc: 'Undeath has not been kind to the children of the apocalypse.  This one is little more than a reanimated membrane of skin stretched across tiny brittle bones.',
+    pose: 'reach', skin: 0xc8bca8, boneScale: 0.6, hair: 0x4a3a2a, hairStyle: 'long', face: { eyes: 'empty', brows: 'sad', mouth: 'gape', marks: ['veins'] },
+    newOutfit: { style: 'tshirt', top: 0xc8bca8, sleeves: 'none', pants: 0xc8bca8, shoes: 0xc8bca8 }, wear: {}, gear: ['skeletalBody', 'skinMembrane'],
+  }),
+  // 31.25 L: lying on its back, the ribcage arched into a hive.
+  variant('mon_zombie_child', {
+    id: 'mon_zombie_wretch', desc: "Lethargically resting on its back, this hideous mass of sagging flesh and writhing organs, which used to be a child, twitches feebly as its midsection churns.  Almost bursting from its skin, the child's ribcage has arched outward, forming a hive-like construct covered by severely stretched epidermis.  Through the wretched organism's taut abdominal flesh, you witness small forms swarming within its ribcage—its guts roiling as new beings are sculpted from pilfered flesh and bone.  The creature's limbs rest haphazardly on the ground, contorted in ways that suggest the absence of bones or any interior construct.",
+    pose: 'supine', skin: 0xb09a8e, hair: 0x5a4a3a, hairStyle: 'messy', face: { eyes: 'cloudy', brows: 'sad', mouth: 'gape', marks: ['veins', 'rot'] },
+    newOutfit: { style: 'tshirt', top: 0x8aa0b0, sleeves: 'short', pants: 0x5a6a7a, shoes: 0x4a4a4a }, wear: { tears: 1, wounds: 0.4, blood: 0.4 }, gear: ['ribHive'], fx: ['swarm', 'hivePulse'],
+  }),
+);
+
+

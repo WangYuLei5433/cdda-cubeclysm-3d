@@ -8,7 +8,7 @@ import { block } from './atlas.js';
 import { effects } from './fx.js';
 import { FACE_PX, composeFace } from './faces.js';
 import { HAIR } from './hair.js';
-import { band, baseColor, blobs, blood, bone, css, fill, garment, meld, muscle, rng, rust, scabs, shade, shadow, shards, skull, stitches, tattoos, tears, veins, wounds } from './paint.js';
+import { band, baseColor, blobs, blood, bone, char, css, fill, garment, meld, muscle, rng, rust, scabs, shade, shadow, shards, skull, stitches, tattoos, tears, veins, wounds } from './paint.js';
 
 /** Body types (metres). `standard` is a 1.75 m adult; the others override what differs. */
 export const BODIES = {
@@ -35,7 +35,7 @@ export const solid = (hex, extra) => (ctx, x, y, w, h, side) => { fill(ctx, x, y
 
 /** Build a humanoid from a recipe (recipes.js). Returns the root and its blocks (baked later). */
 export function buildHumanoid(recipe) {
-  const b = { ...BODIES.standard, ...BODIES[recipe.body], ...(recipe.bulk ? bulkUp(BODIES[recipe.body] ?? {}, recipe.bulk) : {}) };
+  const b = { ...BODIES.standard, ...BODIES[recipe.body], ...(recipe.bulk ? bulkUp(BODIES[recipe.body] ?? {}, recipe.bulk) : {}), ...recipe.proportions };
   const blocks = [];
   const add = (parent, name, box, paint, opts) => { const bl = block(parent, name, box, paint, opts); blocks.push(bl); return bl; };
   const root = new THREE.Group(); root.name = 'root';
@@ -61,6 +61,9 @@ export function buildHumanoid(recipe) {
     if (wear.stitches && bare && r() < wear.stitches) stitches(ctx, x, y, w, h, r);
     if (wear.scab && bare) scabs(ctx, x, y, w, h, skin, r);
     if (wear.bone && bare) bone(ctx, x, y, w, h, r);
+    // Burnt: bare skin is a charred crust; clothes get burnt-through patches.
+    if (wear.char && bare) char(ctx, x, y, w, h, r);
+    else if (wear.char && r() < wear.char) blobs(ctx, x, y, w, h, 0x26201c, 2, Math.min(w, h) * 0.25, r);
     if (wear.soot && r() < wear.soot) blobs(ctx, x, y, w, h, 0x2e2a26, 2 + Math.floor(wear.soot * 3), Math.min(w, h) * 0.2, r);
     if (wear.tattoos && bare && ['torso', 'upper_arm', 'forearm', 'hand'].includes(name) && side !== 'top' && side !== 'bottom' && r() < wear.tattoos) tattoos(ctx, x, y, w, h, r);
     if (wear.meld && !bare && name !== 'foot' && r() < wear.meld) meld(ctx, x, y, w, h, skin, r);
@@ -116,7 +119,7 @@ export function buildHumanoid(recipe) {
   /** Drop blocks by name (a feature that replaces a part, e.g. a torn-off forearm). */
   const remove = (pred) => { for (let i = blocks.length - 1; i >= 0; i--) if (pred(blocks[i].name)) blocks.splice(i, 1); };
   const fx = effects(recipe.id);
-  const H = { root, body, head, shoulders, arms, legs, b, legH, torsoTop, hs, add, remove, part, skin, recipe, fx };
+  const H = { root, body, head, shoulders, arms, legs, b, legH, torsoTop, hs, add, remove, part, skin, recipe, fx, blocks };
   for (const g of recipe.gear ?? []) GEAR[g](H);
   for (const f of recipe.fx ?? []) FX[f](H);
   pose(H, recipe.pose ?? (crawler ? 'crawl' : 'stand'));
@@ -131,6 +134,17 @@ function bulkUp(base, k) {
   return { torsoW: s.torsoW + k, torsoD: s.torsoD + k, armW: s.armW + k * 0.6, armD: s.armD + k * 0.6, legW: s.legW + k * 0.5, legD: s.legD + k * 0.5, handW: s.handW + k * 0.4 };
 }
 
+/** Shift the body so its lowest block rests on y = 0 (poses whose contact points are hard to solve). */
+function ground(H) {
+  H.root.updateMatrixWorld(true);
+  let low = Infinity;
+  for (const bl of H.blocks) {
+    if (/^fx_(drip|flake|puff)/.test(bl.parent.name)) continue;
+    low = Math.min(low, bl.box.clone().applyMatrix4(bl.parent.matrixWorld).min.y);
+  }
+  if (Number.isFinite(low)) H.body.position.y -= low;
+}
+
 /** Poses: standing (arms hanging), reaching (the classic shamble), crawling. */
 function pose(H, name) {
   const { body, head, arms, legs } = H;
@@ -143,11 +157,12 @@ function pose(H, name) {
     // ground): reaching down any further would prop the body up off the floor.
     for (const L of ['L', 'R']) { arms[L].upper.rotation.x = 2.6; arms[L].upper.rotation.z = (L === 'L' ? -1 : 1) * 0.15; arms[L].fore.rotation.x = 0; }
     for (const L of ['L', 'R']) legs[L].thigh.rotation.z = (L === 'L' ? -1 : 1) * 0.12;
-  } else if (name === 'prowl') {
+  } else if (name === 'prowl' || name === 'knuckle') {
     // On all fours: the torso pitched forward, the knees bent, the arms reaching the ground as
     // front legs. Heights are solved from the body's own proportions so hands and feet both land.
-    const { b, legH, torsoTop } = H, th = -1.25;
-    const reach = b.upperArm + b.forearm + b.hand * 0.85, legFull = b.thigh + b.shin;
+    // `knuckle` walks on its knuckles like a gorilla: the torso more upright, on long arms.
+    const { b, legH, torsoTop } = H, th = name === 'knuckle' ? -0.8 : -1.25;
+    const reach = b.upperArm + b.forearm + b.hand * (name === 'knuckle' ? 1.02 : 0.85), legFull = b.thigh + b.shin;
     // The shins stay upright (feet flat); only the thighs swing forward to lower the hips.
     const hipH = Math.max(b.foot + b.shin + b.thigh * 0.15, Math.min(b.foot + legFull * 0.98, reach - (torsoTop - 0.02 - legH) * Math.cos(th)));
     const a = Math.acos(Math.min(1, (hipH - b.foot - b.shin) / b.thigh));
@@ -161,6 +176,34 @@ function pose(H, name) {
   } else if (name === 'drag') {
     // Hunched, arms swung back so what they end in drags on the ground behind.
     for (const L of ['L', 'R']) { arms[L].upper.rotation.x = -0.3; arms[L].upper.rotation.z = (L === 'L' ? -1 : 1) * 0.1; }
+  } else if (name === 'trail') {
+    // Arms longer than the shoulders are high, swung back just enough that the hands drag on the
+    // ground behind (the angle is solved from the arm length).
+    const { b, torsoTop } = H, reach = b.upperArm + b.forearm + b.hand, shoulderY = torsoTop - 0.02;
+    const a = reach > shoulderY ? Math.acos(shoulderY / reach) : 0;
+    for (const L of ['L', 'R']) { arms[L].upper.rotation.x = -a; arms[L].upper.rotation.z = (L === 'L' ? -1 : 1) * 0.08; }
+    head.rotation.x = 0.15;
+  } else if (name === 'crouch') {
+    // Squatting on flat feet: thighs swung forward, shins back, the body lowered so the feet stay
+    // on the ground; arms hanging forward between the knees.
+    const { b, legH } = H, a = 1.0;
+    body.position.y = b.foot + (b.thigh + b.shin) * Math.cos(a) - legH;
+    for (const L of ['L', 'R']) { legs[L].thigh.rotation.x = a; legs[L].shin.rotation.x = -2 * a; legs[L].thigh.rotation.z = (L === 'L' ? -1 : 1) * 0.18; }
+    for (const L of ['L', 'R']) { arms[L].upper.rotation.x = 0.7; arms[L].fore.rotation.x = 0.3; }
+    head.rotation.x = 0.1;
+    ground(H);
+  } else if (name === 'supine') {
+    // Lying on its back, face up: the back on the ground, the neck bent so the head rests beside
+    // it, the limbs lying slack and splayed at odd angles.
+    const { b, hs } = H, d = b.torsoD / 2;
+    body.rotation.x = Math.PI / 2;
+    body.position.y = d;
+    head.position.z -= hs / 2 - d;
+    head.rotation.x = -0.2;
+    arms.L.upper.rotation.set(-0.25, 0, -1.25); arms.L.fore.rotation.set(-0.15, 0, 0.7);
+    arms.R.upper.rotation.set(-0.22, 0, 0.8); arms.R.fore.rotation.set(-0.1, 0, -1.2);
+    for (const [L, z] of [['L', -0.35], ['R', 0.5]]) { legs[L].thigh.rotation.set(-0.12, 0, z); if (legs[L].shin) legs[L].shin.rotation.set(-0.08, 0, -z * 1.4); }
+    ground(H);
   } else if (name === 'crooked') {
     // Bent and leaning to one side, one arm hanging lower.
     body.rotation.z = 0.12;
@@ -187,6 +230,7 @@ function headPainter(recipe) {
     if (recipe.wear?.scab && side !== 'front') scabs(ctx, x, y, w, h, skin, rng(`${recipe.id}|head-scab|${side}`));
     if (recipe.wear?.bone && side === 'top') bone(ctx, x, y, w, h, rng(`${recipe.id}|head-bone`));
     if (recipe.wear?.veins && side !== 'top' && side !== 'bottom' && side !== 'front') veins(ctx, x, y, w, h, recipe.wear.veins, 2, rng(`${recipe.id}|head|${side}`));
+    if (recipe.wear?.char && side !== 'front' && side !== 'top') char(ctx, x, y, w, h, rng(`${recipe.id}|head-char|${side}`));
     if (recipe.wear?.soot && side !== 'front') blobs(ctx, x, y, w, h, 0x2e2a26, 3, Math.min(w, h) * 0.2, rng(`${recipe.id}|head-soot|${side}`));
     if (recipe.wear?.shadow && side !== 'front') shadow(ctx, x, y, w, h, rng(`${recipe.id}|head-shadow|${side}`));
     if (recipe.skull) { if (side === 'front') skull(ctx, x, y, w, h); else bone(ctx, x, y, w, h, rng(`${recipe.id}|skull|${side}`)); return; }
@@ -197,6 +241,29 @@ function headPainter(recipe) {
     }
     if (recipe.wear?.wounds && side === 'left') wounds(ctx, x, y, w, h, 1, rng(`${recipe.id}|head-w`));
   };
+}
+
+
+/** Raised plates (crusts) on the torso front and back, the upper arms and the shins, each painted by `crust`. */
+function crustPlates(H, crust) {
+  const { b, body, legH, torsoTop, arms, legs, add, recipe } = H, r = rng(`${recipe.id}|plates`), w = b.torsoW / 2, d = b.torsoD / 2;
+  for (let i = 0; i < 5; i++) { const x0 = (r() - 0.5) * w * 1.4, y0 = legH + b.torsoH * (0.1 + r() * 0.75); add(body, 'crust', B(x0 - 0.07, y0 - 0.05, -d - 0.025, x0 + 0.07, y0 + 0.05, -d + 0.01), crust); }
+  for (let i = 0; i < 3; i++) { const x0 = (r() - 0.5) * w * 1.4, y0 = legH + b.torsoH * (0.2 + r() * 0.6); add(body, 'crust', B(x0 - 0.08, y0 - 0.06, d - 0.01, x0 + 0.08, y0 + 0.06, d + 0.025), crust); }
+  for (const L of ['L', 'R']) { add(arms[L].upper, 'crust', C(b.armW * 1.18, -0.16, 0.02, b.armD * 1.18), crust); add(legs[L].shin, 'crust', C(b.legW * 1.12, -b.shin * 0.6, -b.shin * 0.2, b.legD * 1.12), crust); }
+  void torsoTop;
+}
+
+/** A shell of plates over the chest, belly, back, shoulders and thighs, with runs dripping off the chest; `plate(key)` paints each. */
+function shellPlates(H, plate) {
+  const { b, body, legH, torsoTop, arms, legs, add } = H, w = b.torsoW / 2, d = b.torsoD / 2;
+  add(body, 'melt-chest', B(-w * 0.9, legH + b.torsoH * 0.5, -d - 0.045, w * 0.55, torsoTop - 0.04, -d + 0.01), plate('c'));
+  add(body, 'melt-belly', B(-w * 0.2, legH + b.torsoH * 0.12, -d - 0.04, w * 0.85, legH + b.torsoH * 0.48, -d + 0.01), plate('b'));
+  add(body, 'melt-back', B(-w * 0.8, legH + b.torsoH * 0.3, d - 0.01, w * 0.8, torsoTop - 0.05, d + 0.045), plate('k'));
+  for (const [x, y, len] of [[-w * 0.6, legH + b.torsoH * 0.5, 0.1], [-w * 0.1, legH + b.torsoH * 0.5, 0.06], [w * 0.5, legH + b.torsoH * 0.12, 0.09]]) add(body, 'slag', B(x - 0.02, y - len, -d - 0.035, x + 0.02, y, -d - 0.005), plate(`s${x}`));
+  for (const L of ['L', 'R']) {
+    add(arms[L].upper, `melt-pauldron.${L}`, C(b.armW * 1.3, -0.14, 0.04, b.armD * 1.3), plate(`p${L}`));
+    if (legs[L].shin) add(legs[L].thigh, `melt-thigh.${L}`, B(-b.legW * 0.55, -b.thigh * 0.6, -b.legD / 2 - 0.035, b.legW * 0.55, -b.thigh * 0.1, -b.legD / 2 + 0.01), plate(`t${L}`));
+  }
 }
 
 // ── Gear and features: each adds blocks to a joint ─────────────────────────────────────────
@@ -466,12 +533,18 @@ export const GEAR = {
   },
   /** Scabbed: raised crusts of scar tissue on the torso, shoulders and shins. */
   scabPlates(H) {
-    const { b, body, legH, torsoTop, arms, legs, add, skin, recipe } = H, r = rng(`${recipe.id}|plates`), w = b.torsoW / 2, d = b.torsoD / 2;
-    const crust = (ctx, x, y, ww, hh, side) => { fill(ctx, x, y, ww, hh, shade(skin, 0.82)); scabs(ctx, x, y, ww, hh, skin, rng(`${recipe.id}|crust|${side}${ww}`)); };
-    for (let i = 0; i < 5; i++) { const x0 = (r() - 0.5) * w * 1.4, y0 = legH + b.torsoH * (0.1 + r() * 0.75); add(body, 'crust', B(x0 - 0.07, y0 - 0.05, -d - 0.025, x0 + 0.07, y0 + 0.05, -d + 0.01), crust); }
-    for (let i = 0; i < 3; i++) { const x0 = (r() - 0.5) * w * 1.4, y0 = legH + b.torsoH * (0.2 + r() * 0.6); add(body, 'crust', B(x0 - 0.08, y0 - 0.06, d - 0.01, x0 + 0.08, y0 + 0.06, d + 0.025), crust); }
-    for (const L of ['L', 'R']) { add(arms[L].upper, 'crust', C(b.armW * 1.18, -0.16, 0.02, b.armD * 1.18), crust); add(legs[L].shin, 'crust', C(b.legW * 1.12, -b.shin * 0.6, -b.shin * 0.2, b.legD * 1.12), crust); }
-    void torsoTop;
+    const { skin, recipe } = H;
+    crustPlates(H, (ctx, x, y, ww, hh, side) => { fill(ctx, x, y, ww, hh, shade(skin, 0.82)); scabs(ctx, x, y, ww, hh, skin, rng(`${recipe.id}|crust|${side}${ww}`)); });
+  },
+  /** Scorched: burnt skin mended into raised leathery patches, like crude armour. */
+  charPlates(H) {
+    const { recipe } = H;
+    crustPlates(H, (ctx, x, y, ww, hh, side) => { const r = rng(`${recipe.id}|charcrust|${side}${ww}`); char(ctx, x, y, ww, hh, r); scabs(ctx, x, y, ww, hh, 0x3a302a, r); });
+  },
+  /** Scorched brute: a cracked shell of melted, blackened skin over the chest, back, shoulders and thighs. */
+  charShell(H) {
+    const { recipe } = H;
+    shellPlates(H, (key) => (ctx, x, y, ww, hh, side) => char(ctx, x, y, ww, hh, rng(`${recipe.id}|charshell|${key}|${side}`)));
   },
   /** Skeletal: bone armour (chest plate, pauldrons, bracers, greaves, a skull ridge) and black goo at the joints. */
   bonePlates(H) {
@@ -729,16 +802,8 @@ export const GEAR = {
   },
   /** Caustic soldier: cracked, melted armour plates fused to the hide, sagging in drips of slag. */
   meltedPlates(H) {
-    const { b, body, legH, torsoTop, arms, legs, add, skin, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2;
-    const plate = (key) => (ctx, x, y, ww, hh, side) => { const r = rng(`${recipe.id}|melt|${key}|${side}`); fill(ctx, x, y, ww, hh, 0x50544a); shards(ctx, x, y, ww, hh, r); blobs(ctx, x, y, ww, hh, 0x8a8a2a, 2, Math.min(ww, hh) * 0.15, r); meld(ctx, x, y + hh * 0.7, ww, hh * 0.3, skin, r); };
-    add(body, 'melt-chest', B(-w * 0.9, legH + b.torsoH * 0.5, -d - 0.045, w * 0.55, torsoTop - 0.04, -d + 0.01), plate('c'));
-    add(body, 'melt-belly', B(-w * 0.2, legH + b.torsoH * 0.12, -d - 0.04, w * 0.85, legH + b.torsoH * 0.48, -d + 0.01), plate('b'));
-    add(body, 'melt-back', B(-w * 0.8, legH + b.torsoH * 0.3, d - 0.01, w * 0.8, torsoTop - 0.05, d + 0.045), plate('k'));
-    for (const [x, y, len] of [[-w * 0.6, legH + b.torsoH * 0.5, 0.1], [-w * 0.1, legH + b.torsoH * 0.5, 0.06], [w * 0.5, legH + b.torsoH * 0.12, 0.09]]) add(body, 'slag', B(x - 0.02, y - len, -d - 0.035, x + 0.02, y, -d - 0.005), plate(`s${x}`));
-    for (const L of ['L', 'R']) {
-      add(arms[L].upper, `melt-pauldron.${L}`, C(b.armW * 1.3, -0.14, 0.04, b.armD * 1.3), plate(`p${L}`));
-      if (legs[L].shin) add(legs[L].thigh, `melt-thigh.${L}`, B(-b.legW * 0.55, -b.thigh * 0.6, -b.legD / 2 - 0.035, b.legW * 0.55, -b.thigh * 0.1, -b.legD / 2 + 0.01), plate(`t${L}`));
-    }
+    const { skin, recipe } = H;
+    shellPlates(H, (key) => (ctx, x, y, ww, hh, side) => { const r = rng(`${recipe.id}|melt|${key}|${side}`); fill(ctx, x, y, ww, hh, 0x50544a); shards(ctx, x, y, ww, hh, r); blobs(ctx, x, y, ww, hh, 0x8a8a2a, 2, Math.min(ww, hh) * 0.15, r); meld(ctx, x, y + hh * 0.7, ww, hh * 0.3, skin, r); });
   },
   /** Caustic soldier: mutated tubes on the face and arms that pulse and drip acid (FX). */
   acidTubes(H) {
@@ -977,6 +1042,134 @@ export const GEAR = {
     });
     H.belly = belly;
   },
+  /**
+   * Fiend: tattered, blackened strands of muscle fibre dangling all round the body, each on a
+   * node of its own so it can sway (FX strandSway).
+   */
+  muscleStrands(H) {
+    const { b, body, legH, arms, add, recipe, fx } = H, r = rng(`${recipe.id}|strands`), w = b.torsoW / 2, d = b.torsoD / 2;
+    const MEAT = (key) => (ctx, x, y, ww, hh, side) => { const q = rng(`${recipe.id}|strand|${key}|${side}`); muscle(ctx, x, y, ww, hh, q); blobs(ctx, x, y, ww, hh, 0x1e1a18, 2, Math.min(ww, hh) * 0.3, q); };
+    H.strands = [];
+    const hang = (parent, at, len, t, key) => { const n = fx.node(parent, 'strand', at); add(n, 'strand', B(-t / 2, -len, -t / 2, t / 2, 0, t / 2), MEAT(key)); H.strands.push(n); };
+    const t = Math.max(0.03, b.torsoW * 0.06);
+    for (let i = 0; i < 6; i++) hang(body, new THREE.Vector3((r() - 0.5) * w * 1.7, legH + b.torsoH * (0.15 + r() * 0.7), -d - t / 2), b.torsoH * (0.2 + r() * 0.2), t, `f${i}`);
+    for (let i = 0; i < 3; i++) hang(body, new THREE.Vector3(i % 2 ? w + t / 2 : -w - t / 2, legH + b.torsoH * (0.3 + r() * 0.5), (r() - 0.5) * d), b.torsoH * (0.2 + r() * 0.15), t, `s${i}`);
+    for (const L of ['L', 'R']) for (let i = 0; i < 2; i++) hang(arms[L].upper, new THREE.Vector3((L === 'L' ? -1 : 1) * (b.armW / 2 + t / 2), -b.upperArm * (0.25 + i * 0.4), (r() - 0.5) * b.armD * 0.5), b.upperArm * 0.35, t * 0.8, `a${L}${i}`);
+  },
+  /**
+   * Horns: a pair of horns from the head, each a few blocks stepping along a blocky curve, dark
+   * at the root and pale at the tip. `recipe.horns`: { style, size } (size in head sizes):
+   *   curved  — out from the temples, then up (the default)
+   *   ram     — out to the sides and curling down and forward past the ears
+   *   stub    — thick stumps sawn off flat at the brow
+   *   spire   — tall, straight up, tapering
+   *   bull    — straight out sideways, the tips turning up and forward
+   *   twin    — a big curved pair with a short second pair in front of it
+   *   swept   — long horns sweeping back along the skull
+   *   branched — a curved main horn with a prong forking off it
+   *   crown   — a ring of short spikes round the top of the head
+   * The size follows the body (bigger demon, bigger horns): `size` defaults to 1 for a standard
+   * body and grows with the torso width. Not in CDDA's descriptions: added at the user's request.
+   */
+  horns(H) {
+    const { b, hs, head, add, recipe } = H, o = recipe.horns ?? {}, k = (o.size ?? Math.max(1, Math.sqrt(b.torsoW / 0.46))) * hs;
+    // Segments: [width, x (from the head's centre, outward), y0, y1, z (forward −)], all × k,
+    // starting from the head's top (y = hs).
+    const SHAPES = {
+      curved: [[0.26, 0.3, -0.12, 0.14, 0], [0.21, 0.44, 0.1, 0.32, 0.02], [0.15, 0.52, 0.3, 0.5, 0.05], [0.09, 0.55, 0.48, 0.62, 0.07]],
+      ram: [[0.26, 0.38, -0.14, 0.12, 0.06], [0.24, 0.58, -0.04, 0.16, 0.12], [0.2, 0.7, -0.24, 0, 0.1], [0.16, 0.68, -0.42, -0.2, -0.02], [0.11, 0.6, -0.52, -0.38, -0.14]],
+      stub: [[0.3, 0.3, -0.12, 0.12, -0.08], [0.28, 0.32, 0.1, 0.2, -0.1]],
+      spire: [[0.24, 0.26, -0.12, 0.2, 0.02], [0.18, 0.29, 0.18, 0.46, 0.03], [0.12, 0.31, 0.44, 0.7, 0.04], [0.06, 0.32, 0.68, 0.86, 0.04]],
+      bull: [[0.24, 0.42, -0.14, 0.08, -0.04], [0.22, 0.66, -0.1, 0.1, -0.04], [0.18, 0.86, -0.06, 0.12, -0.06], [0.13, 0.96, 0.08, 0.3, -0.12], [0.08, 0.98, 0.28, 0.42, -0.18]],
+      twin: [[0.26, 0.32, -0.12, 0.14, 0.08], [0.21, 0.46, 0.1, 0.32, 0.1], [0.15, 0.54, 0.3, 0.5, 0.13], [0.09, 0.57, 0.48, 0.62, 0.15],
+        [0.14, 0.16, -0.08, 0.1, -0.2], [0.09, 0.18, 0.08, 0.2, -0.24]],
+      swept: [[0.24, 0.3, -0.1, 0.12, 0.05], [0.2, 0.34, 0.06, 0.2, 0.25], [0.16, 0.38, 0.12, 0.26, 0.45], [0.12, 0.42, 0.2, 0.34, 0.65], [0.07, 0.44, 0.3, 0.42, 0.82]],
+      branched: [[0.26, 0.3, -0.12, 0.14, 0], [0.21, 0.42, 0.1, 0.34, 0.02], [0.16, 0.48, 0.32, 0.56, 0.04], [0.1, 0.5, 0.54, 0.72, 0.05],
+        [0.11, 0.6, 0.2, 0.3, -0.06], [0.07, 0.7, 0.28, 0.42, -0.1]],
+      crown: [[0.12, 0.38, -0.06, 0.2, -0.3], [0.08, 0.4, 0.18, 0.3, -0.32], [0.13, 0.42, -0.06, 0.26, 0.05], [0.08, 0.44, 0.24, 0.38, 0.06], [0.12, 0.34, -0.06, 0.18, 0.35], [0.07, 0.35, 0.16, 0.28, 0.38], [0.12, 0, -0.06, 0.3, -0.34], [0.07, 0, 0.28, 0.42, -0.36]],
+    };
+    const segs = SHAPES[o.style ?? 'curved'];
+    const tones = [0x4a362a, 0x6a5444, 0x9a8670, 0xc8bca0, 0xece4cc];
+    const HORN = (tone, key, cut) => (ctx, x, y, w, h, side) => {
+      fill(ctx, x, y, w, h, tone);
+      band(ctx, x, y, w, h, shade(tone, 0.7), 0.3, 0.1); band(ctx, x, y, w, h, shade(tone, 0.7), 0.7, 0.1);
+      blobs(ctx, x, y, w, h, shade(tone, 1.25), 1, Math.min(w, h) * 0.2, rng(`${recipe.id}|horn|${key}|${side}`));
+      if (cut && side === 'top') { fill(ctx, x, y, w, h, 0xc8bca0); fill(ctx, x + w * 0.3, y + h * 0.3, w * 0.4, h * 0.4, 0x9a8e74); }
+    };
+    for (const s of [-1, 1]) {
+      segs.forEach(([w, x, y0, y1, z], i) => {
+        // The tone follows how far up the horn the block is: dark at the root, pale at the tip.
+        const top = Math.max(...segs.map((g) => g[3])), d = w * k, cx = s * x * k, cz = -hs * 0.18 + z * k, tone = tones[Math.max(0, Math.min(tones.length - 1, Math.round((y1 / top) * (tones.length - 1))))];
+        add(head, 'horn', B(cx - d / 2, hs + y0 * k, cz - d / 2, cx + d / 2, hs + y1 * k, cz + d / 2), HORN(o.style === 'stub' ? 0x6a5444 : tone, `${s}${i}`, o.style === 'stub' && i === segs.length - 1));
+      });
+    }
+  },
+  /**
+   * Anklebiter: massive gaping jaws, the lower jaw hanging open well below the chin, the mouth
+   * a dark red hole lined with teeth.
+   */
+  bigJaw(H) {
+    const { hs, head, add, skin, recipe } = H, f = -hs / 2;
+    const TEETH = 0xe0d8c0, GUM = 0x5a1414;
+    add(head, 'maw', B(-hs * 0.42, -hs * 0.05, f - 0.02, hs * 0.42, hs * 0.4, f + 0.02), solid(GUM, (ctx, x, y, w, h, side) => { if (side === 'front') { fill(ctx, x + w * 0.15, y + h * 0.25, w * 0.7, h * 0.6, 0x1a0606); fill(ctx, x + w * 0.35, y + h * 0.6, w * 0.3, h * 0.25, 0x8a2a30); } }));
+    add(head, 'snout', B(-hs * 0.47, hs * 0.36, f - 0.06, hs * 0.47, hs * 0.48, f + 0.01), solid(shade(skin, 0.95), (ctx, x, y, w, h, side) => { if (side === 'front') veins(ctx, x, y, w, h, shade(skin, 0.6), 1, rng(`${recipe.id}|snout`)); }));
+    add(head, 'jaw', B(-hs * 0.45, -hs * 0.42, f - 0.07, hs * 0.45, -hs * 0.28, f + hs * 0.3), solid(shade(skin, 0.9), (ctx, x, y, w, h, side) => { if (side === 'top') fill(ctx, x + w * 0.1, y, w * 0.8, h * 0.8, GUM); }));
+    add(head, 'jaw-hinge', B(-hs * 0.45, -hs * 0.3, f + hs * 0.18, hs * 0.45, hs * 0.05, f + hs * 0.3), solid(shade(skin, 0.85)));
+    for (let i = 0; i < 6; i++) {
+      const x = -hs * 0.38 + i * hs * 0.152, s = 0.016;
+      add(head, 'tooth', B(x - s, hs * 0.22, f - 0.055, x + s, hs * 0.37, f - 0.025), solid(TEETH));
+      add(head, 'tooth', B(x - s, -hs * 0.29, f - 0.065, x + s, -hs * 0.12, f - 0.035), solid(TEETH));
+    }
+  },
+  /**
+   * Huge eyes bulging from the face (creepy crawler, sproglodyte): too big for the face canvas,
+   * so 3D blocks. `recipe.bigEyes`: { color, size (in head sizes), glint }.
+   */
+  bigEyes(H) {
+    const { hs, head, add, skin, recipe } = H, o = recipe.bigEyes ?? {}, s = hs * (o.size ?? 0.34), color = o.color ?? 0x0a0a0a, f = -hs / 2, cy = hs * 0.52;
+    for (const x of [-hs * 0.23, hs * 0.23]) {
+      add(head, 'eye-socket', B(x - s / 2 - 0.012, cy - s / 2 - 0.012, f - 0.012, x + s / 2 + 0.012, cy + s / 2 + 0.012, f + 0.01), solid(shade(skin, 0.5)));
+      add(head, 'big-eye', B(x - s / 2, cy - s / 2, f - 0.035, x + s / 2, cy + s / 2, f), solid(color, (ctx, xx, y, w, h, side) => { if (side === 'front' && o.glint !== false) fill(ctx, xx + w * 0.18, y + h * 0.15, w * 0.22, h * 0.22, 0xf0f0f0); }));
+    }
+  },
+  /**
+   * Wretched hatchery: the ribcage arched outward from the belly into a hive under severely
+   * stretched skin, small forms swarming inside (FX swarm) and the gut churning (FX hivePulse).
+   */
+  ribHive(H) {
+    const { b, body, legH, torsoTop, add, skin, recipe, fx } = H, w = b.torsoW / 2, d = b.torsoD / 2;
+    const y0 = legH + b.torsoH * 0.08, y1 = torsoTop - 0.04, depth = b.torsoD * 0.9, hy = (y1 - y0) / 2;
+    const SKIN = (ctx, x, y, ww, hh, side) => { const r = rng(`${recipe.id}|hive|${side}${ww}`); fill(ctx, x, y, ww, hh, shade(skin, 1.12)); veins(ctx, x, y, ww, hh, 0x8a3a44, 4, r); blobs(ctx, x, y, ww, hh, 0x3a1a20, 3, Math.min(ww, hh) * 0.12, r); };
+    const BONE = (k) => (ctx, x, y, ww, hh, side) => bone(ctx, x, y, ww, hh, rng(`${recipe.id}|hiverib|${k}|${side}`));
+    const hive = fx.node(body, 'hive', new THREE.Vector3(0, (y0 + y1) / 2, -d));
+    add(hive, 'hive-skin', B(-w * 0.85, -hy, -depth, w * 0.85, hy, 0.01), SKIN);
+    add(hive, 'hive-skin', B(-w * 0.6, -hy * 0.7, -depth - 0.05, w * 0.6, hy * 0.7, -depth + 0.01), SKIN);
+    for (let i = 0; i < 4; i++) {
+      const y = -hy * 0.75 + i * hy * 0.5, t = 0.022;
+      add(hive, 'hive-rib', B(-w * 0.95, y - t, -depth - 0.065, w * 0.95, y + t, -depth - 0.035), BONE(`r${i}`));
+      for (const s of [-1, 1]) add(hive, 'hive-rib', B(s * w * 0.95 - t, y - t, -depth - 0.05, s * w * 0.95 + t, y + t, 0), BONE(`s${i}${s}`));
+    }
+    H.hive = hive;
+    H.swarm = [];
+    const r = rng(`${recipe.id}|swarm`);
+    for (let i = 0; i < 5; i++) {
+      const n = fx.node(hive, 'swarm', new THREE.Vector3((r() - 0.5) * w * 1.1, (r() - 0.5) * hy * 1.2, -depth - 0.06));
+      const s = 0.03 + r() * 0.015;
+      add(n, 'hatchling', B(-s / 2, -s / 2, -s / 2, s / 2, s / 2, s / 2), solid(0x8a4a4a, (ctx, x, y, ww, hh) => fill(ctx, x + ww * 0.2, y + hh * 0.2, ww * 0.25, hh * 0.25, 0x1a0a0a)));
+      H.swarm.push(n);
+    }
+  },
+  /**
+   * Howling waif: a membrane of skin stretched across the tiny bones (with skeletalBody): thin
+   * pale sheets over the rib cage front, back and sides, the ribs showing through as shadows.
+   */
+  skinMembrane(H) {
+    const { b, body, legH, torsoTop, add, skin, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2;
+    const SHEET = (k) => (ctx, x, y, ww, hh, side) => { fill(ctx, x, y, ww, hh, skin); for (let i = 1; i < 6; i++) band(ctx, x, y, ww, hh, shade(skin, 0.72), i / 6.5, 0.035); veins(ctx, x, y, ww, hh, shade(skin, 0.6), 2, rng(`${recipe.id}|membrane|${k}|${side}`)); };
+    add(body, 'membrane', B(-w * 0.92, legH + b.torsoH * 0.32, -d - 0.006, w * 0.92, torsoTop - 0.04, -d + 0.006), SHEET('f'));
+    add(body, 'membrane', B(-w * 0.85, legH + b.torsoH * 0.2, d * 0.6 - 0.006, w * 0.85, torsoTop - 0.04, d * 0.6 + 0.006), SHEET('b'));
+    for (const s of [-1, 1]) add(body, 'membrane', B(s > 0 ? w * 0.92 : -w * 0.92 - 0.012, legH + b.torsoH * 0.3, -d, s > 0 ? w * 0.92 + 0.012 : -w * 0.92, torsoTop - 0.05, d * 0.6), SHEET(`s${s}`));
+  },
   /** Child: a small backpack. */
   backpack(H) {
     const { b, body, legH, torsoTop, add } = H, d = b.torsoD / 2, pack = 0x7a4a8e;
@@ -1079,6 +1272,30 @@ export const FX = {
   gelDrip(H) { (H.cysts ?? []).slice(0, 4).forEach((c, i) => H.fx.drip(c.parent, c.position.clone().add(V(0, -0.05, 0)), { color: 0xc8d030, size: 0.03, drop: 0.45, n: 1 + (i % 2) })); },
   /** Spitter: the swollen stomach swelling and settling. */
   stomachPulse(H) { if (H.belly) H.fx.pulse(H.belly, { amount: 0.12 }); },
+  /** Scorched: thin smoke still rising off the charred body ("still reeks of charred meat"). */
+  charSmoke(H) {
+    const { b, legH, torsoTop } = H;
+    H.fx.puff(H.body, V(0, torsoTop - 0.05, 0), { color: 0x5a5650, size: 0.045 * Math.max(1, b.torsoW / 0.46), rise: 0.3, n: 3 });
+    H.fx.puff(H.body, V(b.torsoW * 0.3, legH + b.torsoH * 0.4, -b.torsoD / 2), { color: 0x6a6660, size: 0.03, rise: 0.25, n: 2 });
+  },
+  /** Snotgobbler: green slime dripping from the mouth and the outstretched hands. */
+  snot(H) {
+    const green = 0x9ab040;
+    H.fx.drip(H.head, V(0, H.hs * 0.2, -H.hs * 0.52), { color: green, size: 0.035, drop: 0.4, n: 2 });
+    for (const L of ['L', 'R']) H.fx.drip(H.arms[L].hand, V(0, -H.b.hand - 0.01, 0), { color: green, size: 0.028, drop: 0.35, n: 1 });
+  },
+  /** Burning: small flames licking up from the shoulders, back and forearms. */
+  flames(H) {
+    const { b, body, legH, torsoTop, arms } = H, w = b.torsoW / 2, d = b.torsoD / 2, s = 0.05 * Math.max(1, b.torsoW / 0.6);
+    for (const [x, y, z] of [[-w * 0.5, torsoTop, d * 0.3], [w * 0.4, torsoTop, -d * 0.2], [0, legH + b.torsoH * 0.6, d + 0.01], [w * 0.7, legH + b.torsoH * 0.3, d + 0.01]]) H.fx.flame(body, V(x, y, z), { size: s, rise: s * 4, n: 3 });
+    for (const L of ['L', 'R']) H.fx.flame(arms[L].fore, V(0, -b.forearm * 0.3, b.armD / 2 + 0.01), { size: s * 0.8, rise: s * 3, n: 2 });
+  },
+  /** Fiend: dangling muscle strands swaying (muscleStrands). */
+  strandSway(H) { (H.strands ?? []).forEach((n, i) => H.fx.sway(n, { amount: 0.08, phase: i / H.strands.length })); },
+  /** Wretched hatchery: the small forms swarming under the skin (ribHive). */
+  swarm(H) { (H.swarm ?? []).forEach((n, i) => H.fx.jitter(n, { amount: 0.025, phase: i / H.swarm.length })); },
+  /** Wretched hatchery: the midsection churning (ribHive). */
+  hivePulse(H) { if (H.hive) H.fx.pulse(H.hive, { amount: 0.06 }); },
   /** Skeletal: black goo seeping from the neck, elbows and knees. */
   goo(H) {
     const black = 0x141014;
