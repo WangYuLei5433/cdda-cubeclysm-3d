@@ -4,6 +4,14 @@
 
 > 本文是英文提案的中文对照，用于核对内容；发给 cataclysm-3d 作者的是英文版。
 
+> **状态：讨论稿。** 现行标准见 [standard.zh.md](standard.zh.md)，两者冲突时以标准为准。实际做法与本提案的不同之处：
+> - **比例**：Cubeclysm 采用头大颈短的方块造型，与下文「不做 Q 版或大头」不同。
+> - **骨骼**：实际使用精简的刚体骨骼（`body`、`shoulders`、`upper_arm`、`forearm`、`hand`、`thigh`、`shin`），没有 `hips`、`spine`、`chest`、`foot` 这几根骨头。
+> - **动画**：身体动画（`Idle` / `Walk` / `Attack` / `Death`）尚未提供；新增了独立于骨骼的 `FX` 特效循环。
+> - **贴图**：每个模型带一张贴图集，不只用顶点色。
+> - **DEADWOOD**：17 件武器已按 CC BY 4.0 署名收入 `models/deadwood/`，保留原授权。
+> - **仓库**：库名为 cdda-cubeclysm-3d，严格按 id 映射（`"match": "exact"`）。
+
 ## 摘要
 
 我们提议建一个按开放授权发布的 CDDA 共享 3D 模型库，供两个各自独立维护的引擎使用：**cataclysm-3d** 和 **Cataclysm-Vox**。库里只放模型和绑定配置，不放任何引擎代码。每个引擎读取自己支持的部分；共用的浏览器工具 **cdda-voxel-studio** 负责按游戏尺度预览和检查每个模型。

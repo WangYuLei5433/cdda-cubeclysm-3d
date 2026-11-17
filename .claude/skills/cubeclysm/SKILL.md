@@ -8,7 +8,7 @@ description: Cubeclysm 风格（Unturned 式方块低模）的 CDDA 怪物与角
 Cubeclysm 是 cdda-cubeclysm-3d 的主风格：**Unturned 式方块低模**。每个 CDDA id 一个模型，外观照着这个 id 的官方描述做，大小照着官方体积做。所有代码在 `tools/cubeclysm/`，产物绑定进库根的 `meshset.json`（名为 "Cubeclysm"，`"match": "exact"`）。
 
 先读这两份，按需：
-- `references/style.md`：风格规则（比例、脸、配色、什么必须是 3D、特效规则）。**动手画之前读。**
+- `docs/standard.zh.md`（库根目录下）：《Cubeclysm 设计与约束》，是现行标准，包括技术规范、体积与体型对照、风格、必须做成 3D 的东西、特效、授权。**动手画之前读。**
 - `references/toolkit.md`：现有的体型、姿势、穿戴物（GEAR）、特效（FX）、贴图画笔、服装/磨损字段、面部部件和发型清单，以及新增部件的写法。**写配方时查。**
 
 ## 用户的固定要求（都是用户亲口提过的）
@@ -32,7 +32,7 @@ python3 .claude/skills/cubeclysm/scripts/cdda_check.py --coverage   # 覆盖进�
 
 输出：官方英文名/中文名、copy-from 链、描述、体积/重量/大小等级、相对 `mon_zombie` 的目标倍数；已构建的模型还会给出实际体积倍数和最低部件。
 
-- 体积 → 体型：1.0×（62.5 L）用 standard；约 1.15× 用 tough；1.5× fat；1.6× brute；1.75× bloated；14× giant；0.5× child。具体见 `references/style.md` 的表。
+- 体积 → 体型：1.0×（62.5 L）用 standard；约 1.15× 用 tough；1.5× fat；1.6× brute；1.75× bloated；14× giant；0.5× child。具体见 `docs/standard.zh.md` 第 3 节的表。
 - 描述里的每个具体特征都要在模型上找得到（衣服、配件、伤口、变异部位、姿态）。描述为空的 id，按 id 和所在文件推断，并在 `desc` 里注明"(no description in CDDA …)"。
 
 ### 2. 写配方

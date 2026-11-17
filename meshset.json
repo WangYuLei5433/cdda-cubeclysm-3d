@@ -3,8 +3,8 @@
   "format_version": 1,
   "match": "exact",
   "models": [
-    {"id":["player_male","npc_male"],"file":"models/cubeclysm/characters/human_male.glb","author":"cdda-cubeclysm-3d contributors","license":"CC-BY-SA-3.0","source":"tools/cubeclysm/page/recipes.js","style":"cubeclysm"},
-    {"id":["player_female","npc_female"],"file":"models/cubeclysm/characters/human_female.glb","author":"cdda-cubeclysm-3d contributors","license":"CC-BY-SA-3.0","source":"tools/cubeclysm/page/recipes.js","style":"cubeclysm"},
+    {"id":["player_male","npc_male"],"file":"models/cubeclysm/characters/human_male.glb","author":"cdda-cubeclysm-3d contributors","license":"CC-BY-SA-3.0","source":"tools/cubeclysm/page/humans.js","style":"cubeclysm"},
+    {"id":["player_female","npc_female"],"file":"models/cubeclysm/characters/human_female.glb","author":"cdda-cubeclysm-3d contributors","license":"CC-BY-SA-3.0","source":"tools/cubeclysm/page/humans.js","style":"cubeclysm"},
     {"id":"mon_zombie","file":"models/cubeclysm/monsters/mon_zombie.glb","author":"cdda-cubeclysm-3d contributors","license":"CC-BY-SA-3.0","source":"tools/cubeclysm/page/recipes.js","style":"cubeclysm"},
     {"id":"mon_zombie_fat","file":"models/cubeclysm/monsters/mon_zombie_fat.glb","author":"cdda-cubeclysm-3d contributors","license":"CC-BY-SA-3.0","source":"tools/cubeclysm/page/recipes.js","style":"cubeclysm"},
     {"id":"mon_zombie_tough","file":"models/cubeclysm/monsters/mon_zombie_tough.glb","author":"cdda-cubeclysm-3d contributors","license":"CC-BY-SA-3.0","source":"tools/cubeclysm/page/recipes.js","style":"cubeclysm"},

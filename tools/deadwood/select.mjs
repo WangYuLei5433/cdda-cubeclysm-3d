@@ -50,13 +50,13 @@ for (const group of ['characters', 'monsters', 'items']) {
     const entry = { id: m.id, file };
     for (const k of PLACEMENT) if (m[k] !== undefined) entry[k] = m[k];
     entries.push(built
-      ? { ...entry, author: 'cdda-cubeclysm-3d contributors', license: 'CC-BY-SA-3.0', source: 'tools/cubeclysm/page/recipes.js', style: 'cubeclysm' }
+      ? { ...entry, author: 'cdda-cubeclysm-3d contributors', license: 'CC-BY-SA-3.0', source: `tools/cubeclysm/page/${rel.startsWith('humans/') ? 'humans' : 'recipes'}.js`, style: 'cubeclysm' }
       : { ...entry, ...CREDIT, ...(style === 'cubeclysm' ? { style: 'cubeclysm', note: 'Cubeclysm restyle of a DEADWOOD — Last Light model' } : {}) });
   }
 }
 
-// Unbound Cubeclysm candidates (the DEADWOOD characters and zombies restyled): copied from the
-// pool into models/cubeclysm/candidates/ when it is there, listed in the same set (no id: they bind
+// Unbound Cubeclysm candidates (archetype zombies, hair samples and survivors built from recipes):
+// copied into models/cubeclysm/candidates/, listed in the same set (no id: they bind
 // nothing, they are there to browse and to try on).
 const CAND = join(ROOT, 'models/cubeclysm/candidates');
 const poolCubeclysm = join(pool, 'cubeclysm');

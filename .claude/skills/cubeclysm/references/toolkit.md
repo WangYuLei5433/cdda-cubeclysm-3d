@@ -69,6 +69,8 @@ variant(baseId, { …, newOutfit, more, moreFx, drop })
 - **mouth**：drool、frown_teeth、gape、gnaw、grimace、grin、jawless、small_open、snarl、stitched；人类：h_grin、h_gritted、h_lips、h_neutral、h_sad、h_smile、h_smirk、h_talk
 - **marks**：bandage、blood_forehead、blood_mouth、bruise、coal_dust、rot、scar_cheek、scar_eye、stubble、veins；人类：h_blush、h_dimples、h_eyeliner、h_freckles、h_full_beard、h_goatee、h_mole、h_mustache、h_nose、h_scar_lip、h_wrinkles
 
+关键色（按色相重新着色）：品红 → 眼睛颜色，绿 → 眼窝（皮肤 × 0.55），蓝 → 眉毛/头发，红 → 眼睑（皮肤 × 0.62）。
+
 新部件的加法：
 1. 在 `faces.js` 的部件表里加画法（`seedPart`）。
 2. 运行 `build.mjs`，它会自动生成缺少的 PNG，已有的不会覆盖。
