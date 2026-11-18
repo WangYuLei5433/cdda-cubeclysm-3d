@@ -6,6 +6,10 @@ import { LEVEL, SLAB, WALL_T, bark, border, chainlink, cracks, flat, glass, grid
 import { fill, rng, shade } from './paint.js';
 import { FLOWERS, LOW_FURN, TREES } from './vegetation.js';
 import { FURNITURE } from './furniture.js';
+import { VEHICLES } from './vehicles.js';
+import { ROAD_VEHICLES } from './road-vehicles.js';
+import { ITEMS } from './items.js';
+import { ITEMS2 } from './items2.js';
 
 const T = WALL_T / 2;
 
@@ -411,4 +415,4 @@ const OPENING = { t_window: [1, 0.3, 1.95], t_reinforced_glass_shutter_open: [0.
 const openings = (list) => list.map((e) => ({ ...e, opening: OPENING[e.id] ?? DOMESTIC }));
 
 /** Phase-1 terrain, each with the kind of surface an engine may take its texture for. */
-export const TERRAIN = [...tag(GROUND, 'floor'), ...tag(ROOFS, 'roof'), ...tag(WALLS, 'wall'), ...DOORS, ...openings(WINDOWS), ...FENCES, ...TREES, ...FLOWERS, ...LOW_FURN, ...FURNITURE].map((e) => ({ ppm: 64, ...e }));
+export const TERRAIN = [...tag(GROUND, 'floor'), ...tag(ROOFS, 'roof'), ...tag(WALLS, 'wall'), ...DOORS, ...openings(WINDOWS), ...FENCES, ...TREES, ...FLOWERS, ...LOW_FURN, ...FURNITURE, ...VEHICLES, ...ROAD_VEHICLES, ...ITEMS, ...ITEMS2].map((e) => ({ ppm: 64, ...e }));

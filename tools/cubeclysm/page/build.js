@@ -72,6 +72,28 @@ window.buildAll = async (only = null) => {
       mesh.name = recipe.id + '_mesh';
       root.add(mesh);
     }
+    if (recipe.batchByMaterial) {
+      // Road vehicles have static root-space geometry. Keep glass in its own render pass.
+      const batches = new Map();
+      // The roof (blocks named roof-…) stays a node of its own, `roof`, so a viewer can lift it off.
+      for (const mesh of root.children) {
+        const roof = mesh.name.startsWith('block_roof');
+        const key = `${mesh.material.uuid}|${roof}`;
+        const group = batches.get(key) ?? { material: mesh.material, roof, geometries: [] };
+        group.geometries.push(mesh.geometry);
+        batches.set(key, group);
+      }
+      root.clear();
+      const roofNode = new THREE.Group();
+      roofNode.name = 'roof';
+      for (const { material, roof, geometries } of batches.values()) {
+        const mesh = new THREE.Mesh(mergeGeometries(geometries), material);
+        mesh.name = roof ? 'roof_body' : material.transparent ? 'glazing' : 'closed_body';
+        (roof ? roofNode : root).add(mesh);
+        for (const geometry of geometries) geometry.dispose();
+      }
+      if (roofNode.children.length) root.add(roofNode);
+    }
     root.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(root);
     const size = box.getSize(new THREE.Vector3());
@@ -90,7 +112,7 @@ window.buildAll = async (only = null) => {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(atlas, 0, 0, big.width, big.height);
     await window.save(`${recipe.group}/${recipe.id}.png`, big.toDataURL('image/png').split(',')[1]);
-    out.push({ id: recipe.id, group: recipe.group, names: recipe.names, bound: recipe.bound, fx: clips.length ? recipe.fx : undefined, path: `${recipe.group}/${recipe.id}.glb`, body: recipe.body, source: recipe.source, surface: recipe.surface, opening: recipe.opening, gear: recipe.gear ?? [], desc: recipe.desc, size: [size.x, size.y, size.z].map((n) => +n.toFixed(3)), bottom: +box.min.y.toFixed(3), low, triangles });
+    out.push({ id: recipe.id, ids: recipe.ids, interior: recipe.interior, group: recipe.group, names: recipe.names, bound: recipe.bound, fx: clips.length ? recipe.fx : undefined, path: `${recipe.group}/${recipe.id}.glb`, body: recipe.body, source: recipe.source, surface: recipe.surface, opening: recipe.opening, gear: recipe.gear ?? [], desc: recipe.desc, size: [size.x, size.y, size.z].map((n) => +n.toFixed(3)), bottom: +box.min.y.toFixed(3), low, triangles });
   }
   return out;
 };

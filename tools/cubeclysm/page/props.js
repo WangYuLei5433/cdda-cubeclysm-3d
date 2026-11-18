@@ -166,7 +166,7 @@ export class Prop {
 
   /** A block on `parent` (default: the root), box in that parent's space. */
   box(name, [x0, y0, z0, x1, y1, z1], paint, opts = {}) {
-    const b = block(opts.parent ?? this.root, name, B(x0, y0, z0, x1, y1, z1), paint, { ppm: opts.ppm ?? this.ppm, metal: opts.metal, glow: opts.glow, cutout: opts.cutout, glass: opts.glass });
+    const b = block(opts.parent ?? this.root, name, B(x0, y0, z0, x1, y1, z1), paint, { ppm: opts.ppm ?? this.ppm, metal: opts.metal, glow: opts.glow, cutout: opts.cutout, glass: opts.glass, tint: opts.tint });
     this.blocks.push(b);
     return b;
   }

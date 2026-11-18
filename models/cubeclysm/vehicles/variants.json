@@ -1,0 +1,29 @@
+{
+  "about": "Cabin parts placed inside Cubeclysm whole-vehicle models by the CDDA part layout; see tools/cubeclysm/page/vehicle-variants.js.",
+  "tile": 0.55,
+  "heights": {
+    "floor": 0.3
+  },
+  "rotation": {
+    "N": 0,
+    "W": 90,
+    "S": 180,
+    "E": -90
+  },
+  "interior": [
+    "vp_seat",
+    "vp_reclining_seat",
+    "vp_seat_back",
+    "vp_seatbelt",
+    "vp_controls",
+    "vp_dashboard",
+    "vp_stereo",
+    "vp_vehicle_alarm",
+    "vp_integrated_heater_small",
+    "vp_integrated_cooler",
+    "vp_trunk",
+    "vp_cargo_space",
+    "vp_aisle"
+  ],
+  "parts": {}
+}
