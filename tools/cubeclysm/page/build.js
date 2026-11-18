@@ -112,7 +112,14 @@ window.buildAll = async (only = null) => {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(atlas, 0, 0, big.width, big.height);
     await window.save(`${recipe.group}/${recipe.id}.png`, big.toDataURL('image/png').split(',')[1]);
-    out.push({ id: recipe.id, ids: recipe.ids, interior: recipe.interior, group: recipe.group, names: recipe.names, bound: recipe.bound, fx: clips.length ? recipe.fx : undefined, path: `${recipe.group}/${recipe.id}.glb`, body: recipe.body, source: recipe.source, surface: recipe.surface, opening: recipe.opening, gear: recipe.gear ?? [], desc: recipe.desc, size: [size.x, size.y, size.z].map((n) => +n.toFixed(3)), bottom: +box.min.y.toFixed(3), low, triangles });
+    // Faces an engine may use on its own geometry (atlas rects, see bake()):
+    //  - a wall that is one plain block (no 3D features): its face and its top (the wall's
+    //    section), for connected walls thinner than a tile;
+    //  - ground and roof slabs: the tile's top, e.g. for the floor under a door or window.
+    const slab = blocks.find((b) => b.name === 'tile');
+    const surfaceFaces = recipe.surface === 'wall' && blocks.length === 1 && blocks[0].name === 'wall' ? { side: blocks[0].atlasRects.front, top: blocks[0].atlasRects.top }
+      : (recipe.surface === 'floor' || recipe.surface === 'roof') && slab ? { top: slab.atlasRects.top } : undefined;
+    out.push({ id: recipe.id, ids: recipe.ids, interior: recipe.interior, group: recipe.group, names: recipe.names, bound: recipe.bound, fx: clips.length ? recipe.fx : undefined, path: `${recipe.group}/${recipe.id}.glb`, body: recipe.body, source: recipe.source, surface: recipe.surface, surfaceFaces, opening: recipe.opening, gear: recipe.gear ?? [], desc: recipe.desc, size: [size.x, size.y, size.z].map((n) => +n.toFixed(3)), bottom: +box.min.y.toFixed(3), low, triangles });
   }
   return out;
 };

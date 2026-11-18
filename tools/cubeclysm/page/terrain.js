@@ -3,6 +3,7 @@
 // its CDDA description (quoted in `desc`, CDDA 7136388). Sizes: props.js (1 m tiles, LEVEL-high
 // walls, doors and windows WALL_T thick, spanning x, facing −Z).
 import { LEVEL, SLAB, WALL_T, bark, border, chainlink, cracks, flat, glass, grid, layers, masonry, planks, sides, speckle } from './props.js';
+import { V, hull } from './item-kit.js';
 import { fill, rng, shade } from './paint.js';
 import { FLOWERS, LOW_FURN, TREES } from './vegetation.js';
 import { FURNITURE } from './furniture.js';
@@ -10,6 +11,7 @@ import { VEHICLES } from './vehicles.js';
 import { ROAD_VEHICLES } from './road-vehicles.js';
 import { ITEMS } from './items.js';
 import { ITEMS2 } from './items2.js';
+import { ITEMS3 } from './items3.js';
 
 const T = WALL_T / 2;
 
@@ -76,7 +78,65 @@ const ROOFS = [
 
 // --- walls: one tile, one level, full block --------------------------------------------------------
 
-const wall = (paint, opts = {}) => (p) => p.box('wall', [-0.5, 0, -0.5, 0.5, LEVEL, 0.5], paint, { ppm: 32, ...opts });
+/** A wall block; `top` paints its top face (the section, below) instead of the face paint. */
+const wall = (paint, { top, ...opts } = {}) => {
+  const painter = top ? (ctx, x, y, w, h, side) => (side === 'top' ? top : paint)(ctx, x, y, w, h, side) : paint;
+  return (p) => p.box('wall', [-0.5, 0, -0.5, 0.5, LEVEL, 0.5], painter, { ppm: 32, ...opts });
+};
+
+// --- wall tops: the cut through the wall ------------------------------------------------------------
+// With the floor above cut away (Cataclysm-Vox's dollhouse view inside buildings) the camera looks
+// down on the tops of the walls. A top drawn like the faces reads as more wall surface; it is drawn
+// as a section, as on a floor plan: the finish of the faces as a thin edge all round (a wall tile can
+// face any way), a dark cut line, and the structure inside, darker than the faces.
+
+/** Section: `core` inside, `finish`-coloured edge and a dark cut line round it. */
+const section = (core, finish) => (ctx, x, y, w, h) => {
+  core(ctx, x, y, w, h, 'top');
+  const e = Math.max(1, Math.round(w / 16));
+  border(shade(finish, 0.55), e + 1)(ctx, x, y, w, h);
+  border(finish, e)(ctx, x, y, w, h);
+};
+
+/** Timber-frame wall (painted walls): gypsum board inside the finish, studs across a dark cavity. */
+const studCore = (id) => (ctx, x, y, w, h) => {
+  fill(ctx, x, y, w, h, 0x4a3c2c);
+  const g = Math.max(1, Math.round(w / 12));
+  border(0xb8b2a6, g)(ctx, x + 2, y + 2, w - 4, h - 4);
+  const r = rng(`${id}:studs`);
+  const s = Math.max(2, Math.round(w / 6));
+  for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) {
+    const cx = x + Math.round(((i + 1) * w) / 4 - s / 2), cy = y + Math.round(((j + 1) * h) / 4 - s / 2);
+    fill(ctx, cx, cy, s, s, r() < 0.5 ? 0x8a6238 : 0x7e5830);
+  }
+};
+
+/** Poured concrete: dark grey with aggregate; reinforced adds rebar ends on a grid. */
+const concreteCore = (id, hex, rebar = false) => layers(
+  speckle(`${id}:core`, shade(hex, 0.62), [shade(hex, 0.7), shade(hex, 0.55), shade(hex, 0.78)], 0.45),
+  rebar ? (ctx, x, y, w, h) => { for (let j = 1; j < 4; j++) for (let i = 1; i < 4; i++) fill(ctx, x + Math.round((i * w) / 4) - 1, y + Math.round((j * h) / 4) - 1, 2, 2, 0x3a2a22); } : null,
+);
+
+/** Concrete block: blocks in courses, each with two hollow cells. */
+const blockCore = (hex) => (ctx, x, y, w, h) => {
+  const body = shade(hex, 0.66), cell = shade(hex, 0.38), mortar = shade(hex, 0.5);
+  fill(ctx, x, y, w, h, mortar);
+  const rows = 2, cols = 2, bw = w / cols, bh = h / rows;
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    const bx = Math.round(x + i * bw) + 1, by = Math.round(y + j * bh) + 1, cw = Math.round(bw) - 2, ch = Math.round(bh) - 2;
+    fill(ctx, bx, by, cw, ch, body);
+    for (const k of [0, 1]) fill(ctx, bx + Math.round(cw * (0.1 + k * 0.44)), by + Math.round(ch * 0.25), Math.round(cw * 0.36), Math.round(ch * 0.5), cell);
+  }
+};
+
+/** Brick seen from above: the bond (stretchers and headers), a shade darker than the face. */
+const brickCore = (id, brick, mortar, tones) => masonry(`${id}:top`, { brick: shade(brick, 0.8), mortar: shade(mortar, 0.7), rows: 4, cols: 2, tones: tones.map((t) => shade(t, 0.8)) });
+
+/** Plank wall seen from above: the board ends and the beam behind them. */
+const timberCore = (id) => layers(
+  planks(`${id}:top`, { wood: 0x6e4a2a, seam: 0x3a2614, n: 5, vertical: true, tones: [0x6e4a2a, 0x664426, 0x7a5230] }),
+  (ctx, x, y, w, h) => fill(ctx, x, y + Math.round(h * 0.42), w, Math.max(2, Math.round(h * 0.16)), 0x4a3018),
+);
 
 const plaster = (id, hex) => layers(speckle(id, hex, [shade(hex, 1.04), shade(hex, 0.95), shade(hex, 0.9)], 0.3), sides(['front', 'back', 'left', 'right'], (ctx, x, y, w, h) => fill(ctx, x, y + h - 3, w, 3, shade(hex, 0.72))));
 const concrete = (id, hex) => layers(speckle(id, hex, [shade(hex, 1.05), shade(hex, 0.93)], 0.35), sides(['front', 'back', 'left', 'right'], grid(shade(hex, 0.78), 1, 2)));
@@ -85,19 +145,180 @@ const cinder = (id, hex) => masonry(id, { brick: hex, mortar: shade(hex, 0.8), r
 
 const PAINT = { w: 0xe6e4dc, gray: 0xa4a4a0, g: 0x5e8a54, y: 0xd8c050, b: 0x4a6aa8, black: 0x262628 };
 
+
+// --- batch 2 walls: the rest of the census (docs/census/walls.csv) -------------------------------------
+
+/** CDDA's paint colours for the painted walls of batch 2 (c_brown, c_red, c_light_red, …). */
+const PAINT2 = { brown: 0x7a5636, r: 0xa83c32, orange: 0xcc7430, P: 0xd894ac, p: 0x7c4c9a, cyan: 0x4aa6ae, cream: 0xe2d6b8 };
+const FACES = ['front', 'back', 'left', 'right'];
+
+/** A painted timber-frame wall (as t_wall_w): plaster faces, studs and gypsum in section. */
+const paintedWall = (id, hex, desc) => ({ id, desc, build: wall(plaster(id, hex), { top: section(studCore(id), hex) }) });
+/** A painted reinforced concrete wall (as t_strconc_wall_w). */
+const paintedStrconc = (id, hex, desc) => ({ id, desc, build: wall(layers(concrete(id, hex), formTies(shade(hex, 0.82))), { top: section(concreteCore(id, 0x8e8e8a, true), hex) }) });
+
+const LOG = 0x7a5432;
+/** Horizontal logs: each a light middle, a darker rim and a dark chink below. */
+const logs = (id, wood = LOG, n = 7) => (ctx, x, y, w, h, side) => {
+  const r = rng(`${id}:logs:${side}`);
+  for (let j = 0; j < n; j++) {
+    const a = Math.round((j * h) / n), b = Math.round(((j + 1) * h) / n), tone = shade(wood, 0.9 + r() * 0.2);
+    fill(ctx, x, y + a, w, b - a, shade(tone, 0.8));
+    fill(ctx, x, y + a + 1, w, Math.max(1, b - a - 3), tone);
+    fill(ctx, x, y + a + Math.round((b - a) / 2) - 1, w, 1, shade(tone, 1.12));
+    fill(ctx, x, y + b - 1, w, 1, 0x3a2a1a);
+  }
+};
+/** Log ends (a log wall's section): rings round a dark heart, in dark chinking. */
+const logEnds = (wood = LOG, n = 3) => (ctx, x, y, w, h) => {
+  fill(ctx, x, y, w, h, 0x3a2a1a);
+  const s = w / n;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const cx = Math.round(x + i * s), cy = Math.round(y + j * s), cs = Math.round(s);
+    fill(ctx, cx + 1, cy + 1, cs - 2, cs - 2, shade(wood, 1.18));
+    fill(ctx, cx + Math.round(cs * 0.3), cy + Math.round(cs * 0.3), Math.max(1, Math.round(cs * 0.4)), Math.max(1, Math.round(cs * 0.4)), shade(wood, 0.85));
+  }
+};
+
+/** Steel sheet: near-uniform with a dark sealant line round each face. */
+const steelSheet = (id, hex) => layers(speckle(id, hex, [shade(hex, 1.05), shade(hex, 0.95)], 0.15), sides(FACES, border(shade(hex, 0.55))));
+/** Corrugated steel: vertical ribs (light crest, dark trough) in a dark frame. */
+const corrugated = (hex) => (ctx, x, y, w, h, side) => {
+  if (side === 'top' || side === 'bottom') return fill(ctx, x, y, w, h, shade(hex, 0.6));
+  for (let i = 0; i < w; i++) fill(ctx, x + i, y, 1, h, i % 4 < 2 ? shade(hex, 1.12) : shade(hex, 0.78));
+  fill(ctx, x, y, w, 2, 0x4a4a4c);
+  fill(ctx, x, y + h - 2, w, 2, 0x4a4a4c);
+};
+/** Scrap plates: overlapping sheets of mixed greys with rivets; `rust` adds rust and wire ties. */
+const patchwork = (id, tones, { rust = false } = {}) => (ctx, x, y, w, h, side) => {
+  const r = rng(`${id}:patch:${side}`);
+  fill(ctx, x, y, w, h, shade(tones[0], 0.7));
+  for (let k = 0; k < 7; k++) {
+    const pw = Math.round(w * (0.35 + r() * 0.4)), ph = Math.round(h * (0.2 + r() * 0.3));
+    const px = x + Math.floor(r() * (w - pw + 1)), py = y + Math.floor(r() * (h - ph + 1)), tone = tones[k % tones.length];
+    fill(ctx, px, py, pw, ph, shade(tone, 0.6));
+    fill(ctx, px + 1, py + 1, pw - 2, ph - 2, tone);
+    for (const [rx, ry] of [[px + 2, py + 2], [px + pw - 3, py + 2], [px + 2, py + ph - 3], [px + pw - 3, py + ph - 3]]) fill(ctx, rx, ry, 1, 1, 0xc8c8c4);
+    if (rust) for (let q = 0; q < (pw * ph) / 6; q++) if (r() < 0.5) fill(ctx, px + 1 + Math.floor(r() * (pw - 2)), py + 1 + Math.floor(r() * (ph - 2)), 1, 1, r() < 0.5 ? 0x8a4a22 : 0x6a3a1a);
+  }
+  if (rust) for (let k = 0; k < 4; k++) fill(ctx, x + Math.floor(r() * (w - 3)), y + Math.floor(r() * (h - 2)), 3, 1, 0xb0b0aa);
+};
+/** Rubble stone: irregular stones of uneven length in rough courses, wide mortar. */
+const stones = (id, base, mortar, rows = 7) => (ctx, x, y, w, h, side) => {
+  const r = rng(`${id}:stones:${side}`);
+  fill(ctx, x, y, w, h, mortar);
+  const rh = h / rows;
+  for (let j = 0; j < rows; j++) {
+    let i = -Math.floor(r() * 4);
+    while (i < w) {
+      const len = 3 + Math.floor(r() * Math.max(3, w / 3));
+      const x0 = Math.max(x, x + i + 1), x1 = Math.min(x + w, x + i + len);
+      if (x1 > x0) fill(ctx, x0, Math.round(y + j * rh) + 1, x1 - x0, Math.max(1, Math.round(rh) - 1 - Math.floor(r() * 2)), shade(base, 0.82 + r() * 0.3));
+      i += len;
+    }
+  }
+};
+/** Natural rock: mottled stone with cracks. */
+const rockFace = (id, hex) => layers(speckle(id, hex, [shade(hex, 1.12), shade(hex, 0.86), shade(hex, 0.74)], 0.55), cracks(id, shade(hex, 0.5), 4));
+/** Earth, packed or rammed; `glisten` adds a damp sheen. */
+const earth = (id, hex, glisten = false) => layers(speckle(id, hex, [shade(hex, 1.1), shade(hex, 0.88), shade(hex, 0.78)], 0.5),
+  glisten ? (ctx, x, y, w, h, side) => { const r = rng(`${id}:sheen:${side}`); for (let k = 0; k < (w * h) / 40; k++) fill(ctx, x + Math.floor(r() * w), y + Math.floor(r() * h), 1, 1, 0xd8cc9a); } : null);
+/** Wasp paper: wavy bands of grey and beige pulp, with glossy saliva. */
+const waspPaper = (id) => (ctx, x, y, w, h, side) => {
+  const r = rng(`${id}:paper:${side}`);
+  const tones = [0xd8d4c8, 0xc4beb0, 0xb0aa9c, 0xe4e0d6, 0x9e988a];
+  let tone = tones[0];
+  for (let j = 0; j < h; j++) {
+    if (r() < 0.45) tone = tones[Math.floor(r() * tones.length)];
+    const wave = Math.round(Math.sin((j / h) * 9 + r()) * 2);
+    fill(ctx, x, y + j, w, 1, tone);
+    fill(ctx, x + Math.max(0, Math.round(w / 2) + wave * 3), y + j, Math.max(1, Math.round(w / 3)), 1, shade(tone, 0.9));
+  }
+  for (let k = 0; k < (w * h) / 50; k++) fill(ctx, x + Math.floor(r() * w), y + Math.floor(r() * h), 1, 1, 0xf4f2e8);
+};
+/** Stakes (palisade): vertical logs side by side, bark-dark seams, a cable band. */
+const stakes = (id, n = 5) => layers(planks(`${id}:stakes`, { wood: 0x7e5634, seam: 0x3a2614, n, vertical: true, tones: [0x7e5634, 0x744e2e, 0x8a603a] }),
+  sides(FACES, (ctx, x, y, w, h) => fill(ctx, x, y + Math.round(h * 0.3), w, Math.max(1, Math.round(h * 0.03)), 0x2a2a2a)));
+/** Glass with wire mesh embedded (reinforced glass). */
+const wired = (tint) => layers(glass(tint), (ctx, x, y, w, h) => {
+  const s = Math.max(3, Math.round(Math.min(w, h) / 12));
+  for (let i = s; i < w; i += s) fill(ctx, x + i, y, 1, h, shade(tint, 0.6));
+  for (let j = s; j < h; j += s) fill(ctx, x, y + j, w, 1, shade(tint, 0.6));
+});
+
+/**
+ * A glass wall: a frame round panes (as t_wall_glass). `pane` paints the glass, `t` its half
+ * thickness; `alarm` adds a glass-break sensor and its wire on the frame.
+ */
+const glassWall = ({ frame = 0x9aa0a4, pane = glass(0xa8d4e0), t = 0.02, alarm = false, edge = null } = {}) => (p) => {
+  const al = flat(frame);
+  p.box('sill', [-0.5, 0, -0.08, 0.5, 0.08, 0.08], al, { metal: true });
+  p.box('head', [-0.5, LEVEL - 0.08, -0.08, 0.5, LEVEL, 0.08], al, { metal: true });
+  for (const x of [-0.5, 0.46]) p.box(`mullion${x}`, [x, 0.08, -0.08, x + 0.04, LEVEL - 0.08, 0.08], al, { metal: true });
+  p.box('pane', [-0.46, 0.08, -t, 0.46, LEVEL - 0.08, t], edge ? (ctx, x, y, w, h, side) => (FACES.includes(side) && (side === 'left' || side === 'right') || side === 'top' || side === 'bottom' ? edge : pane)(ctx, x, y, w, h, side) : pane, { glass: true });
+  if (alarm) {
+    p.box('alarm-sensor', [0.3, LEVEL - 0.26, -0.06, 0.38, LEVEL - 0.18, -0.03], flat(0xf4f4f0));
+    p.box('alarm-wire', [0.33, LEVEL - 0.18, -0.055, 0.35, LEVEL - 0.08, -0.045], flat(0x2a2a2a));
+  }
+};
+
+const PAL_H = LEVEL - 0.3;
+/** Sharpened stake tips standing on a palisade block of height `h` (a grid of n × n stakes). */
+const stakeTips = (p, h, n = 4) => {
+  const s = 1 / n;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const cx = -0.5 + (i + 0.5) * s, cz = -0.5 + (j + 0.5) * s, a = s * 0.42, b = s * 0.2;
+    p.box(`tip${i}${j}`, [cx - a, h, cz - a, cx + a, h + 0.14, cz + a], flat(0x7e5634));
+    p.box(`point${i}${j}`, [cx - b, h + 0.14, cz - b, cx + b, h + 0.28, cz + b], flat(0x9a7048));
+  }
+};
+/** A wall with an embrasure: a cross-shaped firing slit through it, 0.24 m wide, at chest height. */
+const embrasureWall = (paint, top, height) => (p) => {
+  const y0 = 1.05, y1 = 1.35, g = 0.12;
+  p.box('below', [-0.5, 0, -0.5, 0.5, y0, 0.5], paint, { ppm: 32 });
+  p.box('above', [-0.5, y1, -0.5, 0.5, height, 0.5], (ctx, x, y, w, h, side) => (side === 'top' ? top : paint)(ctx, x, y, w, h, side), { ppm: 32 });
+  for (const [x0, x1] of [[-0.5, -g], [g, 0.5]]) for (const [z0, z1] of [[-0.5, -g], [g, 0.5]]) p.box(`pier${x0}${z0}`, [x0, y0, z0, x1, y1, z1], paint, { ppm: 32 });
+};
+
+/** Raised veins in a grid with knots where they cross, on all four faces (overgrown wall). */
+const veins = (p) => {
+  const v = flat(0x7a2238), knot = flat(0xa8445a), d = 0.035;
+  for (const [axis, sign] of [['z', -1], ['z', 1], ['x', -1], ['x', 1]]) {
+    const at = (u0, y0, u1, y1, out) => (axis === 'z'
+      ? [u0, y0, sign < 0 ? -0.5 - out : 0.5, u1, y1, sign < 0 ? -0.5 : 0.5 + out]
+      : [sign < 0 ? -0.5 - out : 0.5, y0, u0, sign < 0 ? -0.5 : 0.5 + out, y1, u1]);
+    for (const y of [0.55, 1.35]) p.box(`vein-h${axis}${sign}${y}`, at(-0.5, y - 0.025, 0.5, y + 0.025, d), v);
+    for (const u of [-0.22, 0.26]) p.box(`vein-v${axis}${sign}${u}`, at(u - 0.025, 0, u + 0.025, LEVEL, d), v);
+    for (const y of [0.55, 1.35]) for (const u of [-0.22, 0.26]) p.box(`knot${axis}${sign}${y}${u}`, at(u - 0.06, y - 0.06, u + 0.06, y + 0.06, d + 0.05), knot);
+  }
+};
+/** Fungal tendrils piercing straight through the wall and out of both faces. */
+const tendrils = (p) => {
+  const flesh = speckle('fungus-tendril', 0x9a8c6a, [0xa89a76, 0x847658, 0xb4a888], 0.4), tip = flat(0x5a5040);
+  // "Several thick, large tendrils": five, 0.2–0.3 m across, through both axes.
+  for (const [k, [axis, u, y]] of [['x', -0.22, 0.55], ['z', 0.2, 1.0], ['x', 0.24, 1.5], ['z', -0.26, 1.7], ['x', 0.0, 0.25]].entries()) {
+    const t = 0.1 + (k % 3) * 0.025;
+    // Two segments, the second a little off line: grown, not built.
+    const seg = (a0, a1, du, dy) => (axis === 'x' ? [a0, y + dy - t, u + du - t, a1, y + dy + t, u + du + t] : [u + du - t, y + dy - t, a0, u + du + t, y + dy + t, a1]);
+    p.box(`tendril${k}a`, seg(-0.72, 0.05, 0, 0), flesh);
+    p.box(`tendril${k}b`, seg(0.05, 0.7, 0.04, 0.05), flesh);
+    p.box(`tendril${k}tip`, seg(0.7, 0.8, 0.04, 0.05), tip);
+  }
+};
+
 const WALLS = [
-  { id: 't_concrete_wall', desc: 'An aesthetically pleasing design with simple lines, this type of concrete was used with a weaker chemical mixture in order to have faster setting time.', build: wall(concrete('t_concrete_wall', 0x5e5e5c)) },
-  { id: 't_nether_glass_wall', desc: 'An endless expanse of black glass.  It perfectly reflects the darkness around it.', build: wall(layers(flat(0x0c0c12), glass(0x0c0c12)), { metal: true }) },
-  { id: 't_wall_w', desc: 'A wall, painted white.', build: wall(plaster('t_wall_w', PAINT.w)) },
-  { id: 't_brick_wall', desc: 'A solid brick wall, sturdy enough to support a roof with enough walls and to keep out any unwanted visitors.', build: wall(masonry('t_brick_wall', { brick: 0x9a4a32, mortar: 0xb8ac98, rows: 26, cols: 4, tones: [0x8a4030, 0xa45438, 0x7e3a2a] })) },
-  { id: 't_strconc_wall_w', desc: 'A reinforced concrete wall, painted white.', build: wall(layers(concrete('t_strconc_wall_w', PAINT.w), formTies(0xbcbab2))) },
-  { id: 't_concrete_wall_w', desc: 'A concrete wall, painted white.', build: wall(concrete('t_concrete_wall_w', PAINT.w)) },
-  { id: 't_wall_gray', desc: 'A wall, painted gray.', build: wall(plaster('t_wall_gray', PAINT.gray)) },
-  { id: 't_wall_g', desc: 'A wall, painted green.', build: wall(plaster('t_wall_g', PAINT.g)) },
-  { id: 't_sconc_wall_w', desc: 'A simple concrete wall, painted white.', build: wall(cinder('t_sconc_wall_w', PAINT.w)) },
-  { id: 't_wall_wood', desc: 'A finished wall of planks and support beams, capable of supporting an upper level or roof.  Highly flammable.', build: wall(layers(planks('t_wall_wood', { wood: 0x9a6a3e, seam: 0x5a3a20, n: 10, vertical: false, tones: [0x9a6a3e, 0x8e6238, 0xa4744a] }), sides(['front', 'back', 'left', 'right'], (ctx, x, y, w, h) => { fill(ctx, x, y, 3, h, 0x6a4626); fill(ctx, x + w - 3, y, 3, h, 0x6a4626); }))) },
-  { id: 't_concrete_wall_gray', desc: 'A concrete wall, painted gray.', build: wall(concrete('t_concrete_wall_gray', PAINT.gray)) },
-  { id: 't_strconc_wall_gray', desc: 'A reinforced concrete wall, painted gray.', build: wall(layers(concrete('t_strconc_wall_gray', PAINT.gray), formTies(0x8a8a86))) },
+  { id: 't_concrete_wall', desc: 'An aesthetically pleasing design with simple lines, this type of concrete was used with a weaker chemical mixture in order to have faster setting time.', build: wall(concrete('t_concrete_wall', 0x5e5e5c), { top: section(concreteCore('t_concrete_wall', 0x5e5e5c), 0x5e5e5c) }) },
+  { id: 't_nether_glass_wall', desc: 'An endless expanse of black glass.  It perfectly reflects the darkness around it.', build: wall(layers(flat(0x0c0c12), glass(0x0c0c12)), { metal: true, top: section(flat(0x050508), 0x0c0c12) }) },
+  { id: 't_wall_w', desc: 'A wall, painted white.', build: wall(plaster('t_wall_w', PAINT.w), { top: section(studCore('t_wall_w'), PAINT.w) }) },
+  { id: 't_brick_wall', desc: 'A solid brick wall, sturdy enough to support a roof with enough walls and to keep out any unwanted visitors.', build: wall(masonry('t_brick_wall', { brick: 0x9a4a32, mortar: 0xb8ac98, rows: 26, cols: 4, tones: [0x8a4030, 0xa45438, 0x7e3a2a] }), { top: section(brickCore('t_brick_wall', 0x9a4a32, 0xb8ac98, [0x8a4030, 0xa45438, 0x7e3a2a]), 0x9a4a32) }) },
+  { id: 't_strconc_wall_w', desc: 'A reinforced concrete wall, painted white.', build: wall(layers(concrete('t_strconc_wall_w', PAINT.w), formTies(0xbcbab2)), { top: section(concreteCore('t_strconc_wall_w', 0x8e8e8a, true), PAINT.w) }) },
+  { id: 't_concrete_wall_w', desc: 'A concrete wall, painted white.', build: wall(concrete('t_concrete_wall_w', PAINT.w), { top: section(concreteCore('t_concrete_wall_w', 0x8e8e8a), PAINT.w) }) },
+  { id: 't_wall_gray', desc: 'A wall, painted gray.', build: wall(plaster('t_wall_gray', PAINT.gray), { top: section(studCore('t_wall_gray'), PAINT.gray) }) },
+  { id: 't_wall_g', desc: 'A wall, painted green.', build: wall(plaster('t_wall_g', PAINT.g), { top: section(studCore('t_wall_g'), PAINT.g) }) },
+  { id: 't_sconc_wall_w', desc: 'A simple concrete wall, painted white.', build: wall(cinder('t_sconc_wall_w', PAINT.w), { top: section(blockCore(0x9a9a94), PAINT.w) }) },
+  { id: 't_wall_wood', desc: 'A finished wall of planks and support beams, capable of supporting an upper level or roof.  Highly flammable.', build: wall(layers(planks('t_wall_wood', { wood: 0x9a6a3e, seam: 0x5a3a20, n: 10, vertical: false, tones: [0x9a6a3e, 0x8e6238, 0xa4744a] }), sides(['front', 'back', 'left', 'right'], (ctx, x, y, w, h) => { fill(ctx, x, y, 3, h, 0x6a4626); fill(ctx, x + w - 3, y, 3, h, 0x6a4626); })), { top: section(timberCore('t_wall_wood'), 0x9a6a3e) }) },
+  { id: 't_concrete_wall_gray', desc: 'A concrete wall, painted gray.', build: wall(concrete('t_concrete_wall_gray', PAINT.gray), { top: section(concreteCore('t_concrete_wall_gray', 0x8e8e8a), PAINT.gray) }) },
+  { id: 't_strconc_wall_gray', desc: 'A reinforced concrete wall, painted gray.', build: wall(layers(concrete('t_strconc_wall_gray', PAINT.gray), formTies(0x8a8a86)), { top: section(concreteCore('t_strconc_wall_gray', 0x8e8e8a, true), PAINT.gray) }) },
   { id: 't_wall_glass', desc: "A barrier made of glass, it's nothing complicated, and looks extremely fragile.", build: (p) => {
     // Aluminium frame, glass panes between the mullions.
     const al = flat(0x9aa0a4);
@@ -106,12 +327,138 @@ const WALLS = [
     for (const x of [-0.5, 0.46]) p.box(`mullion${x}`, [x, 0.08, -0.08, x + 0.04, LEVEL - 0.08, 0.08], al, { metal: true });
     p.box('pane', [-0.46, 0.08, -0.02, 0.46, LEVEL - 0.08, 0.02], glass(0xa8d4e0), { glass: true });
   } },
-  { id: 't_wall_y', desc: 'A wall, painted yellow.', build: wall(plaster('t_wall_y', PAINT.y)) },
-  { id: 't_wall_b', desc: 'A wall, painted blue.', build: wall(plaster('t_wall_b', PAINT.b)) },
-  { id: 't_sconc_wall_gray', desc: 'A simple concrete wall, painted gray.', build: wall(cinder('t_sconc_wall_gray', PAINT.gray)) },
+  { id: 't_wall_y', desc: 'A wall, painted yellow.', build: wall(plaster('t_wall_y', PAINT.y), { top: section(studCore('t_wall_y'), PAINT.y) }) },
+  { id: 't_wall_b', desc: 'A wall, painted blue.', build: wall(plaster('t_wall_b', PAINT.b), { top: section(studCore('t_wall_b'), PAINT.b) }) },
+  { id: 't_sconc_wall_gray', desc: 'A simple concrete wall, painted gray.', build: wall(cinder('t_sconc_wall_gray', PAINT.gray), { top: section(blockCore(0x9a9a94), PAINT.gray) }) },
   // CDDA's colour for it is yellow (a data slip); the description says black.
-  { id: 't_wall_black', desc: 'A wall, painted black.', build: wall(plaster('t_wall_black', PAINT.black)) },
-  { id: 't_strconc_wall', desc: 'An extremely resilient wall, filled with concrete and rebar.', build: wall(layers(concrete('t_strconc_wall', 0x7c7c78), formTies(0x5a5a56))) },
+  { id: 't_wall_black', desc: 'A wall, painted black.', build: wall(plaster('t_wall_black', PAINT.black), { top: section(studCore('t_wall_black'), PAINT.black) }) },
+  { id: 't_strconc_wall', desc: 'An extremely resilient wall, filled with concrete and rebar.', build: wall(layers(concrete('t_strconc_wall', 0x7c7c78), formTies(0x5a5a56)), { top: section(concreteCore('t_strconc_wall', 0x7c7c78, true), 0x7c7c78) }) },
+  // Batch 2 (docs/census/walls.csv): the walls left after batch 1, each after its CDDA description.
+  paintedWall('t_wall_brown', PAINT2.brown, 'A wall, painted brown.'),
+  paintedWall('t_wall_r', PAINT2.r, 'A wall, painted red.'),
+  paintedWall('t_wall_orange', PAINT2.orange, 'A wall, painted orange.'),
+  paintedWall('t_wall_P', PAINT2.P, 'A wall, painted pink.'),
+  paintedWall('t_wall_p', PAINT2.p, 'A wall, painted purple.'),
+  paintedWall('t_wall_cyan', PAINT2.cyan, 'A wall, painted cyan.'),
+  // The bare standard wall: cream paint, studs and insulation behind the drywall.
+  paintedWall('t_wall', PAINT2.cream, 'A standard wall consisting of a wooden support structure filled with insulation and drywalled.  Painted a neutral off-white or cream color, it could use some more vibrant paint.  Looks flammable.'),
+  paintedStrconc('t_strconc_wall_b', PAINT.b, 'A reinforced concrete wall, painted blue.'),
+  paintedStrconc('t_strconc_wall_orange', PAINT2.orange, 'A reinforced concrete wall, painted orange.'),
+  paintedStrconc('t_strconc_wall_black', PAINT.black, 'A reinforced concrete wall, painted black.'),
+  { id: 't_sconc_wall', desc: 'A durable and uniform concrete wall, quite drab without decoration.  More than capable of supporting a roof, as well as keeping out most anything, save for vehicles.', build: wall(cinder('t_sconc_wall', 0xa0a09a), { top: section(blockCore(0xa0a09a), 0xa0a09a) }) },
+  { id: 't_concrete_wall_flesh', desc: 'A concrete wall overgrown by a grotesque grid of veins and knotted flesh.', build: (p) => {
+    wall(layers(concrete('t_concrete_wall_flesh', 0x6e6466), speckle('t_concrete_wall_flesh:stain', 0x6e6466, [0x7a4a52, 0x6a3a44], 0.12)), { top: section(concreteCore('t_concrete_wall_flesh', 0x6e6466), 0x7a2238) })(p);
+    veins(p);
+  } },
+  { id: 't_rock_wall', desc: 'A sturdy stone wall.', build: wall(stones('t_rock_wall', 0x9a9890, 0x6a6862), { top: section(stones('t_rock_wall:top', 0x7a7872, 0x4a4844, 4), 0x9a9890) }) },
+  { id: 't_wall_log', desc: 'A tall wall of timber suitable for housing and insulating from the weather.  Quite flammable.', build: wall(logs('t_wall_log'), { top: section(logEnds(), shade(LOG, 0.8)) }) },
+  { id: 't_wall_metal', desc: 'An industrially fabricated thick sheet carefully positioned and joined seamlessly with perimeter sealant, this wall is capable of resisting extreme elements as well as hostile forces.  Blast load rated and extremely fire-retardant, breaching it will require specialized tools or an industrial vehicle.', build: wall(steelSheet('t_wall_metal', 0x8a9298), { metal: true, top: section(speckle('t_wall_metal:core', 0x4e5458, [0x565c60, 0x464c50], 0.3), 0x8a9298) }) },
+  { id: 't_wall_metal_corrugated', desc: 'A wall made from a thin sheet of corrugated steel held in a frame, weather- and windproof but not very insulating or durable.', build: wall(corrugated(0x9aa2a8), { metal: true, top: section(layers(flat(0x2a2a2c), grid(0x6a6a6c, 2, 2)), 0x9aa2a8) }) },
+  { id: 't_scrap_wall', desc: "A relatively simple wall made of cobbled-together scrap metal.  It's still capable of blocking intruders and supporting a roof with adjacent walls.", build: wall(patchwork('t_scrap_wall', [0x6a6c6e, 0x7c7e80, 0x5a5c5e, 0x84868a]), { metal: true, top: section(layers(flat(0x2a2a2c), grid(0x5a5c5e, 2, 3)), 0x6a6c6e) }) },
+  { id: 't_junk_wall', desc: 'A wall of rusty scrap metal bolted and wire-tied to a sturdy frame.  Very fashionable in post-apocalyptic shantytowns.  Can support a roof.', build: wall(patchwork('t_junk_wall', [0x6a5a4a, 0x7a6a5a, 0x5e5a56, 0x8a5a3a], { rust: true }), { metal: true, top: section(layers(flat(0x2a2622), grid(0x6a4a2a, 2, 3)), 0x7a5a3e) }) },
+  { id: 't_wall_dirt', desc: 'A solid wall of compressed dirt, mixed with… something to keep it stable.  Its surface glistens slightly, and it smells like rotten milk.', build: wall(earth('t_wall_dirt', 0x6e5236, true), { top: section(earth('t_wall_dirt:top', 0x5a4430), 0x6e5236) }) },
+  { id: 't_soil', desc: 'Solid earth (underground; no description in CDDA beyond its name).', build: wall(earth('t_soil', 0x5e4a34), { top: section(earth('t_soil:top', 0x4e3e2c), 0x5e4a34) }) },
+  { id: 't_paper', desc: 'A huge wall of ambiguous pulpy matter, covered in sticky wasp saliva.  You could smash it down effortlessly.', build: wall(waspPaper('t_paper'), { top: section(waspPaper('t_paper:top'), 0xc4beb0) }) },
+  { id: 't_fungus_wall', desc: 'Several thick, large tendrils of fungus perforate the wall here, piercing straight through it from the outside.  Despite the apparent damage, the wall is still structurally sound.', build: (p) => {
+    wall(layers(concrete('t_fungus_wall', 0x3e3e40), cracks('t_fungus_wall', 0x222224, 3)), { top: section(concreteCore('t_fungus_wall', 0x5a5a5c), 0x3e3e40) })(p);
+    tendrils(p);
+  } },
+  { id: 't_rock_red', desc: 'A wall of red stone.', build: wall(rockFace('t_rock_red', 0x9a4a3a), { top: section(rockFace('t_rock_red:top', 0x6e3428), 0x9a4a3a) }) },
+  { id: 't_rock_blue', desc: 'A wall of blue stone.', build: wall(rockFace('t_rock_blue', 0x4a5a8a), { top: section(rockFace('t_rock_blue:top', 0x34405e), 0x4a5a8a) }) },
+  { id: 't_rock_green', desc: 'A wall of green stone.', build: wall(rockFace('t_rock_green', 0x4a7a4a), { top: section(rockFace('t_rock_green:top', 0x345634), 0x4a7a4a) }) },
+  { id: 't_wall_wood_chipped', desc: "A wall of aligned planks that's starting to crack and break open.  Some replacement wood and a number of nails could patch this up quick.", build: wall(layers(planks('t_wall_wood_chipped', { wood: 0x9a6a3e, seam: 0x5a3a20, n: 10, vertical: false, tones: [0x9a6a3e, 0x8e6238, 0xa4744a] }), cracks('t_wall_wood_chipped', 0x2a1a0e, 5), sides(FACES, (ctx, x, y, w, h, side) => {
+    // Broken-out plank ends: dark gaps where the wall is opening up.
+    const r = rng(`chipped:${side}`);
+    for (let k = 0; k < 3; k++) fill(ctx, x + Math.floor(r() * (w - 6)), y + Math.floor(r() * (h - 3)), 4 + Math.floor(r() * 4), 2, 0x1e140a);
+  })), { top: section(layers(timberCore('t_wall_wood_chipped'), cracks('t_wall_wood_chipped:top', 0x1e140a, 2)), 0x9a6a3e) }) },
+  { id: 't_palisade', desc: 'An age-old type of fortification consisting of hefty lumber staked into the ground and cabled together.', build: (p) => {
+    p.box('stakes', [-0.5, 0, -0.5, 0.5, PAL_H, 0.5], (ctx, x, y, w, h, side) => (side === 'top' ? section(logEnds(0x7e5634, 4), 0x7e5634) : stakes('t_palisade'))(ctx, x, y, w, h, side), { ppm: 32 });
+    stakeTips(p, PAL_H);
+  } },
+  { id: 't_palisade_embrasure', desc: 'An age-old type of fortification consisting of hefty lumber staked into the ground and cabled together.  This section in particular has an embrasure, so you can shoot or use reach weapons through it while staying safe.', build: (p) => {
+    embrasureWall(stakes('t_palisade_embrasure'), section(logEnds(0x7e5634, 4), 0x7e5634), PAL_H)(p);
+    stakeTips(p, PAL_H);
+  } },
+  { id: 't_embrasure_log', desc: 'This timber wall has a hole that lets you shoot through and use reach weapons against enemies on the other side, while also protecting you.  Quite flammable.', build: embrasureWall(logs('t_embrasure_log'), section(logEnds(), shade(LOG, 0.8)), LEVEL) },
+  // Columns and supports stand inside a tile: their own cross-section is the plan view.
+  { id: 't_column', desc: 'A concrete column.', build: (p) => p.box('column', [-0.3, 0, -0.3, 0.3, LEVEL, 0.3], (ctx, x, y, w, h, side) => (side === 'top' ? section(concreteCore('t_column', 0x9a9a96), 0xb4b4ae) : layers(speckle('t_column', 0xb4b4ae, [0xbcbcb6, 0xa8a8a2], 0.3), grid(0x9a9a94, 1, 4)))(ctx, x, y, w, h, side), { ppm: 32 }) },
+  { id: 't_little_column', desc: 'A small support column.', build: (p) => p.box('column', [-0.16, 0, -0.16, 0.16, LEVEL, 0.16], (ctx, x, y, w, h, side) => (side === 'top' ? section(concreteCore('t_little_column', 0x9a9a96), 0xb4b4ae) : speckle('t_little_column', 0xb4b4ae, [0xbcbcb6, 0xa8a8a2], 0.3))(ctx, x, y, w, h, side), { ppm: 32 }) },
+  { id: 't_support_l', desc: 'A heavy-duty metal support beam.', build: (p) => {
+    // A wide-flange (H) section on a base plate.
+    const steel = steelSheet('t_support_l', 0x8a9096);
+    p.box('base', [-0.3, 0, -0.3, 0.3, 0.04, 0.3], steel, { metal: true });
+    for (const z of [-0.22, 0.17]) p.box(`flange${z}`, [-0.22, 0.04, z, 0.22, LEVEL, z + 0.05], steel, { metal: true });
+    p.box('web', [-0.03, 0.04, -0.17, 0.03, LEVEL, 0.17], steel, { metal: true });
+  } },
+  // Glass walls (as t_wall_glass): lab glass in a white frame, wired and laminated glass thicker.
+  { id: 't_wall_glass_lab', desc: "A barrier made of glass, it's nothing complicated, and looks extremely fragile.  Some contain glass break sensors or window sensors that trigger an alarm if the glass is damaged.", build: glassWall({ frame: 0xe4e4e0 }) },
+  { id: 't_wall_glass_alarm', desc: "A barrier made of glass, it's nothing complicated, and looks extremely fragile.  Some contain glass break sensors or window sensors that trigger an alarm if the glass is damaged.", build: glassWall({ alarm: true }) },
+  { id: 't_reinforced_glass', desc: 'A thicker pane of glass with thin metal wires embedded throughout, strengthening the structural properties.  Still weaker than other types of walls, and not made to support a roof either.', build: glassWall({ pane: wired(0x9ccad6), t: 0.03, frame: 0x7a8086 }) },
+  { id: 't_reinforced_glass_lab', desc: 'A thicker pane of glass with thin metal wires embedded throughout, strengthening the structural properties.  Still weaker than other types of walls, and not made to support a roof either.  Not the type of glass to stop a bullet, you realize.', build: glassWall({ pane: wired(0x9ccad6), t: 0.03, frame: 0xe4e4e0 }) },
+  { id: 't_laminated_glass', desc: 'A laminated glass barrier, composed of layers of glass and plastic held together by an interlayer.', build: glassWall({ pane: glass(0x9cd0c4), t: 0.035, edge: (ctx, x, y, w, h) => { const b = Math.max(1, Math.round(Math.min(w, h) / 3)); fill(ctx, x, y, w, h, 0x9cd0c4); fill(ctx, x + b, y, Math.max(1, w - 2 * b), h, 0xe8ecd8); } }) },
+];
+
+// --- stairs (CDDA's up and down stairs are one flight: the up tile below, the down tile above) -----
+// The up tile carries the whole flight, a level high in ten steps rising toward −Z; the down tile
+// is the opening above it with guard rails (its steps are the flight of the tile below, seen
+// through the opening), open at −Z where the flight arrives.
+
+const STEPS = 10;
+const treadP = layers(planks('stairs:tread', { wood: 0x9a6a3a, seam: 0x5a3a1e, n: 3, vertical: false, tones: [0x9a6a3a, 0x8e6034, 0xa47444] }), sides(['top'], (ctx, x, y, w, h) => fill(ctx, x, y, w, Math.max(1, Math.round(h * .15)), 0x5a3a1e)));
+const stringerP = speckle('stairs:stringer', 0x6e4a2a, [0x7a5432, 0x62422a], .3);
+const railP = speckle('stairs:rail', 0x8a5e36, [0x9a6a3e, 0x7a5230], .3);
+const floorP = layers(planks('stairs:floor', { wood: 0x9a6a3a, seam: 0x5a3a1e, n: 4, vertical: false, tones: [0x9a6a3a, 0x8e6034, 0xa47444] }), sides(['top'], grid(0x5a3a1e, 2, 1)));
+const concreteP = speckle('stairs:concrete', 0xa0a09a, [0xa8a8a2, 0x96968e], .35);
+const pipeP = speckle('stairs:pipe', 0x9aa0a4, [0xa8aeb2, 0x8a9094], .2);
+
+/** A slanted board from (z0, y0) to (z1, y1) between x0 and x1, `t` deep (a stringer, a rail). */
+const slant = (p, name, x0, x1, [z0, y0], [z1, y1], t, paint, opts) => {
+  const pts = [];
+  for (const x of [x0, x1]) for (const d of [0, t]) pts.push(V(x, y0 - d, z0), V(x, y1 - d, z1));
+  hull(p, name, pts, paint, opts);
+};
+
+/** Guard rails round an opening: posts and two rails on the given sides of [x0, z0]–[x1, z1]. */
+const guardRails = (p, [x0, z0, x1, z1], which, paint, { post = .05, rail = .04, opts = {} } = {}) => {
+  const H = .95;
+  const lines = { e: [[x1, z0], [x1, z1]], w: [[x0, z0], [x0, z1]], s: [[x0, z1], [x1, z1]], n: [[x0, z0], [x1, z0]] };
+  const posts = new Set();
+  for (const side of which) {
+    const [[ax, az], [bx, bz]] = lines[side];
+    for (const [px, pz] of [[ax, az], [bx, bz]]) posts.add(`${px},${pz}`);
+    for (const y of [H, H * .5]) p.box(`rail-${side}-${y}`, [Math.min(ax, bx) - rail / 2, y - rail / 2, Math.min(az, bz) - rail / 2, Math.max(ax, bx) + rail / 2, y + rail / 2, Math.max(az, bz) + rail / 2], paint, opts);
+  }
+  for (const k of posts) { const [px, pz] = k.split(',').map(Number); p.box(`post${k}`, [px - post / 2, 0, pz - post / 2, px + post / 2, H + post / 2, pz + post / 2], paint, opts); }
+};
+
+/** The opening at the top of a flight: floor strips beside it, joists lining it, rails round it. */
+const stairwell = (p, { floor, lining, rails, railOpts }) => {
+  const W = .42;
+  for (const s of [-1, 1]) p.box(`floor${s}`, [s < 0 ? -.5 : W, 0, -.5, s < 0 ? -W : .5, SLAB, .5], floor, { ppm: 32 });
+  // The cut floor's depth inside the opening (joists), so it does not read as paper.
+  for (const s of [-1, 1]) p.box(`lining${s}`, [s < 0 ? -W : W - .02, -.25, -.5, s < 0 ? -W + .02 : W, SLAB, .5], lining, { ppm: 32 });
+  p.box('lining-s', [-W, -.25, .48, W, SLAB, .5], lining, { ppm: 32 });
+  guardRails(p, [-W, -.5, W, .5], ['e', 'w', 's'], rails, railOpts);
+};
+
+const STAIRS = [
+  { id: 't_stairs_up', desc: 'A flight of stairs leading up.  (Indoor wooden stairs: a level (2 m) in ten steps across the tile, rising toward −Z, stringers both sides, a handrail on the right.)', build: (p) => {
+    p.box('tile', [-.5, 0, -.5, .5, SLAB, .5], floorP, { ppm: 32 });
+    const run = 1 / STEPS, rise = LEVEL / STEPS;
+    for (let i = 0; i < STEPS; i++) p.box(`step${i}`, [-.42, SLAB, .5 - (i + 1) * run, .42, SLAB + (i + 1) * rise, .5 - i * run], treadP, { ppm: 32 });
+    for (const s of [-1, 1]) slant(p, `stringer${s}`, s < 0 ? -.47 : .42, s < 0 ? -.42 : .47, [.5, .28], [-.5, LEVEL + .2], .3, stringerP);
+    // Newel at the foot; the rail runs parallel to the flight and stops at the floor above (the
+    // stairwell's own guard rails take over there).
+    p.box('newel', [.43, 0, .425, .48, 1.0, .475], railP);
+    const slope = LEVEL, zEnd = .45 - (LEVEL - .05 - 1.0) / slope;
+    slant(p, 'handrail', .43, .48, [.45, 1.0], [zEnd, LEVEL - .05], .05, railP);
+  } },
+  { id: 't_stairs_down', desc: 'A flight of stairs leading down.  (Indoors: the opening in the floor above the flight of the level below, joists lining it, wooden guard rails on three sides, open where the flight arrives.)', build: (p) => {
+    stairwell(p, { floor: floorP, lining: stringerP, rails: railP });
+  } },
+  { id: 't_stairs_down_no_roof', desc: 'A flight of stairs leading down.  (Outdoors, no roof over it: the opening in a concrete edge, galvanized pipe railings on three sides.)', build: (p) => {
+    stairwell(p, { floor: concreteP, lining: concreteP, rails: pipeP, railOpts: { post: .045, rail: .035, opts: { metal: true } } });
+  } },
 ];
 
 // --- doors: a frame and a panel ------------------------------------------------------------------
@@ -290,7 +637,7 @@ const sensor = (p, w, y1) => {
 // Horizontal sliders: two sashes on two tracks; open = the inner sash slid behind the outer one.
 // Domestic windows are wider than tall; the "smaller" ones (CDDA's description) are smaller.
 // Sizes are ours (CDDA has none): opening width × sill and head height, in metres.
-const DOMESTIC = [0.84, 1.0, 1.72], SMALL = [0.6, 1.15, 1.65];
+const DOMESTIC = [0.84, 1.0, 1.72];
 const slider = (id, [w, y0, y1], { curtain = null, open = false, alarm = false } = {}) => (p) => {
   casing(p, w, y0, y1, flat(TRIM));
   const iw = w - 0.08, half = iw / 2 + 0.02, a = y0 + 0.04, b = y1 - 0.04, st = 0.035;
@@ -308,6 +655,35 @@ const slider = (id, [w, y0, y1], { curtain = null, open = false, alarm = false }
   if (curtain) curtains(p, id, w, y0, y1, curtain === 'drawn');
   if (alarm) sensor(p, w, y1);
 };
+
+/**
+ * Duct tape over the glass, outside (−Z): overlapping strips from sill to head, their ends a
+ * little ragged, so the window reads blocked out ("covers this window, blocking sunlight").
+ */
+const taped = (p, id, w, y0, y1, z = -0.06) => {
+  const r = rng(`${id}:tape`), strip = 0.05, tapeP = speckle(`${id}:tape`, 0x8e9094, [0x9a9ca0, 0x828488], 0.25);
+  for (let y = y0, k = 0; y < y1 - 0.01; y += strip * 0.85, k++) {
+    const l = -w / 2 + r() * 0.03, rr = w / 2 - r() * 0.03;
+    p.box(`tape${k}`, [l, y, z - 0.004, rr, Math.min(y1, y + strip), z], tapeP);
+  }
+};
+/** The shop window (t_window): one big sheet in a dark metal frame. */
+const SHOP = [1, 0.3, 1.95];
+const shopWindow = (id, { alarm = false, tape = false } = {}) => (p) => {
+  casing(p, 1, 0.3, 1.95, flat(0x3a3e42), 0.035, { metal: true });
+  pane(p, 'sheet', 0.93, 0.335, 1.915);
+  if (alarm) sensor(p, 1, 1.95);
+  if (tape) taped(p, id, 0.93, 0.335, 1.915);
+};
+/** A sliding window (slider) with duct tape over its glass. */
+const tapedSlider = (id, size, opts) => (p) => {
+  slider(id, size, opts)(p);
+  taped(p, id, size[0] - 0.08, size[1] + 0.04, size[2] - 0.04);
+};
+// CDDA turns a curtained window into t_window_no_curtains when its curtains are torn down, so the
+// window without curtains keeps the curtained window's size (its description calls it "smaller";
+// a window that shrinks as its curtains come down would be wrong).
+const NO_CURTAINS = ' (Same size as the curtained window: CDDA turns that window into this one when its curtains are torn down.)';
 
 const WINDOWS = [
   { id: 't_window_domestic', desc: 'A closed window with fancy curtains on the inside that can be drawn closed to block visibility and shut out any light.', build: slider('t_window_domestic', DOMESTIC, { curtain: 'open' }) },
@@ -339,9 +715,18 @@ const WINDOWS = [
     const [w, y0, y1] = DOMESTIC;
     casing(p, w, y0, y1, layers(planks('t_window_empty', { wood: RAW, seam: shade(RAW, 0.7), n: 1, vertical: false }), (ctx, x, y, ww, h) => { for (let i = 3; i < ww; i += 10) fill(ctx, x + i, y + Math.floor(h / 2), 1, 1, 0x3a3a3a); }));
   } },
-  { id: 't_window_no_curtains', desc: 'A closed smaller window typically found in residential homes.', build: slider('t_window_no_curtains', SMALL) },
+  { id: 't_window_no_curtains', desc: `A closed smaller window typically found in residential homes.${NO_CURTAINS}`, build: slider('t_window_no_curtains', DOMESTIC) },
   { id: 't_window_open', desc: 'A window with fancy curtains on the inside … It\'s open and you can crawl through.', build: slider('t_window_open', DOMESTIC, { curtain: 'open', open: true }) },
-  { id: 't_window_no_curtains_open', desc: "A smaller window typically found in residential homes.  It's open and can be crawled through.", build: slider('t_window_no_curtains_open', SMALL, { open: true }) },
+  { id: 't_window_no_curtains_open', desc: "A smaller window typically found in residential homes.  It's open and can be crawled through.", build: slider('t_window_no_curtains_open', DOMESTIC, { open: true }) },
+  // Batch 2: the other states of the same windows (alarmed, open, taped), each after its description.
+  { id: 't_window_open_alarm', desc: 'A window with fancy curtains on the inside that can be drawn closed to block visibility and shut out any light.  It is open. (alarmed: a glass-break sensor on the frame)', build: slider('t_window_open_alarm', DOMESTIC, { curtain: 'open', open: true, alarm: true }) },
+  { id: 't_window_no_curtains_alarm', desc: `A closed smaller window typically found in residential homes.  You could install a curtain. (alarmed)${NO_CURTAINS}`, build: slider('t_window_no_curtains_alarm', DOMESTIC, { alarm: true }) },
+  { id: 't_window_no_curtains_open_alarm', desc: `A smaller window typically found in residential homes.  It's open and can be crawled through. (alarmed)${NO_CURTAINS}`, build: slider('t_window_no_curtains_open_alarm', DOMESTIC, { open: true, alarm: true }) },
+  { id: 't_window_alarm', desc: 'A giant sheet of glass inserted into a window, typically found on the side of shops to showcase goods. (alarmed: a glass-break sensor on the frame)', build: shopWindow('t_window_alarm', { alarm: true }) },
+  { id: 't_window_domestic_taped', desc: 'A window with fancy curtains on the inside.  This one has been blocked out with duct tape.', build: tapedSlider('t_window_domestic_taped', DOMESTIC, { curtain: 'open' }) },
+  { id: 't_window_no_curtains_taped', desc: `A smaller window typically found in residential homes.  This one has been blocked out with duct tape.${NO_CURTAINS}`, build: tapedSlider('t_window_no_curtains_taped', DOMESTIC, {}) },
+  { id: 't_window_taped', desc: 'Duct tape covers this window, blocking sunlight and visibility.  You could remove the duct tape.', build: shopWindow('t_window_taped', { tape: true }) },
+  { id: 't_window_alarm_taped', desc: 'Duct tape covers this window, blocking out any sunlight and visibility.  You could remove the duct tape. (alarmed)', build: shopWindow('t_window_alarm_taped', { alarm: true, tape: true }) },
   { id: 't_reinforced_glass_shutter_open', desc: "Hanging metal shutters that haven't been deployed, exposing the reinforced glass.", build: (p) => {
     const w = 0.9, y0 = 0.6, y1 = 1.7;
     casing(p, w, y0, y1, flat(0x4a4e52), 0.05, { metal: true });
@@ -411,8 +796,8 @@ const FENCES = [
 const tag = (list, surface) => list.map((e) => ({ ...e, surface }));
 
 /** Each window's opening [width, sill height, head height] (m): engines cut the wall around it. */
-const OPENING = { t_window: [1, 0.3, 1.95], t_reinforced_glass_shutter_open: [0.9, 0.6, 1.7], t_window_no_curtains: SMALL, t_window_no_curtains_open: SMALL };
+const OPENING = { t_window: SHOP, t_window_alarm: SHOP, t_window_taped: SHOP, t_window_alarm_taped: SHOP, t_reinforced_glass_shutter_open: [0.9, 0.6, 1.7] };
 const openings = (list) => list.map((e) => ({ ...e, opening: OPENING[e.id] ?? DOMESTIC }));
 
 /** Phase-1 terrain, each with the kind of surface an engine may take its texture for. */
-export const TERRAIN = [...tag(GROUND, 'floor'), ...tag(ROOFS, 'roof'), ...tag(WALLS, 'wall'), ...DOORS, ...openings(WINDOWS), ...FENCES, ...TREES, ...FLOWERS, ...LOW_FURN, ...FURNITURE, ...VEHICLES, ...ROAD_VEHICLES, ...ITEMS, ...ITEMS2].map((e) => ({ ppm: 64, ...e }));
+export const TERRAIN = [...tag(GROUND, 'floor'), ...tag(ROOFS, 'roof'), ...tag(WALLS, 'wall'), ...DOORS, ...openings(WINDOWS), ...FENCES, ...TREES, ...FLOWERS, ...LOW_FURN, ...FURNITURE, ...VEHICLES, ...ROAD_VEHICLES, ...ITEMS, ...ITEMS2, ...STAIRS, ...ITEMS3].map((e) => ({ ppm: 64, ...e }));

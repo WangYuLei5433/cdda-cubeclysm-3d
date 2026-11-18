@@ -94,8 +94,12 @@ export function bake(blocks) {
   const paint = new THREE.MeshStandardMaterial({ name: 'cubeclysm-paint', map, roughness: 0.55, metalness: 0.15 });
   for (const b of blocks) {
     const pos = [], uv = [], normals = [];
+    // Where each face of the block sits in the atlas, [x, y, w, h] as fractions, y down (image
+    // rows): engines that draw a wall with their own geometry take its faces from here.
+    b.atlasRects = {};
     for (const f of faces.filter((g) => g.block === b)) {
       const [px, py] = f.at;
+      b.atlasRects[f.side] = [px / W, py / H, f.w / W, f.h / H].map((n) => +n.toFixed(6));
       const uvs = [[px, py + f.h], [px + f.w, py + f.h], [px + f.w, py], [px, py]].map(([a, c]) => [a / W, c / H]);
       for (const k of f.p.length === 3 ? [0, 1, 2] : [0, 1, 2, 0, 2, 3]) {
         pos.push(...f.p[k]);
