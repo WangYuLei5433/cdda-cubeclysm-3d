@@ -1,3 +1,5 @@
+import { blobs, fill, rng, shade, veins, wounds } from './paint.js';
+import { ANIMALS } from './animals.js';
 // Cubeclysm zombies, batch 1: the core zombies of CDDA. Faces are mixed from parts (faces.js:
 // eyes, brows, mouth, marks), hair is a 3D style (hair.js). Each recipe follows the monster's CDDA
 // description (quoted in `desc`, CDDA 7136388): its body type, clothes, wear, face and the 3D
@@ -512,3 +514,146 @@ RECIPES.push(
     newOutfit: { style: 'tank', top: 0x5a4a3e, sleeves: 'none', pants: 0x3a3630, shoes: 0x2a2420 }, wear: { rust: 0.6, tears: 0.9, blood: 0.3 }, gear: ['rustSpikes'],
   }),
 );
+
+
+// ── Batch 6: the census's most common zombies still missing (docs/census.zh.md): the brainless,
+// the decayed, the swimmer, the scientist, the gangrenous fusions and the flesh wall, and the
+// dormant zombies. Sizes checked against CDDA (commit 7136388).
+const GANGRENE = 0x8a8e84;
+/** The flesh wall's innards: wet pink-red flesh under a fine grid of small veins. */
+const innards = (key, hex = 0xb06a68) => (ctx, x, y, w, h, side) => {
+  const r = rng(`mon_zombie_living_wall|${key}|${side}`);
+  fill(ctx, x, y, w, h, hex);
+  blobs(ctx, x, y, w, h, shade(hex, 0.82), 4, Math.min(w, h) * 0.16, r);
+  blobs(ctx, x, y, w, h, shade(hex, 1.12), 3, Math.min(w, h) * 0.1, r);
+  for (let i = 3; i < w; i += 7) fill(ctx, x + i, y, 1, h, shade(hex, 0.6));
+  for (let j = 3; j < h; j += 7) fill(ctx, x, y + j, w, 1, shade(hex, 0.6));
+  veins(ctx, x, y, w, h, 0x5a1a22, 2, r);
+  wounds(ctx, x, y, w, h, 1, r);
+};
+RECIPES.push(
+  // 61.875 L, medium (0.99×): the standard body, the face and skull gone, the ears left.
+  variant('mon_zombie', {
+    id: 'mon_zombie_brainless', desc: "A zombie like any other, except that its facial features and skull have been devastated.  It's unclear what caused the damage, but between the scraps of flesh you can see that its face and brain are gone, though its ears remain intact.",
+    pose: 'reach', skin: 0x9aa290, hair: 0x3a2a1e, hairStyle: 'bald', face: { eyes: 'empty', brows: 'none', mouth: 'jawless', marks: ['blood_mouth'] },
+    newOutfit: { style: 'shirt', top: 0x7a6a58, sleeves: 'long', pants: 0x3a3f4a, shoes: 0x2a211a }, wear: { tears: 0.7, blood: 0.9 }, gear: ['facelessHead'],
+  }),
+  // 62.5 L: discoloured, swollen flesh, festering wounds and open sores, an awful smell.
+  variant('mon_zombie', {
+    id: 'mon_zombie_rot', desc: 'A once-dead human corpse.  Its discolored, swollen flesh is riddled with festering wounds and open sores.  It smells indescribably awful.',
+    pose: 'reach', skin: 0x8a8a6a, hair: 0x2a2420, hairStyle: 'receding', face: { eyes: 'cloudy', brows: 'sad', mouth: 'drool', marks: ['rot', 'veins'] },
+    newOutfit: { style: 'tshirt', top: 0x6a6a58, sleeves: 'short', pants: 0x4a4a42, shoes: 0x2a2620 }, wear: { tears: 0.9, wounds: 0.9, rash: 0.6, veins: 0x5a4a6a }, gear: ['lumps', 'drips'], fx: ['stench'],
+  }),
+  // 62.5 L: in swimwear (swim trunks), the bare skin water-wrinkled and pale.
+  variant('mon_zombie', {
+    id: 'mon_zombie_swimmer_base', desc: 'A zombie clad in swimwear.  Probably not a very graceful swimmer anymore.',
+    pose: 'reach', skin: 0xa8b0a2, hair: 0x2a1e18, hairStyle: 'short', face: { eyes: 'oily', brows: 'flat', mouth: 'gape', marks: ['veins'] },
+    newOutfit: { style: 'tank', top: 0xa8b0a2, sleeves: 'none', pants: 0x2a7ac8, shorts: true, shoes: 0xa8b0a2 }, wear: { tears: 0.2, blood: 0.3, wounds: 0.3 }, gear: [],
+  }),
+  // 62.5 L: the long, formerly white lab coat, gloves, safety glasses, an ID badge, a mask.
+  variant('mon_zombie', {
+    id: 'mon_zombie_scientist', desc: 'The remaining protective gear, laboratory equipment, and long, formerly white labcoat tell you that this zombie was some kind of researcher before turning.',
+    pose: 'reach', skin: 0xa2a898, hair: 0x6a6a68, hairStyle: 'sidePart', face: { eyes: 'empty', brows: 'flat', mouth: 'grimace', marks: ['veins'] },
+    newOutfit: { style: 'labcoat', top: 0xd8d6c8, shirt: 0x8a9aa8, sleeves: 'long', pants: 0x4a4e58, shoes: 0x2a2a2a, gloves: 0x6aa0c8 }, wear: { tears: 0.8, blood: 0.6 }, gear: ['coatTails', 'glasses', 'idBadge', 'maskDown'],
+  }),
+  // 62.5 L: grey skin bloated near to bursting with gas, lumps of gore, the head following you.
+  variant('mon_boomer_glutton', {
+    id: 'mon_zombie_gasbag_immobile', desc: "Covered in grievous wounds, this wretch's gray skin has bloated to near-rupture with putrid gas.  Between lumps of unrecognizable gore, a human head lamely follows your movements with empty, black eyes.",
+    ball: 0.72, skin: GANGRENE, face: { eyes: 'empty', brows: 'sad', mouth: 'gape', marks: ['rot', 'veins'] }, eye: 0x0a0a0a,
+    newOutfit: { style: 'tank', top: GANGRENE, sleeves: 'none', pants: GANGRENE, shoes: GANGRENE }, wear: { wounds: 0.9 }, gear: ['fleshBall'], fx: ['heave', 'lowStench'],
+  }),
+  // 62.5 L: a spidery thing creeping on legs grown from its disjointed ribs.
+  variant('mon_zombie', {
+    id: 'mon_zombie_gasbag_crawler', desc: 'A nightmarish, spidery abomination born from human gore.  It deftly crawls between the walls and ceiling with limbs grown from its own disjointed ribs.',
+    pose: 'creep', skin: GANGRENE, hair: null, hairStyle: 'bald', face: { eyes: 'empty', brows: 'none', mouth: 'snarl', marks: ['rot'] },
+    newOutfit: { style: 'tank', top: GANGRENE, sleeves: 'none', pants: 0x4a4a44, shoes: GANGRENE }, wear: { wounds: 0.8, tears: 1 }, gear: ['tornChest', 'ribLegs'],
+  }),
+  // 30 L, small (0.48×): a corpse twisted into an insect, a hollow tendril out of the open thorax.
+  variant('mon_zombie_child', {
+    id: 'mon_zombie_gasbag_impaler', desc: 'A corpse hideously twisted into an insect-like form.  A hollow tendril reaches out from its open thorax.',
+    pose: 'creep', skin: GANGRENE, hair: null, hairStyle: 'bald', ribLegs: 0.7, face: { eyes: 'empty', brows: 'none', mouth: 'gape', marks: ['rot'] },
+    newOutfit: { style: 'tank', top: GANGRENE, sleeves: 'none', pants: GANGRENE, shoes: GANGRENE }, wear: { wounds: 0.8 }, gear: ['ribLegs', 'chestTendril'],
+  }),
+  // The dormant zombies: CDDA spawns them as "pseudo_dormant_<id>" (generated in
+  // monstergenerator.cpp, looks_like corpse_<id>): the zombie lying like a corpse until disturbed.
+  variant('mon_zombie', { id: 'mon_pseudo_dormant_zombie', desc: 'A dormant zombie (CDDA: a fake zombie spawning a dormant one; looks like the corpse of mon_zombie): lying on its back like a corpse.', pose: 'supine', face: { eyes: 'cloudy', mouth: 'gape' } }),
+  variant('mon_zombie_fat', { id: 'pseudo_dormant_mon_zombie_fat', desc: 'A dormant fat zombie (CDDA generates pseudo_dormant_mon_zombie_fat from mon_zombie_fat; looks like its corpse): lying on its back like a corpse.', pose: 'supine', face: { eyes: 'cloudy', mouth: 'gape' } }),
+  variant('mon_zombie_child', { id: 'pseudo_dormant_mon_zombie_child', desc: 'A dormant zombie child (CDDA generates pseudo_dormant_mon_zombie_child from mon_zombie_child; looks like its corpse): lying on its back like a corpse.', pose: 'supine', face: { eyes: 'cloudy', mouth: 'gape' } }),
+  // 875 L, huge (14×): no body left, a wall of innards filling the tile, a grid of small veins.
+  {
+    id: 'mon_zombie_living_wall', desc: 'A great lump of mutated flesh.  It resembles the innards of some gigantic creature, and is covered in a grid of diminutive veins.  (875 L, huge: a wall of flesh filling its whole 1 × 1 m tile, 1.8 m high.)',
+    ppm: 96,
+    build: (p0) => {
+      // Laid out at 1 × 1.5 × 0.6 m, stretched to 1.8 m high and kept inside its 1 m tile (x and z clamped to ±0.5).
+      const c = (v) => Math.max(-0.5, Math.min(0.5, v));
+      const p = { box: (n, [x0, y0, z0, x1, y1, z1], paint) => p0.box(n, [c(x0), y0 * 1.2, c(z0 * 1.4), c(x1), y1 * 1.2, c(z1 * 1.4)], paint) };
+      p.box('mass', [-0.48, 0, -0.3, 0.48, 1.18, 0.3], innards('mass'));
+      p.box('crown', [-0.42, 1.12, -0.24, 0.06, 1.5, 0.22], innards('crown', 0xa86266));
+      p.box('crown2', [0.0, 1.08, -0.2, 0.44, 1.38, 0.26], innards('crown2', 0xb87070));
+      // Coils of gut bulging out of the front and the sides.
+      for (const [k, y, x0, x1] of [[0, 0.12, -0.42, 0.2], [1, 0.36, -0.2, 0.46], [2, 0.6, -0.46, 0.1], [3, 0.84, -0.1, 0.4], [4, 1.02, -0.38, 0.0]]) p.box(`coil${k}`, [x0, y, -0.38, x1, y + 0.18, -0.28], innards(`coil${k}`, 0xc88080));
+      for (const s of [-1, 1]) for (const [k, y] of [[0, 0.2], [1, 0.62]]) p.box(`side${s}${k}`, [s > 0 ? 0.46 : -0.54, y, -0.2, s > 0 ? 0.54 : -0.46, y + 0.32, 0.18], innards(`side${s}${k}`, 0xa45e60));
+      p.box('back', [-0.4, 0.1, 0.28, 0.4, 1.0, 0.36], innards('back', 0x9a5458));
+    },
+  },
+);
+
+
+// ── Batch 7: the living humans the census sees most (civilians.json, feral_humans.json). Still
+// alive: human skin tones and human face parts (h_…), not corpse grey. 62.5 L, medium (1.0×).
+const LIVE = { light: 0xf0cdb0, fair: 0xe4b892, medium: 0xc8946a, tan: 0xa8744e, brown: 0x80563a };
+RECIPES.push(
+  // Hysterical: bloodshot eyes, screaming, flailing.
+  {
+    id: 'mon_civilian_panic', desc: 'This hysterical individual has a faint, yet fading, glint of intelligence in their bloodshot eyes.  They sometimes scream in fear and behave clearly irrationally.  This will quite likely cause their demise at the hands of the undead horde rather quickly.',
+    body: 'standard', pose: 'flail', skin: LIVE.fair, hair: 0x6a4a2a, hairStyle: 'messy', eye: 0x5a3a20,
+    face: { eyes: 'h_wide', brows: 'h_worried', mouth: 'gape', marks: ['veins', 'h_nose'] },
+    outfit: { style: 'shirt', top: 0x4a7a9a, sleeves: 'long', pants: 0x5a5448, shoes: 0x3a2a1a }, wear: { tears: 0.3, blood: 0.15 },
+  },
+  // Petrified: standing still, staring into the void.
+  {
+    id: 'mon_civilian_stationary', desc: 'They just stand there, staring into the void, with a vacant expression on their face.  Barely moving, they will probably fall to the undead horde soon.',
+    body: 'female', pose: 'stand', skin: LIVE.medium, hair: 0x2a1a12, hairStyle: 'bob', eye: 0x3a2a1a,
+    face: { eyes: 'h_tired', brows: 'h_thin', mouth: 'h_neutral', marks: ['h_nose'] },
+    outfit: { style: 'cardigan', top: 0x8a6a7a, shirt: 0xd8d0c0, sleeves: 'long', pants: 0x3a3a48, shoes: 0x2a2a2a }, wear: { tears: 0.2 },
+  },
+  // Searching for their child: standing, calling out, wide-eyed.
+  {
+    id: 'mon_civilian_parent', desc: 'Obsessed with finding their offspring, they scour the environment for certain death.',
+    body: 'standard', pose: 'stand', skin: LIVE.tan, hair: 0x1e1a18, hairStyle: 'short', eye: 0x3a2a1a,
+    face: { eyes: 'h_wide', brows: 'h_worried', mouth: 'h_talk', marks: ['h_nose', 'stubble'] },
+    outfit: { style: 'coat', top: 0x5a6a4a, sleeves: 'long', pants: 0x3c5a8a, shoes: 0x4a3420 }, wear: { tears: 0.3, soot: 0.2 },
+  },
+  // Fighting the dead with only a kitchen knife.
+  {
+    id: 'mon_civilian_zombiefighter', desc: 'Obviously, this aggravated yet rallied person has lost their wits and tries to fight the undead with just a knife in their hands.',
+    body: 'standard', pose: 'hunched', skin: LIVE.light, hair: 0xa8743a, hairStyle: 'undercut', eye: 0x3a6ab0, weapon: 'knife',
+    face: { eyes: 'h_narrow', brows: 'h_stern', mouth: 'h_gritted', marks: ['h_nose', 'blood_forehead'] },
+    outfit: { style: 'tshirt', top: 0x2a2a2e, sleeves: 'short', pants: 0x4a4e58, shoes: 0xd8d8d8 }, wear: { tears: 0.4, blood: 0.5, bloodyHands: true }, gear: ['heldWeapon'],
+  },
+  // Feral: dilated pupils, bloodshot eyes, filthy rags, a steel pipe.
+  {
+    id: 'mon_feral_human_pipe', desc: 'Their pupils are dilated and what can be seen of the iris and sclera are bloodshot.  This pipe-wielding maniac still breathes, but the zombies treat them like one of their own.',
+    body: 'standard', pose: 'hunched', skin: LIVE.fair, hair: 0x3a2a1e, hairStyle: 'wild', eye: 0x0a0a0a, weapon: 'pipe',
+    face: { eyes: 'h_wide', brows: 'h_bushy', mouth: 'h_gritted', marks: ['veins', 'h_full_beard', 'coal_dust'] },
+    outfit: { style: 'shirt', top: 0x6a5a40, sleeves: 'long', pants: 0x4a4436, shoes: 0x2a2620 }, wear: { tears: 1, blood: 0.5, soot: 0.6 }, gear: ['heldWeapon'],
+  },
+  // The same feral madness, a crowbar.
+  {
+    id: 'mon_feral_human_crowbar', desc: 'Their pupils are dilated and what can be seen of the iris and sclera are bloodshot.  This crowbar-wielding maniac still breathes, but the zombies treat them like one of their own.',
+    body: 'female', pose: 'hunched', skin: LIVE.brown, hair: 0x1a1414, hairStyle: 'dreadlocks', eye: 0x0a0a0a, weapon: 'crowbar',
+    face: { eyes: 'h_wide', brows: 'h_stern', mouth: 'h_gritted', marks: ['veins', 'h_nose', 'h_scar_lip'] },
+    outfit: { style: 'hoodie', top: 0x3a4a3a, sleeves: 'long', pants: 0x2e3038, shoes: 0x2a2620 }, wear: { tears: 1, blood: 0.5, soot: 0.5 }, gear: ['heldWeapon'],
+  },
+  // Feral troglobite: huge, faintly glowing eyes, needle teeth through the lips, cave-pale skin.
+  {
+    id: 'mon_chud', desc: 'This person is still alive but completely crazed, changed by something they were exposed to down here.  Their face is dominated by unnaturally large, faintly glowing eyes and needle-sharp teeth poking through their lips.  They remind you of something out of a campy monster movie - and of the good times when underground cannibals were less of a real concern.',
+    body: 'standard', pose: 'hunched', skin: 0xd8d0c4, hair: null, hairStyle: 'balding', eye: 0xd8e8a0, bigEyes: { color: 0xd0e890, size: 0.36, glow: true },
+    face: { eyes: 'h_wide', brows: 'none', mouth: 'grimace', marks: ['veins'] },
+    outfit: { style: 'coveralls', top: 0x5a5448, sleeves: 'long', pants: 0x5a5448, shoes: 0x2a2620 }, wear: { tears: 1, soot: 0.8, blood: 0.3 }, gear: ['bigEyes', 'boneTeeth', 'heldWeapon'], weapon: 'pipe',
+  },
+);
+
+
+// ── Animals: low-poly with painted textures (animals.js); built and bound like the monsters above.
+RECIPES.push(...ANIMALS);

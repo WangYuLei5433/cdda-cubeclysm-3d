@@ -529,7 +529,8 @@ export const GEAR = {
   /** A hospital ID badge on a lanyard. */
   idBadge(H) {
     const { b, body, torsoTop, add } = H, d = b.torsoD / 2;
-    add(body, 'lanyard', B(0.13, torsoTop - 0.3, -d - 0.012, 0.15, torsoTop - 0.02, -d - 0.004), solid(0x2a5ab0));
+    // The lanyard lies on the chest (touching it), the card hangs from it.
+    add(body, 'lanyard', B(0.13, torsoTop - 0.3, -d - 0.012, 0.15, torsoTop - 0.02, -d + 0.002), solid(0x2a5ab0));
     add(body, 'badge-card', B(0.1, torsoTop - 0.4, -d - 0.016, 0.18, torsoTop - 0.29, -d - 0.006), solid(0xf0f0f0, (ctx, x, y, w, h, side) => { if (side === 'front') { fill(ctx, x + w * 0.15, y + h * 0.15, w * 0.35, h * 0.4, 0x8a9aa8); fill(ctx, x + w * 0.15, y + h * 0.65, w * 0.7, h * 0.08, 0x2a5ab0); fill(ctx, x + w * 0.15, y + h * 0.8, w * 0.5, h * 0.06, 0x3a3a3a); } }));
   },
   /** A surgical mask pulled down under the chin. */
@@ -1250,6 +1251,74 @@ export const GEAR = {
    * face sunk into its front (bulging eyes and a gaping maw: bigEyes, bigJaw), vestigial arms and
    * legs flopping from it. The ball swells (FX heave via H.belly). Use with pose 'blob'.
    */
+  /**
+   * Brainless: the face and the top of the skull torn away, a raw crater where the features were and
+   * an empty, open cranium; the ears are still there.
+   */
+  facelessHead(H) {
+    const { hs, head, add, skin, recipe } = H;
+    const raw = (key) => (ctx, x, y, w, h, side) => { const r = rng(`${recipe.id}|crater|${key}|${side}`); fill(ctx, x, y, w, h, 0x3a0c10); blobs(ctx, x, y, w, h, 0x6a1a1e, 4, Math.min(w, h) * 0.18, r); blobs(ctx, x, y, w, h, 0x8a3038, 2, Math.min(w, h) * 0.1, r); };
+    add(head, 'crater', B(-hs * 0.4, hs * 0.06, -hs / 2 - 0.006, hs * 0.4, hs * 0.86, -hs / 2 + 0.03), raw('f'));
+    // Ragged flesh round the crater's rim.
+    const rim = solid(0x8a3a44, (ctx, x, y, w, h) => blood(ctx, x, y, w, h, 2, rng(`${recipe.id}|rim${w}`)));
+    add(head, 'rim', B(-hs * 0.44, hs * 0.02, -hs / 2 - 0.016, hs * 0.44, hs * 0.08, -hs / 2 + 0.01), rim);
+    for (const s of [-1, 1]) add(head, 'rim', B(s > 0 ? hs * 0.38 : -hs * 0.46, hs * 0.04, -hs / 2 - 0.014, s > 0 ? hs * 0.46 : -hs * 0.38, hs * 0.84, -hs / 2 + 0.01), rim);
+    // The open cranium: the skull cap gone, the cavity empty, splinters of bone round its edge.
+    add(head, 'cranium', B(-hs * 0.4, hs * 0.86, -hs * 0.48, hs * 0.4, hs + 0.006, hs * 0.22), raw('t'));
+    for (const [x, z] of [[-0.44, -0.4], [0.32, -0.46], [-0.44, 0.12], [0.36, 0.16], [-0.1, 0.22]]) add(head, 'skull-shard', B(hs * x, hs * 0.94, hs * z, hs * (x + 0.12), hs * 1.06, hs * (z + 0.1)), solid(0xe0d8c0));
+    // The ears, intact.
+    for (const s of [-1, 1]) add(head, 'ear', B(s > 0 ? hs * 0.5 : -hs * 0.5 - 0.03, hs * 0.32, -hs * 0.08, s > 0 ? hs * 0.5 + 0.03 : -hs * 0.5, hs * 0.62, hs * 0.08), solid(skin, (ctx, x, y, w, h) => fill(ctx, x + w * 0.3, y + h * 0.25, w * 0.4, h * 0.5, shade(skin, 0.7))));
+  },
+  /**
+   * Gangrenous crawler / impaler: spider legs grown from the disjointed ribs, three pairs out of the
+   * flanks. Drawn in body space as for the creep pose (chest down: the ground is towards −Z).
+   */
+  ribLegs(H) {
+    const { b, body, legH, add, recipe } = H, w = b.torsoW / 2, d = b.torsoD / 2, k = recipe.ribLegs ?? 1;
+    const BONE = (key) => (ctx, x, y, ww, hh, side) => { bone(ctx, x, y, ww, hh, rng(`${recipe.id}|rleg|${key}|${side}`)); veins(ctx, x, y, ww, hh, 0x6a2a2a, 1, rng(`${recipe.id}|rlv|${key}|${side}`)); };
+    for (let i = 0; i < 3; i++) {
+      const y = legH + b.torsoH * (0.3 + i * 0.2), t = 0.035 * k;
+      for (const s of [-1, 1]) {
+        const out = (0.2 + (i === 1 ? 0.05 : 0)) * k, down = 0.42 * k, x0 = s * w, x1 = s * (w + out);
+        add(body, `rib-leg-a${i}`, B(Math.min(x0, x1), y - t / 2, -d * 0.3 - t / 2, Math.max(x0, x1), y + t / 2, -d * 0.3 + t / 2), BONE(`a${i}${s}`));
+        add(body, `rib-knee${i}`, B(x1 - t * 0.8, y - t * 0.8, -d * 0.3 - t * 0.8, x1 + t * 0.8, y + t * 0.8, -d * 0.3 + t * 0.8), BONE(`k${i}${s}`));
+        add(body, `rib-leg-b${i}`, B(x1 - t / 2 + s * 0.04 * k, y - t / 2, -d * 0.3 - down, x1 + t / 2 + s * 0.04 * k, y + t / 2, -d * 0.3), BONE(`b${i}${s}`));
+      }
+    }
+  },
+  /** Gangrenous impaler: a hollow tendril reaching out from the open thorax, past the head. */
+  chestTendril(H) {
+    const { b, body, legH, torsoTop, add, skin, recipe, fx } = H, d = b.torsoD / 2;
+    const flesh = (key) => (ctx, x, y, w, h, side) => { fill(ctx, x, y, w, h, shade(skin, 0.85)); for (const at of [0.25, 0.6]) band(ctx, x, y, w, h, shade(skin, 0.62), at, 0.06); veins(ctx, x, y, w, h, 0x5a1a22, 1, rng(`${recipe.id}|ten|${key}|${side}`)); };
+    const y0 = legH + b.torsoH * 0.55, t = 0.06;
+    add(body, 'thorax', B(-b.torsoW * 0.3, legH + b.torsoH * 0.3, -d - 0.006, b.torsoW * 0.3, torsoTop - 0.08, -d + 0.01), solid(0x3a0e10, (ctx, x, y, w, h) => blobs(ctx, x, y, w, h, 0x7a2028, 3, Math.min(w, h) * 0.2, rng(`${recipe.id}|thx`))));
+    // Out of the chest (−Z, towards the ground in the creep pose), then forward along the spine.
+    add(body, 'tendril-root', B(-t / 2, y0 - t / 2, -d - 0.12, t / 2, y0 + t / 2, -d), flesh('r'));
+    const tip = fx.node(body, 'tendril', new THREE.Vector3(0, y0, -d - 0.12));
+    for (let i = 0; i < 4; i++) add(tip, 'tendril', B(-t / 2 + i * 0.004, i * 0.11, -t / 2 + i * 0.004, t / 2 - i * 0.004, (i + 1) * 0.11 + 0.01, t / 2 - i * 0.004), flesh(`s${i}`));
+    add(tip, 'tendril-mouth', B(-t * 0.32, 0.45, -t * 0.32, t * 0.32, 0.452, t * 0.32), solid(0x1a0406));
+    H.tip = tip;
+  },
+  /**
+   * A weapon held in the right hand (recipe.weapon): 'pipe' (a length of steel pipe), 'crowbar'
+   * (hooked, painted bar), 'knife' (kitchen knife). Hangs along the hand, so it follows the pose.
+   */
+  heldWeapon(H) {
+    const { arms, b, add, recipe } = H, hand = arms.R.hand, w = recipe.weapon ?? 'pipe', y0 = -b.hand * 0.6;
+    const steel = (hex) => solid(hex, (ctx, x, y, ww, hh) => { fill(ctx, x, y, ww * 0.25, hh, shade(hex, 1.25)); fill(ctx, x + ww * 0.75, y, ww * 0.25, hh, shade(hex, 0.75)); });
+    if (w === 'pipe') {
+      add(hand, 'pipe', B(-0.017, y0 - 0.42, -0.017, 0.017, y0 + 0.12, 0.017), steel(0x7a7e82));
+      add(hand, 'pipe-end', B(-0.019, y0 - 0.44, -0.019, 0.019, y0 - 0.41, 0.019), solid(0x5a5e62, (ctx, x, y, ww, hh, side) => { if (side === 'bottom') fill(ctx, x + ww * 0.3, y + hh * 0.3, ww * 0.4, hh * 0.4, 0x1a1a1a); }));
+    } else if (w === 'crowbar') {
+      add(hand, 'crowbar', B(-0.012, y0 - 0.5, -0.012, 0.012, y0 + 0.1, 0.012), steel(0x2a2a2e));
+      add(hand, 'crowbar-hook', B(-0.012, y0 - 0.52, -0.11, 0.012, y0 - 0.48, 0.012), steel(0x2a2a2e));
+      add(hand, 'crowbar-claw', B(-0.014, y0 - 0.52, -0.13, 0.014, y0 - 0.44, -0.1), steel(0x2a2a2e));
+      add(hand, 'crowbar-paint', B(-0.0125, y0 - 0.3, -0.0125, 0.0125, y0 - 0.1, 0.0125), solid(0xb8282a));
+    } else if (w === 'knife') {
+      add(hand, 'knife-grip', B(-0.012, y0 - 0.04, -0.016, 0.012, y0 + 0.07, 0.016), solid(0x1e1e20));
+      add(hand, 'knife-blade', B(-0.004, y0 - 0.2, -0.018, 0.004, y0 - 0.04, 0.012), steel(0xc8ccd0));
+    }
+  },
   fleshBall(H) {
     const { b, body, head, shoulders, arms, legs, add, remove, skin, recipe, fx } = H, k = recipe.ball ?? 1;
     remove((n) => /^(torso|neck|upper_arm|forearm|hand|thigh|shin|foot)(\.|$)/.test(n));
@@ -1428,7 +1497,7 @@ export const GEAR = {
     const { hs, head, add, skin, recipe } = H, o = recipe.bigEyes ?? {}, s = hs * (o.size ?? 0.34), color = o.color ?? 0x0a0a0a, f = -hs / 2, cy = hs * 0.52;
     for (const x of [-hs * 0.23, hs * 0.23]) {
       add(head, 'eye-socket', B(x - s / 2 - 0.012, cy - s / 2 - 0.012, f - 0.012, x + s / 2 + 0.012, cy + s / 2 + 0.012, f + 0.01), solid(shade(skin, 0.5)));
-      add(head, 'big-eye', B(x - s / 2, cy - s / 2, f - 0.035, x + s / 2, cy + s / 2, f), solid(color, (ctx, xx, y, w, h, side) => { if (side === 'front' && o.glint !== false) fill(ctx, xx + w * 0.18, y + h * 0.15, w * 0.22, h * 0.22, 0xf0f0f0); }));
+      add(head, 'big-eye', B(x - s / 2, cy - s / 2, f - 0.035, x + s / 2, cy + s / 2, f), solid(color, (ctx, xx, y, w, h, side) => { if (side === 'front' && o.glint !== false) fill(ctx, xx + w * 0.18, y + h * 0.15, w * 0.22, h * 0.22, 0xf0f0f0); }), o.glow ? { glow: true } : undefined);
     }
   },
   /**
@@ -1529,6 +1598,11 @@ export const FX = {
   sludge(H) { H.fx.drip(H.head, V(0, H.hs * 0.22, -H.hs * 0.52), { color: 0xd8849a, size: 0.045, drop: 0.55, n: 3 }); },
   /** Boomer: the stench rising off it. */
   stench(H) { H.fx.puff(H.body, V(0, H.torsoTop - 0.1, 0), { color: 0x8a9a5a, size: 0.07, rise: 0.6, n: 4 }); },
+  /** The immobile flesh ball has no upright torso. Its gas starts at the upper roll. */
+  lowStench(H) {
+    const y = 0.68 * (H.recipe.ball ?? 1);
+    H.fx.puff(H.body, V(0, y, 0.04), { color: 0x8a9a5a, size: 0.045, rise: 0.32, n: 4 });
+  },
   /** Boomer: the belly heaving. */
   heave(H) { if (H.belly) H.fx.pulse(H.belly, { amount: 0.08 }); },
   /** Gasbag: the cysts swelling one after another, putrid gas leaking from some. */
