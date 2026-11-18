@@ -2,6 +2,7 @@
 // (tools/cubeclysm/build.mjs) through window.save().
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 import { bake } from './atlas.js';
 import { loadFaces, manifest, PARTS, seedPart } from './faces.js';
@@ -10,6 +11,8 @@ import { buildHumanoid } from './humanoid.js';
 import { ARCHETYPES } from './archetypes.js';
 import { HUMANS } from './humans.js';
 import { RECIPES } from './recipes.js';
+import { Prop } from './props.js';
+import { TERRAIN } from './terrain.js';
 
 const exporter = new GLTFExporter();
 const b64 = (bytes) => {
@@ -28,7 +31,7 @@ window.seedFaces = () => {
 window.buildAll = async (only = null) => {
   await loadFaces('/faces/');
   const out = [];
-  const all = [...RECIPES.map((r) => ({ ...r, group: 'zombies' })), ...ARCHETYPES.map((r) => ({ ...r, group: 'archetypes' })), ...HUMANS.map((r) => ({ ...r, group: 'humans' }))];
+  const all = [...TERRAIN.map((r) => ({ ...r, group: r.dir ?? 'terrain' })), ...RECIPES.map((r) => ({ ...r, group: 'zombies' })), ...ARCHETYPES.map((r) => ({ ...r, group: 'archetypes' })), ...HUMANS.map((r) => ({ ...r, group: 'humans' }))];
   // One sample per hair style: a plain zombie wearing it, to browse the styles in the studio.
   const HAIR_NAMES = {
     bald: ['光头', 'bald', 'лысый'], buzz: ['寸头', 'buzz cut', 'ёжик'], short: ['短发', 'short', 'короткие'], messy: ['乱发', 'messy', 'растрёпанные'], spiky: ['刺头', 'spiky', 'торчком'],
@@ -49,8 +52,26 @@ window.buildAll = async (only = null) => {
   });
   for (const recipe of all) {
     if (only && !only.includes(recipe.id)) continue;
-    const { root, blocks, clips } = buildHumanoid(recipe);
+    let root, blocks, clips;
+    if (recipe.build) {
+      // Props (props.js): blocks only, no rig or clips.
+      const p = new Prop(recipe.id, recipe.ppm);
+      recipe.build(p);
+      ({ root, blocks } = p);
+      clips = [];
+    } else ({ root, blocks, clips } = buildHumanoid(recipe));
     const atlas = bake(blocks);
+    if (recipe.batchMesh) {
+      // These static models share an opaque atlas. Batch their facets for forest instancing.
+      const meshes = root.children;
+      const geometry = mergeGeometries(meshes.map((mesh) => mesh.geometry));
+      for (const mesh of meshes) mesh.geometry.dispose();
+      const material = meshes[0].material;
+      root.clear();
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.name = recipe.id + '_mesh';
+      root.add(mesh);
+    }
     root.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(root);
     const size = box.getSize(new THREE.Vector3());
@@ -69,7 +90,7 @@ window.buildAll = async (only = null) => {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(atlas, 0, 0, big.width, big.height);
     await window.save(`${recipe.group}/${recipe.id}.png`, big.toDataURL('image/png').split(',')[1]);
-    out.push({ id: recipe.id, group: recipe.group, names: recipe.names, bound: recipe.bound, fx: clips.length ? recipe.fx : undefined, path: `${recipe.group}/${recipe.id}.glb`, body: recipe.body, gear: recipe.gear ?? [], desc: recipe.desc, size: [size.x, size.y, size.z].map((n) => +n.toFixed(3)), bottom: +box.min.y.toFixed(3), low, triangles });
+    out.push({ id: recipe.id, group: recipe.group, names: recipe.names, bound: recipe.bound, fx: clips.length ? recipe.fx : undefined, path: `${recipe.group}/${recipe.id}.glb`, body: recipe.body, source: recipe.source, surface: recipe.surface, opening: recipe.opening, gear: recipe.gear ?? [], desc: recipe.desc, size: [size.x, size.y, size.z].map((n) => +n.toFixed(3)), bottom: +box.min.y.toFixed(3), low, triangles });
   }
   return out;
 };

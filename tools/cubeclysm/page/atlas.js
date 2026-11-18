@@ -32,8 +32,8 @@ function boxFaces(box) {
  * A block: `box` (THREE.Box3 in `parent` space) painted by `paint(ctx, x, y, w, h, side)`.
  * Returns the block so callers can keep it; bake() turns all blocks into textured meshes.
  */
-export function block(parent, name, box, paint, { ppm = PPM, glow = false, metal = false } = {}) {
-  return { parent, name, box, paint, ppm, glow, metal };
+export function block(parent, name, box, paint, { ppm = PPM, glow = false, metal = false, cutout = false, glass = false } = {}) {
+  return { parent, name, box, paint, ppm, glow, metal, cutout, glass };
 }
 
 /** Bake blocks into meshes with one shared atlas texture. Returns the atlas canvas. */
@@ -41,7 +41,8 @@ export function bake(blocks) {
   const GUT = 2, W = 1024;
   const faces = [];
   for (const b of blocks) {
-    for (const f of boxFaces(b.box)) {
+    // Polygonal props can supply wound triangles or quads with dimensions in metres.
+    for (const f of b.faces ?? boxFaces(b.box)) {
       f.w = Math.max(2, Math.round(f.wm * b.ppm));
       f.h = Math.max(2, Math.round(f.hm * b.ppm));
       f.block = b;
@@ -84,18 +85,27 @@ export function bake(blocks) {
   const glowing = new THREE.MeshStandardMaterial({ name: 'cubeclysm-glow', map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 1, roughness: 0.5, metalness: 0 });
   // Bare metal (armour plates): the same atlas, a little metallic and glossy.
   const metallic = new THREE.MeshStandardMaterial({ name: 'cubeclysm-metal', map, roughness: 0.42, metalness: 0.35 });
+  // Cut-out blocks (chain-link mesh, leaves with gaps): pixels left transparent are holes.
+  const cutout = new THREE.MeshStandardMaterial({ name: 'cubeclysm-cutout', map, roughness: 0.9, metalness: 0, alphaTest: 0.5, side: THREE.DoubleSide });
+  // Glass: the atlas colour, see-through.
+  const glassy = new THREE.MeshStandardMaterial({ name: 'cubeclysm-glass', map, roughness: 0.1, metalness: 0, transparent: true, opacity: 0.45, depthWrite: false });
   for (const b of blocks) {
-    const pos = [], uv = [];
+    const pos = [], uv = [], normals = [];
     for (const f of faces.filter((g) => g.block === b)) {
       const [px, py] = f.at;
       const uvs = [[px, py + f.h], [px + f.w, py + f.h], [px + f.w, py], [px, py]].map(([a, c]) => [a / W, c / H]);
-      for (const k of [0, 1, 2, 0, 2, 3]) { pos.push(f.p[k].x, f.p[k].y, f.p[k].z); uv.push(...uvs[k]); }
+      for (const k of f.p.length === 3 ? [0, 1, 2] : [0, 1, 2, 0, 2, 3]) {
+        pos.push(...f.p[k]);
+        uv.push(...uvs[k]);
+        if (f.normals) normals.push(...f.normals[k]);
+      }
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-    g.computeVertexNormals();
-    const mesh = new THREE.Mesh(g, b.glow ? glowing : b.metal ? metallic : material);
+    if (normals.length === pos.length) g.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    else g.computeVertexNormals();
+    const mesh = new THREE.Mesh(g, b.glow ? glowing : b.metal ? metallic : b.cutout ? cutout : b.glass ? glassy : material);
     mesh.name = `block_${b.name}`;
     b.parent.add(mesh);
   }

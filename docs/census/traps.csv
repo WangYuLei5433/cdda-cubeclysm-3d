@@ -1,0 +1,161 @@
+﻿id,名称,中文名,格数,出现率,占比,累计占比,looks_like,备注,已有模型
+tr_downspout_funnel,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",1407,60%,71.6%,71.6%,,,
+tr_glimmer_floor,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",241,0%,12.3%,83.9%,,,
+tr_pit,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",74,12%,3.8%,87.7%,,,
+tr_spike_pit,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",70,0%,3.6%,91.2%,,,
+tr_rollmat,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",55,7%,2.8%,94.0%,,,
+tr_cot,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",37,4%,1.9%,95.9%,,,
+tr_dormant_corpse,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",28,6%,1.4%,97.4%,,,
+tr_glass_pit,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",18,2%,0.9%,98.3%,,,
+tr_spider,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",9,1%,0.5%,98.7%,,,
+tr_beartrap,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",8,1%,0.4%,99.1%,,,
+tr_nailboard,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",5,1%,0.3%,99.4%,,,
+tr_funnel,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",4,2%,0.2%,99.6%,,,
+tr_shotgun_2,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",4,1%,0.2%,99.8%,,,
+tr_shotgun_1,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",2,1%,0.1%,99.9%,,,
+tr_fur_rollmat,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",1,0%,0.1%,99.9%,,,
+tr_portal,,"Project-Id-Version: cataclysm-dda 0.J
+PO-Revision-Date: 2018-04-26 14:47+0000
+Last-Translator: cainiao <cainiaowu@hotmail.com>, 2026
+Language-Team: Chinese (China) (https://app.transifex.com/cataclysm-dda-translators/teams/2217/zh_CN/)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Language: zh_CN
+Plural-Forms: nplurals=1; plural=0;
+",1,0%,0.1%,100.0%,,,

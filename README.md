@@ -63,6 +63,7 @@ ln -s "$PWD" ../cdda-voxel-studio/vendor/mesh/cdda-cubeclysm-3d
 | `tools/deadwood/` | DEADWOOD export, and `select.mjs`, which binds built models into `meshset.json` |
 | `docs/standard.zh.md` | **Design and constraints** (the current standard) |
 | `docs/proposal.zh.md` | The original proposal (a discussion draft) |
+| `docs/census.zh.md` | **What to model next**: how often each CDDA object appears in play (sampled from the real engine), ranked per category, with coverage; full tables in `docs/census/*.csv` |
 | `.claude/skills/cubeclysm/` | The Claude Code skill for making models in this style, with the CDDA check and preview scripts |
 
 ## Building
