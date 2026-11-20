@@ -3,7 +3,7 @@
 // its CDDA description (quoted in `desc`, CDDA 7136388). Sizes: props.js (1 m tiles, LEVEL-high
 // walls, doors and windows WALL_T thick, spanning x, facing −Z).
 import { LEVEL, SLAB, WALL_T, bark, border, chainlink, cracks, flat, glass, grid, layers, masonry, planks, sides, speckle } from './props.js';
-import { V, hull } from './item-kit.js';
+import { V, cyl, hull } from './item-kit.js';
 import { fill, rng, shade } from './paint.js';
 import { FLOWERS, LOW_FURN, TREES } from './vegetation.js';
 import { FURNITURE } from './furniture.js';
@@ -16,6 +16,13 @@ import { ITEMS3 } from './items3.js';
 const T = WALL_T / 2;
 
 // --- ground and roofs: a slab whose top face is the tile -----------------------------------------
+
+/** A roof tile with the rain gutter on its −Z edge: a thin open channel on brackets. */
+const gutter = (p) => {
+  p.box('tile', [-0.5, 0, -0.5, 0.5, SLAB, 0.5], speckle('t_gutter_roof', 0x4a4a4c, [0x545456, 0x404042], 0.4), { ppm: 32 });
+  p.box('trough', [-0.5, SLAB, -0.5, 0.5, SLAB + 0.08, -0.38], layers(flat(0xd8d8d4), sides(['top'], (ctx, x, y, w, h) => fill(ctx, x, y + 1, w, h - 2, 0x9a9a96))), { metal: true });
+  for (const x of [-0.3, 0.3]) p.box(`bracket${x}`, [x - 0.02, SLAB, -0.4, x + 0.02, SLAB + 0.1, -0.34], flat(0xb0b0aa), { metal: true });
+};
 
 const slab = (paint, extra) => (p) => {
   p.box('tile', [-0.5, 0, -0.5, 0.5, SLAB, 0.5], paint, { ppm: 32 });
@@ -61,11 +68,28 @@ const GROUND = [
     for (let k = 0; k < 6; k++) fill(ctx, x + Math.floor(r() * (w - 8)), y + Math.floor(r() * h), 5 + Math.floor(r() * 5), 1, 0x8ab4d8);
   })) },
   { id: 't_grass_long', desc: 'An area of long, shaggy grass about shin high.', build: slab(speckle('t_grass_long', ...GRASS, 0.55), tufts(22, 0.32, [0x5a8a40, 0x4a7a36, 0x6a9a48, 0x3f6a2c])) },
-  { id: 't_gutter', desc: 'Channels water from the roof towards the ground, it looks flimsy.', build: (p) => {
-    p.box('tile', [-0.5, 0, -0.5, 0.5, SLAB, 0.5], speckle('t_gutter_roof', 0x4a4a4c, [0x545456, 0x404042], 0.4), { ppm: 32 });
-    // The gutter: a thin open channel along the roof edge, on brackets.
-    p.box('trough', [-0.5, SLAB, -0.5, 0.5, SLAB + 0.08, -0.38], layers(flat(0xd8d8d4), sides(['top'], (ctx, x, y, w, h) => fill(ctx, x, y + 1, w, h - 2, 0x9a9a96))), { metal: true });
-    for (const x of [-0.3, 0.3]) p.box(`bracket${x}`, [x - 0.02, SLAB, -0.4, x + 0.02, SLAB + 0.1, -0.34], flat(0xb0b0aa), { metal: true });
+  { id: 't_gutter', faceOut: true, desc: 'Channels water from the roof towards the ground, it looks flimsy.  (On the roof edge, the trough at −Z: an engine turns −Z to the open side.)', build: (p) => gutter(p) },
+  { id: 't_gutter_drop', faceOut: true, desc: 'A spot in the gutter where the water flows into a downspout.  It looks flimsy.  You may be able to climb down here.  (The gutter at −Z with an outlet in the trough; from it the pipe drops, bends back to the wall face and runs down into the downspout beside the wall.)', build: (p) => {
+    gutter(p);
+    p.box('outlet', [-0.05, SLAB + 0.079, -0.48, 0.05, SLAB + 0.081, -0.4], flat(0x2a2a2c));
+    // Down from the trough, back to the wall face (0.13 m out from the wall's centre) and down
+    // the wall into the downspout of the tile beside it.
+    const alu = flat(0xdcdcd8);
+    p.box('spout', [-0.045, -0.12, -0.48, 0.045, SLAB + 0.02, -0.4], alu, { metal: true });
+    p.box('offset', [-0.045, -0.2, -0.48, 0.045, -0.12, -0.13], alu, { metal: true });
+    p.box('drop', [-0.045, -0.45, -0.21, 0.045, -0.12, -0.13], alu, { metal: true });
+  } },
+  { id: 't_gutter_downspout', faceWall: true, desc: 'A length of gutter running from the roof to the ground, you could place a container underneath it to collect rainwater.  It looks flimsy.  (Against the wall at −Z (an engine turns it to the wall beside it; the wall face stands 0.37 m past the tile edge): a white aluminium downspout down the wall on straps, from just under the roof (the gutter drop above brings the water to it), kicking out at the foot into the downspout funnel (tr_downspout_funnel, part of this tile); bare earth round it, as left when it is bashed.)', build: (p) => {
+    p.box('tile', [-0.5, 0, -0.5, 0.5, SLAB, 0.5], speckle('t_downspout_dirt', 0x6e5236, [0x7a5c3c, 0x5e4630, 0x846446], 0.5), { ppm: 32 });
+    const alu = layers(flat(0xdcdcd8), sides(['front', 'back'], (ctx, x, y, w, h) => fill(ctx, x + Math.floor(w / 2), y, 1, h, 0xb8b8b4)));
+    const zw = -0.87, d = 0.08;
+    p.box('pipe', [-0.045, 0.34, zw + 0.01, 0.045, LEVEL - 0.15, zw + 0.01 + d], alu, { metal: true });
+    // The kick-out at the foot: a short run away from the wall, the outlet over the funnel.
+    p.box('elbow', [-0.045, 0.24, zw + 0.01, 0.045, 0.34, zw + 0.01 + d], alu, { metal: true });
+    p.box('shoe', [-0.045, 0.24, zw + 0.01 + d, 0.045, 0.32, -0.5], alu, { metal: true });
+    for (const y of [0.75, 1.5]) p.box(`strap${y}`, [-0.06, y, zw, 0.06, y + 0.04, zw + 0.02 + d], flat(0x9a9a96), { metal: true });
+    // The funnel under the outlet (tr_downspout_funnel), a container's mouth for rainwater.
+    cyl(p, 'funnel', 'y', [0, SLAB + 0.09, -0.42], 0.035, 0.14, 10, layers(flat(0x8a8e92), sides(['top'], (ctx, x, y, w, h) => fill(ctx, x, y, w, h, 0x3a3e42))), { metal: true }, 0.13);
   } },
   { id: 't_pavement_y', desc: 'Streaks of carefully aligned yellow paint mark the road to inform drivers not to cross.', build: slab(layers(asphalt('t_pavement_y'), roadStripe)) },
   { id: 't_concrete', desc: 'A newer segment of poured concrete with surface finishes for aesthetics and resistance to freeze-thaw cycles.', build: slab(layers(speckle('t_concrete', 0xb4b4ae, [0xbcbcb6, 0xacaca6], 0.25), sides(['top'], (ctx, x, y, w, h) => { for (let j = 2; j < h; j += 4) fill(ctx, x, y + j, w, 1, 0xa8a8a2); }))) },
@@ -431,6 +455,38 @@ const guardRails = (p, [x0, z0, x1, z1], which, paint, { post = .05, rail = .04,
   for (const k of posts) { const [px, pz] = k.split(',').map(Number); p.box(`post${k}`, [px - post / 2, 0, pz - post / 2, px + post / 2, H + post / 2, pz + post / 2], paint, opts); }
 };
 
+/** Balustrade round an opening: newel posts at the corners, a handrail on top, balusters below. */
+const balustrade = (p, [x0, z0, x1, z1], which, paint) => {
+  const H = .92, r = .05, b = .025, newel = .08, gap = .11;
+  const lines = { e: [[x1, z0], [x1, z1]], w: [[x0, z0], [x0, z1]], s: [[x0, z1], [x1, z1]], n: [[x0, z0], [x1, z0]] };
+  const posts = new Set();
+  for (const side of which) {
+    const [[ax, az], [bx, bz]] = lines[side];
+    posts.add(`${ax},${az}`); posts.add(`${bx},${bz}`);
+    p.box(`hand-${side}`, [Math.min(ax, bx) - r / 2, H - r, Math.min(az, bz) - r / 2, Math.max(ax, bx) + r / 2, H, Math.max(az, bz) + r / 2], paint);
+    p.box(`shoe-${side}`, [Math.min(ax, bx) - r / 2, SLAB, Math.min(az, bz) - r / 2, Math.max(ax, bx) + r / 2, SLAB + .04, Math.max(az, bz) + r / 2], paint);
+    const len = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(len / gap) - 1);
+    for (let i = 1; i <= n; i++) {
+      const t = i / (n + 1), x = ax + (bx - ax) * t, z = az + (bz - az) * t;
+      p.box(`bal-${side}${i}`, [x - b / 2, SLAB + .04, z - b / 2, x + b / 2, H - r, z + b / 2], paint);
+    }
+  }
+  for (const k of posts) {
+    const [px, pz] = k.split(',').map(Number);
+    p.box(`newel${k}`, [px - newel / 2, 0, pz - newel / 2, px + newel / 2, H + .04, pz + newel / 2], paint);
+    p.box(`cap${k}`, [px - newel / 2 - .015, H + .04, pz - newel / 2 - .015, px + newel / 2 + .015, H + .07, pz + newel / 2 + .015], paint);
+  }
+};
+
+/** The flight going down through the opening: the same flight as the up tile of the level below
+ *  (top step flush with this floor at −Z, the foot a level down at +Z), a hair narrower and lower
+ *  so that, when the level below is drawn too, its own flight covers this one without flicker. */
+const descent = (p, tread, stringer, opts = {}) => {
+  const run = 1 / STEPS, rise = LEVEL / STEPS, e = .004, base = -LEVEL + SLAB;
+  for (let i = 0; i < STEPS; i++) p.box(`down${i}`, [-.4, base, .5 - (i + 1) * run, .4, base + (i + 1) * rise - e, .5 - i * run], tread, { ppm: 32, ...opts });
+  for (const s of [-1, 1]) slant(p, `dstringer${s}`, s < 0 ? -.42 : .4, s < 0 ? -.4 : .42, [.5, base + .28], [-.5, SLAB - e], .3, stringer, opts);
+};
+
 /** The opening at the top of a flight: floor strips beside it, joists lining it, rails round it. */
 const stairwell = (p, { floor, lining, rails, railOpts }) => {
   const W = .42;
@@ -438,26 +494,104 @@ const stairwell = (p, { floor, lining, rails, railOpts }) => {
   // The cut floor's depth inside the opening (joists), so it does not read as paper.
   for (const s of [-1, 1]) p.box(`lining${s}`, [s < 0 ? -W : W - .02, -.25, -.5, s < 0 ? -W + .02 : W, SLAB, .5], lining, { ppm: 32 });
   p.box('lining-s', [-W, -.25, .48, W, SLAB, .5], lining, { ppm: 32 });
-  guardRails(p, [-W, -.5, W, .5], ['e', 'w', 's'], rails, railOpts);
+  if (rails) guardRails(p, [-W, -.5, W, .5], ['e', 'w', 's'], rails, railOpts);
 };
 
+// --- the 2×2 stairwell: a spiral stair ---------------------------------------------------------
+// CDDA's apartment blocks, megastores and mines put their stairs in a 2×2 well (four `<` below,
+// four `>` above). Two metres square is too small for a straight or dog-leg flight a level high,
+// but just right for a spiral: twelve wedge treads round a centre pole, a full turn, the first
+// tread at +Z (where the well opens), the last flush with the floor above at 330°, a landing plate
+// from it to the well's +Z edge. Engines draw these over the four tiles of such a group (meshset
+// `groupOf` + `footprint`), turned so +Z faces the open side; the origin is the group's centre.
+
+const SPIRAL = { n: 12, r0: .09, r1: .9, tread: .05, pole: .07 };
+const sp = (θ, r) => [Math.sin(θ) * r, Math.cos(θ) * r];
+
+/** The spiral's treads, `dy` below this level and `inset` narrower/lower (the copy seen from above). */
+const spiralTreads = (p, paint, { dy = 0, inset = 0, opts = {} } = {}) => {
+  const { n, r0, r1, tread } = SPIRAL, step = (2 * Math.PI) / n, rise = LEVEL / n;
+  for (let i = 0; i < n; i++) {
+    const θ = i * step, top = dy + (i + 1) * rise - inset * .1, R = r1 - inset;
+    const pts = [];
+    for (const y of [top - tread, top]) {
+      for (const a of [θ - step / 2, θ + step / 2]) { const [x, z] = sp(a, r0); pts.push(V(x, y, z)); }
+      for (const a of [θ - step / 2, θ, θ + step / 2]) { const [x, z] = sp(a, R); pts.push(V(x, y, z)); }
+    }
+    hull(p, `tread${dy ? 'd' : ''}${i}`, pts, paint, { ppm: 32, ...opts });
+  }
+};
+
+/** The outer balusters and the helical handrail, over treads 0 … n−2 (the last is the landing). */
+const spiralRail = (p, paint, opts = {}) => {
+  const { n, r1 } = SPIRAL, step = (2 * Math.PI) / n, rise = LEVEL / n, H = .9, b = .025, R = r1 - .04;
+  for (let i = 0; i < n - 1; i++) {
+    const [x, z] = sp(i * step, R), h = (i + 1) * rise;
+    p.box(`sbal${i}`, [x - b / 2, h, z - b / 2, x + b / 2, h + H, z + b / 2], paint, opts);
+    if (i === n - 2) continue;
+    const [x2, z2] = sp((i + 1) * step, R), h2 = h + rise, t = .025, pts = [];
+    for (const [px, py, pz] of [[x, h + H, z], [x2, h2 + H, z2]]) for (const dx of [-t, t]) for (const dy of [-t, t]) for (const dz of [-t, t]) pts.push(V(px + dx, py + dy, pz + dz));
+    hull(p, `shand${i}`, pts, paint, opts);
+  }
+};
+
+/** Rails along straight segments [[ax, az], [bx, bz]]: posts at the ends, a handrail and balusters. */
+const railRun = (p, segs, paint, { metal = false } = {}) => {
+  const H = .92, r = .05, b = .025, post = .07, gap = .11, opts = metal ? { metal: true } : {};
+  segs.forEach(([[ax, az], [bx, bz]], k) => {
+    p.box(`rr-hand${k}`, [Math.min(ax, bx) - r / 2, H - r, Math.min(az, bz) - r / 2, Math.max(ax, bx) + r / 2, H, Math.max(az, bz) + r / 2], paint, opts);
+    for (const [px, pz] of [[ax, az], [bx, bz]]) p.box(`rr-post${k}${px},${pz}`, [px - post / 2, 0, pz - post / 2, px + post / 2, H + .04, pz + post / 2], paint, opts);
+    const len = Math.hypot(bx - ax, bz - az), m = Math.max(0, Math.round(len / gap) - 1);
+    for (let i = 1; i <= m; i++) { const t = i / (m + 1), x = ax + (bx - ax) * t, z = az + (bz - az) * t; p.box(`rr-bal${k}-${i}`, [x - b / 2, SLAB, z - b / 2, x + b / 2, H - r, z + b / 2], paint, opts); }
+  });
+};
+
+const SPIRAL_STAIRS = [
+  { id: 't_stairs_up_2x2', groupOf: 't_stairs_up', footprint: [2, 2], desc: 'A flight of stairs leading up.  (The 2×2 stairwell of the level below a `>` group: a wooden spiral stair, twelve wedge treads round a centre pole in a full turn, a level high, balusters and a helical handrail on the outer edge; the first tread at +Z; a plank floor under it.)', build: (p) => {
+    p.box('tile', [-1, 0, -1, 1, SLAB, 1], floorP, { ppm: 32 });
+    cyl(p, 'pole', 'y', [0, LEVEL / 2, 0], SPIRAL.pole, LEVEL, 8, stringerP);
+    spiralTreads(p, treadP);
+    spiralRail(p, railP);
+  } },
+  { id: 't_stairs_down_2x2', groupOf: 't_stairs_down', footprint: [2, 2], desc: 'A flight of stairs leading down.  (The 2×2 stairwell over a spiral stair: the well open in the floor with joists lining it, a landing plate from the top tread to the +Z edge, the pole rising to a newel, a balustrade round the well except at the landing; the spiral itself goes down through the well.)', build: (p) => {
+    const E = .98;
+    for (const [k, b] of Object.entries({ n: [-1, -.25, -1, 1, SLAB, -E], s: [-1, -.25, E, 1, SLAB, 1], w: [-1, -.25, -1, -E, SLAB, 1], e: [E, -.25, -1, 1, SLAB, 1] })) p.box(`lining-${k}`, b, stringerP, { ppm: 32 });
+    p.box('landing', [-.75, -.08, .55, -.05, SLAB, 1], floorP, { ppm: 32 });
+    cyl(p, 'pole-top', 'y', [0, .5, 0], SPIRAL.pole, 1.0, 8, stringerP);
+    p.box('pole-cap', [-.09, 1.0, -.09, .09, 1.05, .09], railP);
+    railRun(p, [[[-E, -E], [E, -E]], [[E, -E], [E, E]], [[-E, -E], [-E, E]], [[-E, E], [-.75, E]], [[-.05, E], [E, E]]], railP);
+    // The landing's inner edges, toward the open well.
+    railRun(p, [[[-.05, .55], [-.05, E]]], railP);
+    spiralTreads(p, treadP, { dy: -LEVEL, inset: .02 });
+  } },
+];
+
 const STAIRS = [
-  { id: 't_stairs_up', desc: 'A flight of stairs leading up.  (Indoor wooden stairs: a level (2 m) in ten steps across the tile, rising toward −Z, stringers both sides, a handrail on the right.)', build: (p) => {
+  { id: 't_stairs_up', desc: 'A flight of stairs leading up.  (Indoor wooden stairs: a level (2 m) in ten steps across the tile, rising toward −Z, stringers both sides, a balustrade (newel, balusters, handrail) on each side.)', build: (p) => {
     p.box('tile', [-.5, 0, -.5, .5, SLAB, .5], floorP, { ppm: 32 });
     const run = 1 / STEPS, rise = LEVEL / STEPS;
     for (let i = 0; i < STEPS; i++) p.box(`step${i}`, [-.42, SLAB, .5 - (i + 1) * run, .42, SLAB + (i + 1) * rise, .5 - i * run], treadP, { ppm: 32 });
     for (const s of [-1, 1]) slant(p, `stringer${s}`, s < 0 ? -.47 : .42, s < 0 ? -.42 : .47, [.5, .28], [-.5, LEVEL + .2], .3, stringerP);
-    // Newel at the foot; the rail runs parallel to the flight and stops at the floor above (the
-    // stairwell's own guard rails take over there).
-    p.box('newel', [.43, 0, .425, .48, 1.0, .475], railP);
-    const slope = LEVEL, zEnd = .45 - (LEVEL - .05 - 1.0) / slope;
-    slant(p, 'handrail', .43, .48, [.45, 1.0], [zEnd, LEVEL - .05], .05, railP);
+    // Balustrades on both sides: a newel at the foot, a baluster on every tread and a handrail
+    // 0.9 m over the nosings, reaching the floor above at the height of the stairwell's rails.
+    const H = .9, b = .025, x = .445, railAt = (z) => SLAB + (.5 - z) * LEVEL + H;
+    for (const s of [-1, 1]) {
+      p.box(`newel${s}`, [s * x - .035, 0, .41, s * x + .035, railAt(.45) + .06, .48], railP);
+      slant(p, `handrail${s}`, s * x - .03, s * x + .03, [.45, railAt(.45)], [-.5, railAt(-.5)], .05, railP);
+      for (let i = 1; i < STEPS; i++) {
+        const z = .5 - (i + .5) * run;
+        p.box(`baluster${s}-${i}`, [s * x - b / 2, SLAB + (i + 1) * rise, z - b / 2, s * x + b / 2, railAt(z) - .05, z + b / 2], railP);
+      }
+    }
   } },
-  { id: 't_stairs_down', desc: 'A flight of stairs leading down.  (Indoors: the opening in the floor above the flight of the level below, joists lining it, wooden guard rails on three sides, open where the flight arrives.)', build: (p) => {
-    stairwell(p, { floor: floorP, lining: stringerP, rails: railP });
+  { id: 't_stairs_down', desc: 'A flight of stairs leading down.  (Indoors: the wooden flight going down through an opening in the floor, joists lining it, a balustrade (newels, handrail, balusters) on three sides, open where the flight arrives.)', build: (p) => {
+    stairwell(p, { floor: floorP, lining: stringerP, rails: null });
+    balustrade(p, [-.42, -.44, .42, .44], ['e', 'w', 's'], railP);
+    descent(p, treadP, stringerP);
   } },
-  { id: 't_stairs_down_no_roof', desc: 'A flight of stairs leading down.  (Outdoors, no roof over it: the opening in a concrete edge, galvanized pipe railings on three sides.)', build: (p) => {
+  { id: 't_stairs_down_no_roof', desc: 'A flight of stairs leading down.  (Outdoors, no roof over it: concrete steps going down through an opening in a concrete edge, galvanized pipe railings on three sides.)', build: (p) => {
     stairwell(p, { floor: concreteP, lining: concreteP, rails: pipeP, railOpts: { post: .045, rail: .035, opts: { metal: true } } });
+    descent(p, concreteP, concreteP);
   } },
 ];
 
@@ -800,4 +934,4 @@ const OPENING = { t_window: SHOP, t_window_alarm: SHOP, t_window_taped: SHOP, t_
 const openings = (list) => list.map((e) => ({ ...e, opening: OPENING[e.id] ?? DOMESTIC }));
 
 /** Phase-1 terrain, each with the kind of surface an engine may take its texture for. */
-export const TERRAIN = [...tag(GROUND, 'floor'), ...tag(ROOFS, 'roof'), ...tag(WALLS, 'wall'), ...DOORS, ...openings(WINDOWS), ...FENCES, ...TREES, ...FLOWERS, ...LOW_FURN, ...FURNITURE, ...VEHICLES, ...ROAD_VEHICLES, ...ITEMS, ...ITEMS2, ...STAIRS, ...ITEMS3].map((e) => ({ ppm: 64, ...e }));
+export const TERRAIN = [...tag(GROUND, 'floor'), ...tag(ROOFS, 'roof'), ...tag(WALLS, 'wall'), ...DOORS, ...openings(WINDOWS), ...FENCES, ...TREES, ...FLOWERS, ...LOW_FURN, ...FURNITURE, ...VEHICLES, ...ROAD_VEHICLES, ...ITEMS, ...ITEMS2, ...STAIRS, ...SPIRAL_STAIRS, ...ITEMS3].map((e) => ({ ppm: 64, ...e }));

@@ -119,7 +119,7 @@ window.buildAll = async (only = null) => {
     const slab = blocks.find((b) => b.name === 'tile');
     const surfaceFaces = recipe.surface === 'wall' && blocks.length === 1 && blocks[0].name === 'wall' ? { side: blocks[0].atlasRects.front, top: blocks[0].atlasRects.top }
       : (recipe.surface === 'floor' || recipe.surface === 'roof') && slab ? { top: slab.atlasRects.top } : undefined;
-    out.push({ id: recipe.id, ids: recipe.ids, interior: recipe.interior, group: recipe.group, names: recipe.names, bound: recipe.bound, fx: clips.length ? recipe.fx : undefined, path: `${recipe.group}/${recipe.id}.glb`, body: recipe.body, source: recipe.source, surface: recipe.surface, surfaceFaces, opening: recipe.opening, gear: recipe.gear ?? [], desc: recipe.desc, size: [size.x, size.y, size.z].map((n) => +n.toFixed(3)), bottom: +box.min.y.toFixed(3), low, triangles });
+    out.push({ id: recipe.id, ids: recipe.ids, interior: recipe.interior, group: recipe.group, names: recipe.names, bound: recipe.bound, fx: clips.length ? recipe.fx : undefined, path: `${recipe.group}/${recipe.id}.glb`, body: recipe.body, source: recipe.source, surface: recipe.surface, surfaceFaces, opening: recipe.opening, groupOf: recipe.groupOf, footprint: recipe.footprint, faceWall: recipe.faceWall, faceOut: recipe.faceOut, gear: recipe.gear ?? [], desc: recipe.desc, size: [size.x, size.y, size.z].map((n) => +n.toFixed(3)), bottom: +box.min.y.toFixed(3), low, triangles });
   }
   return out;
 };

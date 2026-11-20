@@ -25,7 +25,9 @@ const entries = built.map((t) => {
   copyFileSync(join(ROOT, 'sources/cubeclysm', t.path), join(ROOT, file));
   const atlas = join(ROOT, 'sources/cubeclysm', t.path.replace(/\.glb$/, '.png'));
   if (existsSync(atlas)) copyFileSync(atlas, join(ROOT, file.replace(/\.glb$/, '.png')));
-  return { id: t.ids ?? t.id, file, preserveOrigin: true, ...(t.surface ? { surface: t.surface } : {}), ...(t.surfaceFaces ? { surfaceFaces: t.surfaceFaces } : {}), ...(t.opening ? { opening: t.opening } : {}), ...(t.interior ? { interior: t.interior } : {}), author: 'cdda-cubeclysm-3d contributors', license: 'CC-BY-SA-3.0', source: t.source ?? 'tools/cubeclysm/page/terrain.js', style: 'cubeclysm' };
+  // A group model (groupOf + footprint) is no CDDA id's own model: it binds no id, an engine
+  // draws it over a group of `groupOf` tiles of that footprint.
+  return { ...(t.groupOf ? { groupOf: t.groupOf, footprint: t.footprint } : { id: t.ids ?? t.id }), file, preserveOrigin: true, ...(t.surface ? { surface: t.surface } : {}), ...(t.surfaceFaces ? { surfaceFaces: t.surfaceFaces } : {}), ...(t.opening ? { opening: t.opening } : {}), ...(t.faceWall ? { faceWall: true } : {}), ...(t.faceOut ? { faceOut: true } : {}), ...(t.interior ? { interior: t.interior } : {}), author: 'cdda-cubeclysm-3d contributors', license: 'CC-BY-SA-3.0', source: t.source ?? 'tools/cubeclysm/page/terrain.js', style: 'cubeclysm' };
 });
 
 // Vehicle parts are modular: how CDDA's variants place them (vehicle-variants.js) goes beside them.
