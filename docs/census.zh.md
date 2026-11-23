@@ -30,8 +30,8 @@ CENSUS_MD=../cdda-cubeclysm-3d/docs/census.zh.md CENSUS_CSV_DIR=../cdda-cubeclys
 | 植物（地形） | 61 | 4 | 10 | 15 | 0 |
 | 植物（家具层） | 33 | 1 | 9 | 14 | 0 |
 | 家具（不含门窗围栏） | 246 | 14 | 41 | 62 | 0 |
-| 物品道具（地上可见） | 3043 | 26 | 164 | 332 | 33 |
-| 物品道具（含容器内） | 3786 | 12 | 87 | 235 | 39 |
+| 物品道具（地上可见） | 3043 | 26 | 164 | 332 | 761 |
+| 物品道具（含容器内） | 3786 | 12 | 87 | 235 | 867 |
 | 生物 | 298 | 6 | 34 | 68 | 29 |
 | 尸体 | 13 | 1 | 2 | 4 | 0 |
 | 载具 | 150 | 5 | 45 | 74 | 0 |
@@ -400,54 +400,54 @@ CENSUS_MD=../cdda-cubeclysm-3d/docs/census.zh.md CENSUS_CSV_DIR=../cdda-cubeclys
 
 ## 物品道具（地上可见）
 
-共 3043 种，已有模型 33 种。完整表：[items_visible.csv](census/items_visible.csv)
+共 3043 种，已有模型 761 种。按精确 ID 匹配 485 种，占采样件数 89.8%。完整表：[items_visible.csv](census/items_visible.csv)
 
 | # | id | 名称 | 中文名 | 件数 | 出现率 | 占比 | 累计占比 | looks_like | 备注 | 已有模型 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 | leaves | handful of leaves | 树叶 | 178958 | 85% | 16.2% | 16.2% | withered | other |  |
-| 2 | glass_shard | glass shard | 玻璃碎片 | 90396 | 60% | 8.2% | 24.4% |  | other |  |
-| 3 | pipe_cpvc | PVC pipe | PVC管 | 35756 | 17% | 3.2% | 27.6% | pipe | spare_parts |  |
-| 4 | twig | twig | 小树枝 | 33298 | 89% | 3.0% | 30.6% | stick | other |  |
-| 5 | stick_common | stick | 木棍 | 24233 | 69% | 2.2% | 32.8% | stick | spare_parts |  |
-| 6 | lead | lead | 铅块 | 20816 | 5% | 1.9% | 34.7% |  | spare_parts |  |
-| 7 | seed_corn | corn seeds | 玉米种子 | 15794 | 11% | 1.4% | 36.1% | dry_corn | seeds |  |
-| 8 | splinter | splintered wood | 碎木 | 13968 | 64% | 1.3% | 37.4% |  | other |  |
-| 9 | socks | socks (pair) | 袜子（一对） | 13389 | 56% | 1.2% | 38.6% | socks_wool | clothing |  |
-| 10 | rock | rock | 石头 | 13144 | 98% | 1.2% | 39.8% |  | spare_parts |  |
-| 11 | box_small | small cardboard box | 小纸板盒 | 12013 | 65% | 1.1% | 40.8% |  | container |  |
-| 12 | socks_ankle | ankle socks (pair) | 船袜（一对） | 9434 | 55% | 0.9% | 41.7% | socks | clothing |  |
-| 13 | file | file | 文件 | 8789 | 52% | 0.8% | 42.5% |  | books |  |
-| 14 | material_sand | sand | 黄沙 | 8612 | 3% | 0.8% | 43.3% |  | spare_parts |  |
-| 15 | spoon | spoon | 勺子 | 7686 | 54% | 0.7% | 44.0% |  | other |  |
-| 16 | bag_plastic_small | small plastic bag | 塑料袋（小） | 7434 | 58% | 0.7% | 44.6% | bag_plastic | container |  |
-| 17 | bottle_plastic_small | very small plastic bottle | 塑料瓶（小） | 7314 | 64% | 0.7% | 45.3% | bottle_plastic | container |  |
-| 18 | cotton_patchwork | cotton patch | 棉布片 | 6765 | 59% | 0.6% | 45.9% |  | spare_parts |  |
-| 19 | scrap | scrap metal | 金属废料 | 6513 | 54% | 0.6% | 46.5% |  | spare_parts |  |
-| 20 | bag_zipper | zipper bag | 拉链袋 | 6449 | 52% | 0.6% | 47.1% | bag_plastic | container |  |
-| 21 | bottle_plastic | plastic bottle | 塑料瓶（中） | 6402 | 84% | 0.6% | 47.7% |  | container |  |
-| 22 | knife_butter | butter knife | 黄油刀 | 6360 | 54% | 0.6% | 48.2% |  | other |  |
-| 23 | fork | fork | 叉子 | 6064 | 54% | 0.5% | 48.8% |  | other |  |
-| 24 | nuts_bolts | nut and bolt | 螺栓螺母 | 6059 | 47% | 0.5% | 49.3% |  | spare_parts |  |
-| 25 | knife_small | small kitchen knife | 小菜刀 | 5838 | 54% | 0.5% | 49.9% |  | weapons |  |
-| 26 | socks_wool | wool socks (pair) | 羊毛袜（一对） | 5705 | 56% | 0.5% | 50.4% | socks | clothing |  |
-| 27 | pine_bough | pine bough | 松枝 | 5483 | 61% | 0.5% | 50.9% |  | other |  |
-| 28 | bag_garbage | garbage bag | 垃圾袋 | 5021 | 59% | 0.5% | 51.3% | bag_canvas | container |  |
-| 29 | wood_block | small wood block | 小木块 | 5015 | 42% | 0.5% | 51.8% |  | spare_parts |  |
-| 30 | pen | pen | 圆珠笔 | 4989 | 53% | 0.5% | 52.2% |  | tools |  |
-| 31 | black_pen | black pen | 黑色圆珠笔 | 4842 | 54% | 0.4% | 52.7% | pen | tools |  |
-| 32 | blue_pen | blue pen | 蓝色圆珠笔 | 4840 | 54% | 0.4% | 53.1% | pen | tools |  |
-| 33 | 2x4 | plank | 木板 | 4803 | 57% | 0.4% | 53.5% |  | spare_parts |  |
-| 34 | cardboard | piece of cardboard | 硬纸板 | 4783 | 10% | 0.4% | 54.0% | paper | spare_parts |  |
-| 35 | book_pieces | pieces of books | 书籍碎片 | 4737 | 5% | 0.4% | 54.4% |  | books |  |
-| 36 | undershirt | undershirt | 汗衫 | 4716 | 55% | 0.4% | 54.8% | tshirt | clothing |  |
-| 37 | plastic_straw | plastic straw | 塑料吸管 | 4590 | 53% | 0.4% | 55.2% |  | other |  |
-| 38 | seed_wheat | wheat seeds | 小麦种子 | 4393 | 5% | 0.4% | 55.6% | wheat | seeds |  |
-| 39 | novel_drama | drama novel | 戏剧小说 | 4337 | 53% | 0.4% | 56.0% | story_book | books |  |
-| 40 | bag_zipper_gallon | gallon-sized zipper bag | 一加仑拉链袋 | 4327 | 56% | 0.4% | 56.4% | bag_zipper | container |  |
+| 1 | leaves | handful of leaves | 树叶 | 178958 | 85% | 16.2% | 16.2% | withered | other | ✓ |
+| 2 | glass_shard | glass shard | 玻璃碎片 | 90396 | 60% | 8.2% | 24.4% |  | other | ✓ |
+| 3 | pipe_cpvc | PVC pipe | PVC管 | 35756 | 17% | 3.2% | 27.6% | pipe | spare_parts | ✓ |
+| 4 | twig | twig | 小树枝 | 33298 | 89% | 3.0% | 30.6% | stick | other | ✓ |
+| 5 | stick_common | stick | 木棍 | 24233 | 69% | 2.2% | 32.8% | stick | spare_parts | ✓ |
+| 6 | lead | lead | 铅块 | 20816 | 5% | 1.9% | 34.7% |  | spare_parts | ✓ |
+| 7 | seed_corn | corn seeds | 玉米种子 | 15794 | 11% | 1.4% | 36.1% | dry_corn | seeds | ✓ |
+| 8 | splinter | splintered wood | 碎木 | 13968 | 64% | 1.3% | 37.4% |  | other | ✓ |
+| 9 | socks | socks (pair) | 袜子（一对） | 13389 | 56% | 1.2% | 38.6% | socks_wool | clothing | ✓ |
+| 10 | rock | rock | 石头 | 13144 | 98% | 1.2% | 39.8% |  | spare_parts | ✓ |
+| 11 | box_small | small cardboard box | 小纸板盒 | 12013 | 65% | 1.1% | 40.8% |  | container | ✓ |
+| 12 | socks_ankle | ankle socks (pair) | 船袜（一对） | 9434 | 55% | 0.9% | 41.7% | socks | clothing | ✓ |
+| 13 | file | file | 文件 | 8789 | 52% | 0.8% | 42.5% |  | books | ✓ |
+| 14 | material_sand | sand | 黄沙 | 8612 | 3% | 0.8% | 43.3% |  | spare_parts | ✓ |
+| 15 | spoon | spoon | 勺子 | 7686 | 54% | 0.7% | 44.0% |  | other | ✓ |
+| 16 | bag_plastic_small | small plastic bag | 塑料袋（小） | 7434 | 58% | 0.7% | 44.6% | bag_plastic | container | ✓ |
+| 17 | bottle_plastic_small | very small plastic bottle | 塑料瓶（小） | 7314 | 64% | 0.7% | 45.3% | bottle_plastic | container | ✓ |
+| 18 | cotton_patchwork | cotton patch | 棉布片 | 6765 | 59% | 0.6% | 45.9% |  | spare_parts | ✓ |
+| 19 | scrap | scrap metal | 金属废料 | 6513 | 54% | 0.6% | 46.5% |  | spare_parts | ✓ |
+| 20 | bag_zipper | zipper bag | 拉链袋 | 6449 | 52% | 0.6% | 47.1% | bag_plastic | container | ✓ |
+| 21 | bottle_plastic | plastic bottle | 塑料瓶（中） | 6402 | 84% | 0.6% | 47.7% |  | container | ✓ |
+| 22 | knife_butter | butter knife | 黄油刀 | 6360 | 54% | 0.6% | 48.2% |  | other | ✓ |
+| 23 | fork | fork | 叉子 | 6064 | 54% | 0.5% | 48.8% |  | other | ✓ |
+| 24 | nuts_bolts | nut and bolt | 螺栓螺母 | 6059 | 47% | 0.5% | 49.3% |  | spare_parts | ✓ |
+| 25 | knife_small | small kitchen knife | 小菜刀 | 5838 | 54% | 0.5% | 49.9% |  | weapons | ✓ |
+| 26 | socks_wool | wool socks (pair) | 羊毛袜（一对） | 5705 | 56% | 0.5% | 50.4% | socks | clothing | ✓ |
+| 27 | pine_bough | pine bough | 松枝 | 5483 | 61% | 0.5% | 50.9% |  | other | ✓ |
+| 28 | bag_garbage | garbage bag | 垃圾袋 | 5021 | 59% | 0.5% | 51.3% | bag_canvas | container | ✓ |
+| 29 | wood_block | small wood block | 小木块 | 5015 | 42% | 0.5% | 51.8% |  | spare_parts | ✓ |
+| 30 | pen | pen | 圆珠笔 | 4989 | 53% | 0.5% | 52.2% |  | tools | ✓ |
+| 31 | black_pen | black pen | 黑色圆珠笔 | 4842 | 54% | 0.4% | 52.7% | pen | tools | ✓ |
+| 32 | blue_pen | blue pen | 蓝色圆珠笔 | 4840 | 54% | 0.4% | 53.1% | pen | tools | ✓ |
+| 33 | 2x4 | plank | 木板 | 4803 | 57% | 0.4% | 53.5% |  | spare_parts | ✓ |
+| 34 | cardboard | piece of cardboard | 硬纸板 | 4783 | 10% | 0.4% | 54.0% | paper | spare_parts | ✓ |
+| 35 | book_pieces | pieces of books | 书籍碎片 | 4737 | 5% | 0.4% | 54.4% |  | books | ✓ |
+| 36 | undershirt | undershirt | 汗衫 | 4716 | 55% | 0.4% | 54.8% | tshirt | clothing | ✓ |
+| 37 | plastic_straw | plastic straw | 塑料吸管 | 4590 | 53% | 0.4% | 55.2% |  | other | ✓ |
+| 38 | seed_wheat | wheat seeds | 小麦种子 | 4393 | 5% | 0.4% | 55.6% | wheat | seeds | ✓ |
+| 39 | novel_drama | drama novel | 戏剧小说 | 4337 | 53% | 0.4% | 56.0% | story_book | books | ✓ |
+| 40 | bag_zipper_gallon | gallon-sized zipper bag | 一加仑拉链袋 | 4327 | 56% | 0.4% | 56.4% | bag_zipper | container | ✓ |
 
 ## 物品道具（含容器内）
 
-共 3786 种，已有模型 39 种。完整表：[items_all.csv](census/items_all.csv)
+共 3786 种，已有模型 867 种。按精确 ID 匹配 540 种，占采样件数 49.3%。完整表：[items_all.csv](census/items_all.csv)
 
 | # | id | 名称 | 中文名 | 件数 | 出现率 | 占比 | 累计占比 | looks_like | 备注 | 已有模型 |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -456,40 +456,40 @@ CENSUS_MD=../cdda-cubeclysm-3d/docs/census.zh.md CENSUS_CSV_DIR=../cdda-cubeclys
 | 3 | welding_rod_steel | welding rod | 焊条 | 218703 | 9% | 5.4% | 17.4% |  | spare_parts |  |
 | 4 | material_cement | cement powder | 水泥粉 | 194744 | 6% | 4.8% | 22.2% |  | spare_parts |  |
 | 5 | welding_wire_steel | welding wire | 焊丝 | 187320 | 8% | 4.6% | 26.8% |  | spare_parts |  |
-| 6 | salt | salt | 盐 | 182521 | 52% | 4.5% | 31.3% |  | food |  |
-| 7 | leaves | handful of leaves | 树叶 | 178958 | 85% | 4.4% | 35.7% | withered | other |  |
+| 6 | salt | salt | 盐 | 182521 | 52% | 4.5% | 31.3% |  | food | ✓ |
+| 7 | leaves | handful of leaves | 树叶 | 178958 | 85% | 4.4% | 35.7% | withered | other | ✓ |
 | 8 | brazing_rod_alloy | aluminum brazing rod | 铝钎焊条 | 148609 | 7% | 3.7% | 39.4% |  | spare_parts |  |
 | 9 | material_quicklime | quicklime powder | 生石灰粉 | 146900 | 10% | 3.6% | 43.0% |  | chems |  |
-| 10 | glass_shard | glass shard | 玻璃碎片 | 119213 | 61% | 2.9% | 45.9% |  | other |  |
-| 11 | material_sand | sand | 黄沙 | 107843 | 10% | 2.7% | 48.6% |  | spare_parts |  |
+| 10 | glass_shard | glass shard | 玻璃碎片 | 119213 | 61% | 2.9% | 45.9% |  | other | ✓ |
+| 11 | material_sand | sand | 黄沙 | 107843 | 10% | 2.7% | 48.6% |  | spare_parts | ✓ |
 | 12 | welding_wire_alloy | aluminum welding wire | 铝焊丝 | 101216 | 6% | 2.5% | 51.1% |  | spare_parts |  |
 | 13 | welding_rod_alloy | aluminum welding rod | 铝焊条 | 98736 | 6% | 2.4% | 53.5% |  | spare_parts |  |
-| 14 | solder_wire | solder | 焊料 | 78742 | 43% | 1.9% | 55.5% |  | spare_parts |  |
-| 15 | sugar | sugar | 糖 | 37110 | 49% | 0.9% | 56.4% |  | food |  |
+| 14 | solder_wire | solder | 焊料 | 78742 | 43% | 1.9% | 55.5% |  | spare_parts | ✓ |
+| 15 | sugar | sugar | 糖 | 37110 | 49% | 0.9% | 56.4% |  | food | ✓ |
 | 16 | detergent | detergent powder | 洗衣粉 | 36651 | 49% | 0.9% | 57.3% |  | chems |  |
 | 17 | material_gravel | gravel | 碎石 | 36454 | 6% | 0.9% | 58.2% |  | spare_parts |  |
-| 18 | pipe_cpvc | PVC pipe | PVC管 | 35756 | 17% | 0.9% | 59.1% | pipe | spare_parts |  |
-| 19 | pepper | black pepper | 黑胡椒 | 35277 | 49% | 0.9% | 60.0% |  | food |  |
-| 20 | twig | twig | 小树枝 | 33298 | 89% | 0.8% | 60.8% | stick | other |  |
-| 21 | splinter | splintered wood | 碎木 | 33280 | 65% | 0.8% | 61.6% |  | other |  |
-| 22 | nuts_bolts | nut and bolt | 螺栓螺母 | 27675 | 49% | 0.7% | 62.3% |  | spare_parts |  |
+| 18 | pipe_cpvc | PVC pipe | PVC管 | 35756 | 17% | 0.9% | 59.1% | pipe | spare_parts | ✓ |
+| 19 | pepper | black pepper | 黑胡椒 | 35277 | 49% | 0.9% | 60.0% |  | food | ✓ |
+| 20 | twig | twig | 小树枝 | 33298 | 89% | 0.8% | 60.8% | stick | other | ✓ |
+| 21 | splinter | splintered wood | 碎木 | 33280 | 65% | 0.8% | 61.6% |  | other | ✓ |
+| 22 | nuts_bolts | nut and bolt | 螺栓螺母 | 27675 | 49% | 0.7% | 62.3% |  | spare_parts | ✓ |
 | 23 | graphite | graphite powder | 石墨粉 | 27034 | 26% | 0.7% | 63.0% | charcoal | chems |  |
-| 24 | stick_common | stick | 木棍 | 24233 | 69% | 0.6% | 63.6% | stick | spare_parts |  |
+| 24 | stick_common | stick | 木棍 | 24233 | 69% | 0.6% | 63.6% | stick | spare_parts | ✓ |
 | 25 | tea_raw | black tea leaves | 红茶叶 | 24124 | 42% | 0.6% | 64.1% |  | food |  |
-| 26 | seasoning_salt | seasoned salt | 调味盐 | 23997 | 47% | 0.6% | 64.7% | salt | food |  |
-| 27 | bag_garbage | garbage bag | 垃圾袋 | 23885 | 60% | 0.6% | 65.3% | bag_canvas | container |  |
-| 28 | seasoning_italian | Italian seasoning | 意大利香料 | 23416 | 48% | 0.6% | 65.9% |  | food |  |
-| 29 | alcohol_wipes | alcohol wipe | 酒精湿巾 | 22499 | 52% | 0.6% | 66.5% |  | drugs |  |
-| 30 | lead | lead | 铅块 | 20816 | 5% | 0.5% | 67.0% |  | spare_parts |  |
-| 31 | cinnamon | cinnamon | 肉桂 | 18714 | 47% | 0.5% | 67.4% |  | food |  |
-| 32 | butter | butter | 黄油 | 17602 | 50% | 0.4% | 67.9% |  | food |  |
-| 33 | chilly-p | chili powder | 辣椒粉 | 17411 | 46% | 0.4% | 68.3% |  | food |  |
-| 34 | bottle_plastic_small | very small plastic bottle | 塑料瓶（小） | 16833 | 68% | 0.4% | 68.7% | bottle_plastic | container |  |
+| 26 | seasoning_salt | seasoned salt | 调味盐 | 23997 | 47% | 0.6% | 64.7% | salt | food | ✓ |
+| 27 | bag_garbage | garbage bag | 垃圾袋 | 23885 | 60% | 0.6% | 65.3% | bag_canvas | container | ✓ |
+| 28 | seasoning_italian | Italian seasoning | 意大利香料 | 23416 | 48% | 0.6% | 65.9% |  | food | ✓ |
+| 29 | alcohol_wipes | alcohol wipe | 酒精湿巾 | 22499 | 52% | 0.6% | 66.5% |  | drugs | ✓ |
+| 30 | lead | lead | 铅块 | 20816 | 5% | 0.5% | 67.0% |  | spare_parts | ✓ |
+| 31 | cinnamon | cinnamon | 肉桂 | 18714 | 47% | 0.5% | 67.4% |  | food | ✓ |
+| 32 | butter | butter | 黄油 | 17602 | 50% | 0.4% | 67.9% |  | food | ✓ |
+| 33 | chilly-p | chili powder | 辣椒粉 | 17411 | 46% | 0.4% | 68.3% |  | food | ✓ |
+| 34 | bottle_plastic_small | very small plastic bottle | 塑料瓶（小） | 16833 | 68% | 0.4% | 68.7% | bottle_plastic | container | ✓ |
 | 35 | tea_green_raw | green tea leaves | 绿茶叶 | 16786 | 34% | 0.4% | 69.1% | tea_raw | food |  |
-| 36 | seed_corn | corn seeds | 玉米种子 | 15794 | 11% | 0.4% | 69.5% | dry_corn | seeds |  |
-| 37 | box_small | small cardboard box | 小纸板盒 | 15684 | 67% | 0.4% | 69.9% |  | container |  |
-| 38 | cig_butt | cigarette butt | 烟蒂 | 15140 | 84% | 0.4% | 70.3% |  | other |  |
-| 39 | socks | socks (pair) | 袜子（一对） | 15035 | 59% | 0.4% | 70.7% | socks_wool | clothing |  |
+| 36 | seed_corn | corn seeds | 玉米种子 | 15794 | 11% | 0.4% | 69.5% | dry_corn | seeds | ✓ |
+| 37 | box_small | small cardboard box | 小纸板盒 | 15684 | 67% | 0.4% | 69.9% |  | container | ✓ |
+| 38 | cig_butt | cigarette butt | 烟蒂 | 15140 | 84% | 0.4% | 70.3% |  | other | ✓ |
+| 39 | socks | socks (pair) | 袜子（一对） | 15035 | 59% | 0.4% | 70.7% | socks_wool | clothing | ✓ |
 | 40 | candle_small | small candle | 细蜡烛 | 13698 | 46% | 0.3% | 71.0% |  | tools |  |
 
 ## 生物

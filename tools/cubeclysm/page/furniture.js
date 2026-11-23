@@ -6,6 +6,7 @@
 // Plants and rocks among the furniture are in vegetation.js (low-poly).
 import { LEVEL, border, cracks, flat, glass, grid, layers, planks, sides, speckle } from './props.js';
 import { fill, mix, rng, shade } from './paint.js';
+import * as K from './item-kit.js';
 
 // --- materials ----------------------------------------------------------------------------------
 
@@ -242,12 +243,6 @@ const RECIPES = [
     p.box('lid', [-.22, .8, .1, .22, .83, .31], porcelain);
     p.box('flush', [-.18, .72, .1, -.12, .74, .12], flat(0xc8ccd0), { metal: true });
   } },
-  { id: 'f_locker', desc: 'A tall sheet metal cabinet, useful for storing just about anything that\'ll fit.', build: (p) => {
-    // Two 0.45 m lockers per tile (500 L each tile), louvred doors with handles.
-    const c = 0x8a9aa8;
-    for (const x of [-.47, .02]) p.box(`locker${x}`, [x, .05, -.24, x + .45, 1.85, .26], front(layers(metal(`f_locker${x}`, c), border(shade(c, .7)), (ctx, xx, y, w, h) => { for (let j = 3; j < 12; j += 2) fill(ctx, xx + 3, y + j, w - 6, 1, shade(c, .6)); for (let j = h - 12; j < h - 3; j += 2) fill(ctx, xx + 3, y + j, w - 6, 1, shade(c, .6)); fill(ctx, xx + w - 5, y + Math.round(h * .5), 2, 6, 0x3a3a3a); }), metal(`f_locker_side${x}`, c)));
-    p.box('plinth', [-.47, 0, -.22, .47, .05, .26], flat(0x3a3e42));
-  } },
   { id: 'f_stool', desc: 'A simple stool with four legs and a seat.', build: (p) => {
     legs(p, [-.16, -.16, .16, .16], .42, .035, flat(shade(WOOD, .85)));
     p.box('rung', [-.14, .15, -.14, .14, .17, .14], flat(shade(WOOD, .85)));
@@ -303,11 +298,43 @@ const RECIPES = [
     p.box('tv', [-.28, .58, -.02, .28, .98, .06], front(layers(flat(0x1a1a1e), (ctx, x, y, ww, h) => { fill(ctx, x + 2, y + 2, ww - 4, h - 4, 0x0e1014); fill(ctx, x + Math.round(ww * .6), y + 4, Math.round(ww * .25), 1, 0x2a2e36); }), flat(0x1a1a1e)));
     p.box('player', [-.18, .55, -.18, .18, .6, .2], flat(0x2a2a2c));
   } },
-  { id: 'f_coffee_table', desc: 'A low table usually found in living rooms … for putting coffee cups on.', build: (p) => {
-    p.box('top', [-.5, .4, -.3, .5, .44, .3], wood('f_coffee_table', WOOD, 3));
-    legs(p, [-.46, -.26, .46, .26], .4, .05, flat(shade(WOOD, .85)));
-    p.box('shelf', [-.46, .1, -.26, .46, .12, .26], wood('f_coffee_table_shelf', WOOD, 3));
-    p.box('mug', [.15, .44, -.1, .22, .52, -.03], flat(0xe8e4dc));
+  // Mid-century coffee table: a rounded walnut top on four tapered, splayed legs with brass feet, a
+  // magazine shelf below. On it what the description names: coffee on a coaster, tasteful books, a game.
+  { id: 'f_coffee_table', desc: 'A low table usually found in living rooms, it makes an ideal surface for playing games, showing off some tasteful books, or presumably for putting coffee cups on.  No one cares if you use a coaster anymore.  (1.0 × 0.56 m, 42 cm high.)', build: (p) => {
+    const WAL = 0x6a4428, wal = K.woodP(WAL), dark = K.woodP(shade(WAL, .8));
+    // Top: a slab with rounded corners, a thin lighter edge band.
+    const rounded = (hw, hd, r, y0, y1) => {
+      const pts = [];
+      for (const [cx, cz] of [[hw - r, hd - r], [-hw + r, hd - r], [-hw + r, -hd + r], [hw - r, -hd + r]]) for (let k = 0; k <= 4; k++) {
+        const a = Math.atan2(cz, cx) - Math.PI / 4 + (k / 4) * Math.PI / 2;
+        for (const y of [y0, y1]) pts.push(K.V(cx + Math.cos(a) * r, y, cz + Math.sin(a) * r));
+      }
+      return pts;
+    };
+    K.hull(p, 'top', rounded(.5, .28, .08, .395, .425), wal);
+    K.hull(p, 'edge', rounded(.495, .275, .078, .382, .396), dark);
+    // Legs: from under the top's corners, splayed out to the floor, tapering, brass-capped.
+    const at = (sx, sz, y) => K.V(sx * (.37 + .06 * (1 - y / .382)), y, sz * (.17 + .05 * (1 - y / .382)));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      K.tube(p, `leg${sx}${sz}`, at(sx, sz, .382), at(sx, sz, .03), .022, .013, 8, dark);
+      const f = at(sx, sz, .015);
+      K.cyl(p, `foot${sx}${sz}`, 'y', [f.x, .015, f.z], .012, .03, 8, K.steelP(0xc8a048), K.STEEL);
+    }
+    // Shelf rails front and back between the legs, the shelf resting on them.
+    for (const sz of [-1, 1]) K.tube(p, `rail${sz}`, at(-1, sz, .12), at(1, sz, .12), .012, .012, 6, dark);
+    K.bevel(p, 'shelf', [-.4, .132, -.2, .4, .15, .2], .004, K.woodP(shade(WAL, 1.15)));
+    // A board game on the shelf: a red box with a yellow title band.
+    K.qbox(p, 'game', [-.34, .15, -.15, -.02, .195, .1], layers(flat(0xb83a2a), (ctx, x, y, w, h) => { fill(ctx, x, y + Math.round(h * .38), w, Math.max(1, Math.round(h * .2)), 0xe8c040); fill(ctx, x + Math.round(w * .1), y + Math.round(h * .45), Math.round(w * .5), 1, 0x2a2a2a); }));
+    K.bevel(p, 'magazine', [.05, .15, -.16, .3, .156, .03], .001, layers(flat(0xe8e4d8), (ctx, x, y, w, h) => { fill(ctx, x, y, w, Math.round(h * .3), 0x2a5a9a); for (let j = Math.round(h * .45); j < h - 2; j += 3) fill(ctx, x + 2, y + j, w - 4, 1, 0x8a8a8a); }));
+    // Tasteful books: two stacked hardbacks at one end.
+    K.bevel(p, 'book1', [-.38, .425, -.1, -.14, .455, .07], .003, layers(flat(0x2a4a3a), (ctx, x, y, w, h) => fill(ctx, x, y + Math.round(h * .4), w, Math.max(1, Math.round(h * .15)), 0xd8c070)));
+    K.bevel(p, 'book2', [-.35, .455, -.07, -.17, .478, .05], .003, layers(flat(0x7a2a2a), (ctx, x, y, w, h) => fill(ctx, x, y + Math.round(h * .45), w, Math.max(1, Math.round(h * .12)), 0xe8e0c8)));
+    // Coffee on a cork coaster: a white mug, coffee inside, a C handle.
+    K.cyl(p, 'coaster', 'y', [.2, .428, -.06], .045, .006, 12, flat(0xb08a58));
+    K.cyl(p, 'mug', 'y', [.2, .476, -.06], .038, .09, 12, flat(0xf0ece4));
+    K.cyl(p, 'coffee', 'y', [.2, .5215, -.06], .033, .002, 12, flat(0x3a2414));
+    const h = [[.236, .505], [.262, .5], [.268, .476], [.262, .452], [.236, .447]];
+    for (let k = 0; k < h.length - 1; k++) K.tube(p, `handle${k}`, K.V(h[k][0], h[k][1], -.06), K.V(h[k + 1][0], h[k + 1][1], -.06), .006, .006, 5, flat(0xf0ece4));
   } },
   { id: 'f_fridge', desc: 'A standard household refrigerator.', build: (p) => {
     // 433 L: 0.8 × 0.72 × 1.8 m, freezer door on top.
@@ -352,14 +379,43 @@ const RECIPES = [
     p.box('cap', [-.2, .9, -.2, .2, .96, .2], m, { metal: true });
     for (const [x, z] of [[-.12, -.12], [.09, -.12], [-.12, .09], [.09, .09]]) p.box(`strut${x}${z}`, [x, .8, z, x + .03, .9, z + .03], m);
   } },
-  { id: 'f_rack_coat', desc: 'A tall wooden pole with a set of hooks used to store outdoor jackets and hats to allow easy access.', build: (p) => {
-    const w = flat(WOOD);
-    for (const a of [0, 1, 2, 3]) { const g = p.group(`foot${a}`, { rotY: a * Math.PI / 2 }); p.box(`foot${a}`, [0, 0, -.02, .25, .04, .02], w, { parent: g }); }
-    p.box('pole', [-.025, 0, -.025, .025, 1.8, .025], w);
-    for (const a of [0, 1, 2, 3]) { const g = p.group(`hook${a}`, { at: [0, 1.62, 0], rotY: a * Math.PI / 2 + .4 }); p.box(`hook${a}`, [0, 0, -.01, .12, .02, .01], w, { parent: g }); p.box(`tip${a}`, [.1, .02, -.01, .12, .06, .01], w, { parent: g }); }
-    // A jacket and a hat left on it.
-    p.box('jacket', [.04, 1.0, -.16, .16, 1.62, .16], layers(fabric('jacket', 0x3a4a3a), front((ctx, x, y, ww, h) => fill(ctx, x + Math.round(ww / 2), y, 1, h, 0x2a2a2a))));
-    p.box('hat', [-.17, 1.66, -.1, .0, 1.74, .1], fabric('hat', 0x6a4a2a));
+  // Bentwood coat tree: a turned pole on four curved feet, a ball finial, two tiers of curved hooks;
+  // a trench coat and a fedora hung on it.
+  { id: 'f_rack_coat', desc: 'A tall wooden pole with a set of hooks used to store outdoor jackets and hats to allow easy access.  (1.8 m: a dark bentwood coat tree, a khaki trench coat hung at the front left, a fedora at the front right.)', build: (p) => {
+    const WAL = 0x5a3a22, w = K.woodP(WAL), dk = K.woodP(shade(WAL, .8));
+    // Pole with turned rings, a finial on top.
+    K.cyl(p, 'pole', 'y', [0, .9, 0], .024, 1.6, 10, w, {}, .02);
+    for (const y of [.2, 1.3, 1.7]) K.cyl(p, `ring${y}`, 'y', [0, y, 0], .032, .025, 10, dk);
+    K.blob(p, 'finial', [.036, .04, .036], [0, 1.74, 0], dk, {}, 4, 10);
+    // Four curved feet: out and down from the pole's base, a pad on the floor.
+    const foot = [[.02, .22], [.12, .14], [.22, .06], [.3, .015]];
+    for (let a = 0; a < 4; a++) {
+      const g = p.group(`foot${a}`, { rotY: a * Math.PI / 2 });
+      for (let k = 0; k < foot.length - 1; k++) K.tube(p, `foot${a}-${k}`, K.V(foot[k][0], foot[k][1], 0), K.V(foot[k + 1][0], foot[k + 1][1], 0), .022, .018, 8, w, { parent: g });
+      K.bevel(p, `pad${a}`, [.27, 0, -.025, .33, .02, .025], .006, dk, { parent: g });
+    }
+    // Hooks: out from the pole, curving up to a ball tip; the upper tier on the diagonals, the lower between.
+    const hook = (name, rot, y, s) => {
+      const g = p.group(name, { at: [0, y, 0], rotY: rot }), pts = [[.02, 0], [.09 * s, -.018], [.14 * s, 0], [.165 * s, .05]];
+      for (let k = 0; k < pts.length - 1; k++) K.tube(p, `${name}-${k}`, K.V(pts[k][0], pts[k][1], 0), K.V(pts[k + 1][0], pts[k + 1][1], 0), .011, .009, 6, w, { parent: g });
+      K.blob(p, `${name}-tip`, [.014, .014, .014], [.168 * s, .062, 0], dk, { parent: g }, 3, 8);
+    };
+    for (let a = 0; a < 4; a++) hook(`hook${a}`, Math.PI / 4 + a * Math.PI / 2, 1.6, 1);
+    for (let a = 0; a < 4; a++) hook(`low${a}`, a * Math.PI / 2, 1.4, .8);
+    // A khaki trench coat hung by its collar on the front-left hook (local +x), hanging down its back to the pole.
+    const coat = p.group('coat', { rotY: Math.PI * .75 }), KH = 0xa08a5a, cl = K.clothP(KH);
+    K.hull(p, 'coat', [[.15, 1.6, .05], [.15, 1.6, -.05], [.22, 1.6, .05], [.22, 1.6, -.05], [.12, 1.47, .2], [.12, 1.47, -.2], [.25, 1.47, .2], [.25, 1.47, -.2], [.12, .66, .24], [.12, .66, -.24], [.27, .66, .24], [.27, .66, -.24]].map((q) => K.V(...q)), cl, { parent: coat });
+    for (const s of [-1, 1]) K.tube(p, `sleeve${s}`, K.V(.2, 1.45, s * .2), K.V(.22, .86, s * .22), .045, .04, 8, K.clothP(shade(KH, .92)), { parent: coat });
+    K.bevel(p, 'belt', [.115, 1.04, -.225, .265, 1.09, .225], .005, flat(shade(KH, .78)), { parent: coat });
+    K.bevel(p, 'buckle', [.262, 1.035, -.03, .272, 1.095, .03], .002, K.steelP(0xb8a060), { ...K.STEEL, parent: coat });
+    K.hull(p, 'collar', [[.15, 1.62, .07], [.15, 1.62, -.07], [.24, 1.6, .08], [.24, 1.6, -.08], [.25, 1.52, .13], [.25, 1.52, -.13], [.27, 1.55, 0]].map((q) => K.V(...q)), K.clothP(shade(KH, .9)), { parent: coat });
+    for (let k = 0; k < 4; k++) for (const z of [-.06, .06]) K.cyl(p, `button${k}${z}`, 'x', [.272, 1.32 - k * .14, z], .009, .005, 6, flat(0x3a2a1a), { parent: coat });
+    // A grey fedora on the front-right hook, its crown over the hook's tip, tilted out.
+    const hat = p.group('hat', { at: [Math.cos(Math.PI / 4) * .168, 1.66, -Math.sin(Math.PI / 4) * .168], rotY: Math.PI / 4 });
+    const tilt = p.group('tilt', { parent: hat, rotZ: -.9 });
+    K.cyl(p, 'crown', 'y', [0, .02, 0], .068, .1, 10, K.clothP(0x5a5a5e), { parent: tilt }, .056);
+    K.cyl(p, 'brim', 'y', [0, -.028, 0], .13, .008, 12, K.clothP(0x4e4e52), { parent: tilt });
+    K.cyl(p, 'band', 'y', [0, -.012, 0], .07, .022, 10, flat(0x1e1e20), { parent: tilt });
   } },
   { id: 'f_workbench', desc: 'A sturdy workbench built out of metal.  It is perfect for crafting large and heavy things.', build: (p) => {
     const m = flat(0x4a5258);
@@ -484,4 +540,4 @@ const RECIPES = [
   } },
 ];
 
-export const FURNITURE = RECIPES.map((r) => ({ ...r, dir: 'furniture', ppm: 64, source: 'tools/cubeclysm/page/furniture.js' }));
+export const FURNITURE = RECIPES.map((r) => ({ ppm: 64, ...r, dir: 'furniture', source: 'tools/cubeclysm/page/furniture.js' }));

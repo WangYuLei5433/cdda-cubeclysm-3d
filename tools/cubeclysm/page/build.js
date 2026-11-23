@@ -97,6 +97,15 @@ window.buildAll = async (only = null) => {
     root.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(root);
     const size = box.getSize(new THREE.Vector3());
+    if (recipe.longestSide && recipe.group === 'items') {
+      const longest = Math.max(size.x, size.y, size.z);
+      if (!Number.isFinite(longest) || longest <= 0) throw new Error(`invalid bounds for ${recipe.id}`);
+      const scale = recipe.longestSide / longest;
+      root.scale.multiplyScalar(scale);
+      root.position.y -= box.min.y * scale;
+      root.updateMatrixWorld(true);
+      box.setFromObject(root).getSize(size);
+    }
     // The lowest parts (they should rest on y = 0: feet, or hands on all fours).
     const lows = [];
     root.traverse((o) => { if (o.isMesh && !/fx_/.test(o.parent?.name ?? '')) lows.push([+new THREE.Box3().setFromObject(o).min.y.toFixed(3), o.name]); });

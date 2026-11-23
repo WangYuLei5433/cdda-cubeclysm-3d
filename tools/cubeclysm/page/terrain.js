@@ -4,6 +4,7 @@
 // walls, doors and windows WALL_T thick, spanning x, facing −Z).
 import { LEVEL, SLAB, WALL_T, bark, border, chainlink, cracks, flat, glass, grid, layers, masonry, planks, sides, speckle } from './props.js';
 import { V, cyl, hull } from './item-kit.js';
+import { poly } from './lowpoly.js';
 import { fill, rng, shade } from './paint.js';
 import { FLOWERS, LOW_FURN, TREES } from './vegetation.js';
 import { FURNITURE } from './furniture.js';
@@ -12,6 +13,11 @@ import { ROAD_VEHICLES } from './road-vehicles.js';
 import { ITEMS } from './items.js';
 import { ITEMS2 } from './items2.js';
 import { ITEMS3 } from './items3.js';
+import { ITEMS4 } from './items4.js';
+import { INVENTORY_PROPS } from './inventory-props.js';
+import { SHELTER_PROPS } from './shelter-props.js';
+import { CARRY_PROPS } from './carry-props.js';
+import { COMMON_LOOT } from './common-loot.js';
 
 const T = WALL_T / 2;
 
@@ -37,6 +43,48 @@ const tufts = (n, height, colors) => (p) => {
   }
 };
 
+/**
+ * Pixel-art grass sprites: blades 1 px wide rising from the bottom edge, darker at the root and
+ * lighter at the tip, some leaning; `heads` puts a seed head on the tallest. Unpainted pixels stay
+ * transparent (holes in the cutout material).
+ */
+const bladesP = (seed, { n, base, mid, tip, heads = null, minH = .45 }) => (ctx, x, y, w, h) => {
+  const r = rng(seed);
+  for (let i = 0; i < n; i++) {
+    const bx = Math.floor(r() * w), bh = Math.max(3, Math.round(h * (minH + r() * (1 - minH))));
+    const lean = r() < .55 ? (r() < .5 ? -1 : 1) : 0, step = 2 + Math.floor(r() * 3), wide = r() < .3;
+    let xx = bx;
+    for (let j = 0; j < bh; j++) {
+      const t = j / bh, c = t < .3 ? base : t < .7 ? mid : tip;
+      xx = bx + lean * Math.floor(j / step);
+      if (xx < 0 || xx >= w) break;
+      fill(ctx, x + xx, y + h - 1 - j, wide && t < .5 ? 2 : 1, 1, c);
+    }
+    if (heads && bh > h * .8 && xx >= 0 && xx < w) fill(ctx, x + Math.max(0, xx - (r() < .5 ? 1 : 0)), y + h - bh - 1, 2, 3, heads);
+  }
+};
+/** One upright sprite quad on the tile, centred at (cx, cz), facing along angle a. */
+const sprite = (p, name, cx, cz, a, wd, ht, paint) => {
+  const dx = Math.cos(a) * wd / 2, dz = Math.sin(a) * wd / 2;
+  const bl = V(cx - dx, SLAB, cz - dz), br = V(cx + dx, SLAB, cz + dz), tr = V(cx + dx, SLAB + ht, cz + dz), tl = V(cx - dx, SLAB + ht, cz - dz);
+  const out = br.clone().sub(bl).cross(tr.clone().sub(bl));
+  poly(p, name, [bl, br, tr, tl], out, paint, { cutout: true, ppm: 48 });
+};
+/**
+ * Block-game style grass: the tile's ground slab, a big X of two crossed sprites on its diagonals,
+ * and three smaller crossed clumps round it, each with its own blades.
+ */
+const crossGrass = (id, ground, ht, look) => (p) => {
+  p.box('tile', [-0.5, 0, -0.5, 0.5, SLAB, 0.5], ground, { ppm: 32 });
+  const cross = (name, cx, cz, a, wd, h, n) => {
+    sprite(p, `${name}a`, cx, cz, a, wd, h, bladesP(`${id}${name}a`, { ...look, n }));
+    sprite(p, `${name}b`, cx, cz, a + Math.PI / 2, wd, h, bladesP(`${id}${name}b`, { ...look, n }));
+  };
+  cross('x', 0, 0, Math.PI / 4, 1.1, ht, Math.round(look.n * 1.1));
+  const r = rng(`${id}:clumps`);
+  for (const [k, [cx, cz]] of [[-.28, .22], [.26, .3], [.2, -.3]].entries()) cross(`c${k}`, cx, cz, r() * Math.PI, .34, ht * (.6 + r() * .3), Math.round(look.n * .4));
+};
+
 const GRASS = [0x4f7d3a, [0x5a8a40, 0x45702f, 0x649648, 0x3f6a2c]];
 const ASPHALT = [0x3c3c3e, [0x343436, 0x46464a, 0x4c4a48, 0x2e2e30]];
 const asphalt = (id) => layers(speckle(id, ...ASPHALT, 0.5), cracks(id, 0x222224, 2));
@@ -49,14 +97,14 @@ const roadStripe = (ctx, x, y, w, h, side) => {
 };
 
 const GROUND = [
-  { id: 't_grass', desc: 'An area of hardy Kentucky bluegrass about ankle high.', build: slab(speckle('t_grass', ...GRASS, 0.55), tufts(10, 0.08, [0x5a8a40, 0x4a7a36])) },
+  { id: 't_grass', desc: 'An area of hardy Kentucky bluegrass about ankle high.  (Block-game style: crossed pixel-art sprites of green blades up to 20 cm on a grass slab.)', build: crossGrass('t_grass', speckle('t_grass', ...GRASS, 0.55), .2, { n: 62, base: 0x4a7a34, mid: 0x62963e, tip: 0x88be54 }) },
   { id: 't_pavement', desc: 'A segment of asphalt, slowly degrading from cracks, frost heaves, and lack of maintenance.', build: slab(asphalt('t_pavement')) },
   { id: 't_forestfloor', desc: 'Covered in twigs and lots of brown, decaying leaves.', build: slab(layers(speckle('t_forestfloor', 0x5a4128, [0x6e4e2c, 0x7a5a30, 0x8a4a22, 0x4a3420, 0x9a6a2a], 0.6), (ctx, x, y, w, h, side) => {
     if (side !== 'top') return;
     const r = rng('twigs');
     for (let k = 0; k < 5; k++) { const tx = x + Math.floor(r() * (w - 6)), ty = y + Math.floor(r() * h); fill(ctx, tx, ty, 4 + Math.floor(r() * 4), 1, 0x3a2a18); }
   })) },
-  { id: 't_grass_dead', desc: "An area of long, shaggy grass that hasn't been cut recently.", build: slab(speckle('t_grass_dead', 0x8f8040, [0xa29248, 0x7a6c36, 0xb0a058, 0x6a5e30], 0.55), tufts(14, 0.22, [0xa29248, 0x8a7a3e, 0xb4a45a])) },
+  { id: 't_grass_dead', desc: "An area of long, shaggy grass that hasn't been cut recently.  (Block-game style: crossed pixel-art sprites of dry straw-coloured blades up to 38 cm, seed heads on the tallest, on a dry slab.)", build: crossGrass('t_grass_dead', speckle('t_grass_dead', 0x8f8040, [0xa29248, 0x7a6c36, 0xb0a058, 0x6a5e30], 0.55), .38, { n: 48, base: 0x7a6a32, mid: 0xa08c48, tip: 0xc8b474, heads: 0xe2d092, minH: .35 }) },
   { id: 't_dirt', desc: '(no description in CDDA: bare earth)', build: slab(speckle('t_dirt', 0x6e5236, [0x7a5c3c, 0x5e4630, 0x846446, 0x50402c], 0.5)) },
   { id: 't_sidewalk', desc: 'An area of common poured concrete, damaged by frost heaves and large cracks due to lack of maintenance.', build: slab(layers(speckle('t_sidewalk', 0xa8a8a2, [0xb2b2ac, 0x9c9c96, 0xa0a09a], 0.4), sides(['top'], border(0x7e7e78)), cracks('t_sidewalk', 0x6a6a64, 3))) },
   { id: 't_floor', desc: 'Interlocking wooden tiles that are more than likely treated against fire, with wooden posts and beams that can support a roof.', build: slab(layers(planks('t_floor', { wood: 0x9a6a3a, seam: 0x5a3a1e, n: 4, vertical: false, tones: [0x9a6a3a, 0x8e6034, 0xa47444] }), sides(['top'], grid(0x5a3a1e, 2, 1)))) },
@@ -67,7 +115,7 @@ const GROUND = [
     const r = rng('ripples');
     for (let k = 0; k < 6; k++) fill(ctx, x + Math.floor(r() * (w - 8)), y + Math.floor(r() * h), 5 + Math.floor(r() * 5), 1, 0x8ab4d8);
   })) },
-  { id: 't_grass_long', desc: 'An area of long, shaggy grass about shin high.', build: slab(speckle('t_grass_long', ...GRASS, 0.55), tufts(22, 0.32, [0x5a8a40, 0x4a7a36, 0x6a9a48, 0x3f6a2c])) },
+  { id: 't_grass_long', desc: 'An area of long, shaggy grass about shin high.  (Block-game style: crossed pixel-art sprites of green blades up to 40 cm, a few pale seed heads on the tallest, on a grass slab.)', build: crossGrass('t_grass_long', speckle('t_grass_long', ...GRASS, 0.55), .4, { n: 56, base: 0x3e6a2c, mid: 0x588c3a, tip: 0x7eb04c, heads: 0xc8c47a, minH: .35 }) },
   { id: 't_gutter', faceOut: true, desc: 'Channels water from the roof towards the ground, it looks flimsy.  (On the roof edge, the trough at −Z: an engine turns −Z to the open side.)', build: (p) => gutter(p) },
   { id: 't_gutter_drop', faceOut: true, desc: 'A spot in the gutter where the water flows into a downspout.  It looks flimsy.  You may be able to climb down here.  (The gutter at −Z with an outlet in the trough; from it the pipe drops, bends back to the wall face and runs down into the downspout beside the wall.)', build: (p) => {
     gutter(p);
@@ -934,4 +982,4 @@ const OPENING = { t_window: SHOP, t_window_alarm: SHOP, t_window_taped: SHOP, t_
 const openings = (list) => list.map((e) => ({ ...e, opening: OPENING[e.id] ?? DOMESTIC }));
 
 /** Phase-1 terrain, each with the kind of surface an engine may take its texture for. */
-export const TERRAIN = [...tag(GROUND, 'floor'), ...tag(ROOFS, 'roof'), ...tag(WALLS, 'wall'), ...DOORS, ...openings(WINDOWS), ...FENCES, ...TREES, ...FLOWERS, ...LOW_FURN, ...FURNITURE, ...VEHICLES, ...ROAD_VEHICLES, ...ITEMS, ...ITEMS2, ...STAIRS, ...SPIRAL_STAIRS, ...ITEMS3].map((e) => ({ ppm: 64, ...e }));
+export const TERRAIN = [...tag(GROUND, 'floor'), ...tag(ROOFS, 'roof'), ...tag(WALLS, 'wall'), ...DOORS, ...openings(WINDOWS), ...FENCES, ...TREES, ...FLOWERS, ...LOW_FURN, ...FURNITURE, ...VEHICLES, ...ROAD_VEHICLES, ...ITEMS, ...ITEMS2, ...STAIRS, ...SPIRAL_STAIRS, ...ITEMS3, ...ITEMS4, ...INVENTORY_PROPS, ...SHELTER_PROPS, ...CARRY_PROPS, ...COMMON_LOOT].map((e) => ({ ppm: 64, ...e }));

@@ -3,7 +3,7 @@
 // merges their entries into the set's terrain, furniture, vehicle and item entries (rebuilt ones
 // replaced, new ones added, the rest and every other entry left exactly as they are).
 //
-//   node tools/cubeclysm/bind-terrain.mjs
+//   node tools/cubeclysm/bind-terrain.mjs [--only f_locker,mp3]
 //
 // Terrain is modelled around its tile (origin = tile centre on the floor), so entries keep it
 // (preserveOrigin). `surface` marks ground, roof and wall tiles whose texture an engine may use on
@@ -16,8 +16,14 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const index = JSON.parse(readFileSync(join(ROOT, 'sources/cubeclysm/index.json'), 'utf8'));
-const built = [...(index.terrain ?? []), ...(index.furniture ?? []), ...(index.vehicles ?? []), ...(index.items ?? [])];
-if (!built.length) throw new Error('no terrain in sources/cubeclysm/index.json (run tools/cubeclysm/build.mjs)');
+const onlyAt = process.argv.indexOf('--only');
+const only = onlyAt >= 0 ? new Set(process.argv[onlyAt + 1]?.split(',')) : null;
+const built = [...(index.terrain ?? []), ...(index.furniture ?? []), ...(index.vehicles ?? []), ...(index.items ?? [])]
+  .filter((model) => !only || only.has(model.id));
+const hasVehicles = built.some((model) => model.group === 'vehicles');
+if (!built.length || (only && built.length !== only.size)) {
+  throw new Error('missing models in sources/cubeclysm/index.json (run tools/cubeclysm/build.mjs)');
+}
 
 const entries = built.map((t) => {
   const file = `models/cubeclysm/${t.group}/${t.id}.glb`;
@@ -32,12 +38,12 @@ const entries = built.map((t) => {
 
 // Vehicle parts are modular: how CDDA's variants place them (vehicle-variants.js) goes beside them.
 const { VEHICLE_VARIANTS } = await import('./page/vehicle-variants.js');
-if (index.vehicles?.length) writeFileSync(join(ROOT, 'models/cubeclysm/vehicles/variants.json'), `${JSON.stringify(VEHICLE_VARIANTS, null, 2)}\n`);
+if (hasVehicles) writeFileSync(join(ROOT, 'models/cubeclysm/vehicles/variants.json'), `${JSON.stringify(VEHICLE_VARIANTS, null, 2)}\n`);
 
 const setPath = join(ROOT, 'meshset.json');
 const set = JSON.parse(readFileSync(setPath, 'utf8'));
 // Studios and engines assemble whole vehicles from the part models with these rules.
-if (index.vehicles?.length) set.vehicleParts = 'models/cubeclysm/vehicles/variants.json';
+if (hasVehicles) set.vehicleParts = 'models/cubeclysm/vehicles/variants.json';
 const isTerrain = (e) => /^models\/cubeclysm\/(terrain|furniture|vehicles|items)\//.test(String(e.file ?? ''));
 // Merge, never replace: sources/cubeclysm/ is git-ignored, so a checkout may hold only what was
 // built on it (`build.mjs --only …`). Rebuilt models replace their entry (same file), new ones are

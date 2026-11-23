@@ -119,7 +119,6 @@ const RECIPES = [
     hull(p, 'sliver', [V(-.15, 0, -.012), V(-.15, 0, .01), V(-.15, .014, -.006), V(.05, 0, -.016), V(.05, 0, .016), V(.05, .018, 0), V(.15, 0, .002), V(.15, .006, 0)], wood);
     hull(p, 'jag', [V(-.15, 0, -.012), V(-.15, .014, -.006), V(-.19, .004, -.02), V(-.17, .008, .004), V(-.16, 0, .01)], wood);
   } },
-  { id: 'socks', desc: 'Socks.  Put \'em on your feet.  (A pair, folded: white cotton crew socks with grey heels and toes.)', build: (p) => { socks(p, { leg: .14, color: 0xece8e0, band: 0xb8b4ac, toe: 0xb8b4ac }); } },
   { id: 'socks_ankle', desc: 'Short socks, commonly used for sports.  These are designed to protect your feet from friction, not temperature.  (A pair of short light grey ankle socks with a stripe.)', build: (p) => { socks(p, { leg: .05, color: 0xc8c8c8, band: 0x3a6ab0, toe: 0x9a9a9a, thick: .018 }); } },
   { id: 'socks_wool', desc: 'Warm socks made of wool.  (A pair of thick blue ribbed wool socks.)', build: (p) => { socks(p, { leg: .16, color: 0x3a5a8a, band: 0x2a3e64, toe: 0x2a3e64, thick: .03, ribs: true }); } },
   { id: 'rock', desc: 'A rock the size of a baseball.  Makes a decent melee weapon, and is also good for throwing at enemies.  (≈ 7.5 cm across, 250 ml.)', build: (p) => { lump(p, 'rock', [.04, .03, .036], stoneP(0x8a8780), 'rock'); } },
@@ -182,11 +181,6 @@ const RECIPES = [
     }
     tube(p, 'bar', V(-.05, .008, .03), V(.04, .008, .045), .007, .007, 6, rusty, STEEL);
     bevel(p, 'bracket', [.02, 0, -.04, .05, .025, -.035], .002, rusty, STEEL);
-  } },
-  { id: 'bag_zipper', desc: 'A resealable, watertight transparent plastic bag roomy enough to hold a sandwich.  Known generically as a Ziploc bag, it can be sealed and opened with a press-tight seal.  (A flat clear bag with its seal strip.)', build: (p) => {
-    pane(p, 'bag', [V(-.09, .003, -.08), V(.09, .003, -.08), V(.09, .003, .07), V(-.09, .003, .07)], .006, flat(0xe4eef2), GLASS);
-    bevel(p, 'seal', [-.09, 0, .068, .09, .007, .08], .002, layers(flat(0x3a6ad0), (ctx, x, y, w, h) => fill(ctx, x, y + Math.round(h / 2), w, 1, 0xd8e4f8)));
-    pane(p, 'label', [V(-.07, .0065, -.06), V(-.02, .0065, -.06), V(-.02, .0065, -.035), V(-.07, .0065, -.035)], .0005, layers(flat(0xf4f4f4), (ctx, x, y, w, h) => { for (let j = 2; j < h; j += 3) fill(ctx, x + 2, y + j, w - 4, 1, 0x9aa4c8); }));
   } },
   { id: 'knife_butter', desc: 'A dull knife, absolutely worthless in combat.  Excellent for spreading soft things on bread.  (Longest side 21 cm: a round-ended steel blade and handle.)', build: (p) => {
     handle(p, 'handle', -.105, -.01, .008, .005, steelP(), STEEL);

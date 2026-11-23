@@ -69,10 +69,6 @@ const RECIPES = [
   F('longshirt', 'A long-sleeved cotton shirt.  (Folded: blue, collar and buttons.)', { color: 0x3a5a9a, w: .3, d: .25, h: .032, collar: 0x2e4a84, buttons: 4 }),
   F('dress_shirt', 'A button-down shirt with long sleeves and a pocket on the front.  Looks professional!  (Folded: white, collar, buttons, pocket.)', { color: 0xf2f2f0, w: .3, d: .25, h: .032, collar: 0xe4e4e2, buttons: 4, pocket: 0xe8e8e6 }),
   F('polo_shirt', 'A short-sleeved cotton shirt, slightly thicker than a t-shirt.  (Folded: light red polo, collar, two buttons.)', { color: 0xd86060, w: .3, d: .25, h: .034, collar: 0xc85050, buttons: 2 }),
-  { id: 'tank_top', desc: 'A sleeveless cotton shirt.  Very easy to move in.  (Folded thin, light grey: a deep scoop neck and the armholes.)', build: (p) => {
-    folded(p, { color: 0xbcbcb8, paint: clothP(0xbcbcb8), w: .25, d: .2, h: .015, collar: 0xacaca8 });
-    for (const s of [-1, 1]) pane(p, `arm${s}`, [V(s * .125, .0158, -.1), V(s * .085, .0158, -.1), V(s * .095, .0158, -.04), V(s * .125, .0158, -.03)], .001, flat(0x8a8a86));
-  } },
   F('jersey', 'A lightweight, breathable shirt made from synthetic fabric, designed for athletic performance and team identification.  (Folded: team colours, a stripe.)', { color: 0x2a6ac8, w: .3, d: .25, h: .022, collar: 0xf0f0f0, stripe: 0xf0f0f0 }),
   F('sweatshirt', 'A thick cotton shirt.  (3.5 L: a thick folded light red sweatshirt.)', { color: 0xd87070, knit: true, w: .34, d: .28, h: .06, collar: 0xc86060 }),
   F('sweater', 'A warm wool sweater.  (Folded, blue knit.)', { color: 0x3a5a8a, knit: true, w: .32, d: .27, h: .055, collar: 0x2e4a74 }),
@@ -82,17 +78,12 @@ const RECIPES = [
   } },
   F('jeans', 'A pair of jeans with two deep pockets.  (Folded denim.)', { color: 0x4a6a9a, denim: true, w: .34, d: .27, h: .05, waist: 0x3e5a86, legs: true, pocket: 0x3e5a86 }),
   F('pants', 'A pair of khaki pants.  Slightly warmer than jeans.  (Folded khaki.)', { color: 0xb09a70, w: .34, d: .27, h: .045, waist: 0x9a8660, legs: true }),
-  { id: 'pants_cargo', desc: 'A pair of pants lined with pockets, offering lots of storage.  (Folded, grey-green, flapped cargo pockets on the legs.)', build: (p) => {
-    folded(p, { color: 0x8a8a7a, paint: clothP(0x8a8a7a), w: .35, d: .28, h: .052, waist: 0x7a7a6a, legs: true, pocket: 0x7a7a6a });
-    for (const x of [-.1, .07]) { bevel(p, `cargo${x}`, [x, .052, .02, x + .07, .052 + .006, .09], .002, clothP(0x7e7e6e)); bevel(p, `flap${x}`, [x - .003, .052 + .006, .015, x + .073, .052 + .009, .035], .001, flat(0x6e6e5e)); }
-  } },
   F('shorts', 'A pair of khaki shorts.  (Folded.)', { color: 0xb09a70, w: .28, d: .23, h: .035, waist: 0x9a8660, legs: true }),
   { id: 'shorts_cargo', desc: 'A pair of shorts lined with pockets, offering decent storage.  (Folded, flapped cargo pockets on the legs.)', build: (p) => {
     folded(p, { color: 0x8a8a7a, paint: clothP(0x8a8a7a), w: .3, d: .25, h: .042, waist: 0x7a7a6a, legs: true, pocket: 0x7a7a6a });
     for (const x of [-.1, .07]) { bevel(p, `cargo${x}`, [x, .042, .02, x + .07, .042 + .006, .09], .002, clothP(0x7e7e6e)); bevel(p, `flap${x}`, [x - .003, .042 + .006, .015, x + .073, .042 + .009, .035], .001, flat(0x6e6e5e)); }
   } },
   F('b_shorts', 'A pair of basketball shorts.  Comfortable and light.  (Folded: cyan with a side stripe.)', { color: 0x2aa8b8, w: .3, d: .25, h: .028, waist: 0x1a8898, stripe: 0xf0f0f0 }),
-  F('boxer_shorts', 'Men\'s boxer shorts.  More fashionable than briefs and just as comfortable.  (Folded, light grey check.)', { color: 0xb8bcc4, w: .22, d: .2, h: .018, waist: 0xe8e8e8, stripe: 0x8a90a0 }),
   F('briefs', 'A pair of briefs.  Comfortable underwear worn by men.  (Folded white.)', { color: 0xf0f0ee, w: .18, d: .15, h: .014, waist: 0xd8d8d6 }),
   F('under_armor_shorts', 'Nylon sportswear that clings to your upper legs, aiding muscle tone and wicking away sweat.  (Folded, dark grey.)', { color: 0x3a3c40, w: .22, d: .18, h: .014, waist: 0x2a2c30 }),
   F('towel', 'A large, fluffy towel.  It could be used to dry yourself.  (Folded: cyan with stripes.)', { color: 0x3ab0c0, knit: true, w: .35, d: .25, h: .06, stripe: 0xf0f0f0 }),
@@ -242,11 +233,6 @@ const RECIPES = [
   { id: 'bag_garbage', desc: 'A hefty plastic bag, made to carry lots of trash.  It\'s sturdy and water-resistant.  (Empty, crumpled black bag with tie.)', build: (p) => {
     crumple(p, 'bag', .22, .15, .03, plasticP(0x1e1e22), 'garbage');
     tube(p, 'tie', V(.2, .006, -.02), V(.24, .004, -.005), .008, .005, 5, plasticP(0x1e1e22));
-  } },
-  { id: 'bag_plastic', desc: 'An open plastic bag.  Essentially trash.  (A crumpled, half-clear grey bag with its two handles.)', build: (p) => {
-    crumple(p, 'bag', .14, .1, .025, flat(0xdfe4e6), 'bagplastic', GLASS);
-    for (const s of [-1, 1]) tube(p, `handle${s}`, V(.12, .005, s * .035), V(.19, .004, s * .028), .004, .004, 4, flat(0xd0d6d8));
-    tube(p, 'loop', V(.19, .004, -.028), V(.19, .004, .028), .004, .004, 4, flat(0xd0d6d8));
   } },
   { id: 'plastic_shopping_bag', desc: 'A bag used to carry groceries home.  (A white bag, its handles at one end, a printed smile.)', build: (p) => {
     crumple(p, 'bag', .16, .12, .03, layers(flat(0xf0f0ee), (ctx, x, y, w, h) => fill(ctx, x + Math.round(w * .4), y + Math.round(h * .5), Math.round(w * .2), 1, 0xc83a3a)), 'shopping');
