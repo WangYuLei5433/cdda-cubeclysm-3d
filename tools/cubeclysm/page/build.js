@@ -13,6 +13,10 @@ import { HUMANS } from './humans.js';
 import { RECIPES } from './recipes.js';
 import { Prop } from './props.js';
 import { TERRAIN } from './terrain.js';
+import { FIELDS } from './fields.js';
+import { TRAPS } from './traps.js';
+import { SLAMFIRE_ITEMS } from './slamfire.js';
+import { CROSSBOW_ITEMS } from './crossbow.js';
 
 const exporter = new GLTFExporter();
 const b64 = (bytes) => {
@@ -31,7 +35,7 @@ window.seedFaces = () => {
 window.buildAll = async (only = null) => {
   await loadFaces('/faces/');
   const out = [];
-  const all = [...TERRAIN.map((r) => ({ ...r, group: r.dir ?? 'terrain' })), ...RECIPES.map((r) => ({ ...r, group: 'zombies' })), ...ARCHETYPES.map((r) => ({ ...r, group: 'archetypes' })), ...HUMANS.map((r) => ({ ...r, group: 'humans' }))];
+  const all = [...TERRAIN.map((r) => ({ ...r, group: r.dir ?? 'terrain' })), ...FIELDS.map((r) => ({ ...r, group: 'fields' })), ...TRAPS.map((r) => ({ ...r, group: 'traps' })), ...SLAMFIRE_ITEMS.map((r) => ({ ...r, group: 'items' })), ...CROSSBOW_ITEMS.map((r) => ({ ...r, group: 'items' })), ...RECIPES.map((r) => ({ ...r, group: 'zombies' })), ...ARCHETYPES.map((r) => ({ ...r, group: 'archetypes' })), ...HUMANS.map((r) => ({ ...r, group: 'humans' }))];
   // One sample per hair style: a plain zombie wearing it, to browse the styles in the studio.
   const HAIR_NAMES = {
     bald: ['光头', 'bald', 'лысый'], buzz: ['寸头', 'buzz cut', 'ёжик'], short: ['短发', 'short', 'короткие'], messy: ['乱发', 'messy', 'растрёпанные'], spiky: ['刺头', 'spiky', 'торчком'],
@@ -54,11 +58,11 @@ window.buildAll = async (only = null) => {
     if (only && !only.includes(recipe.id)) continue;
     let root, blocks, clips;
     if (recipe.build) {
-      // Props (props.js): blocks only, no rig or clips.
+      // Props (props.js): blocks only, no rig; a prop may set p.clip (fields: the looping FX clip).
       const p = new Prop(recipe.id, recipe.ppm);
       recipe.build(p);
       ({ root, blocks } = p);
-      clips = [];
+      clips = p.clip ? [p.clip] : [];
     } else ({ root, blocks, clips } = buildHumanoid(recipe));
     const atlas = bake(blocks);
     if (recipe.batchMesh) {
@@ -128,7 +132,7 @@ window.buildAll = async (only = null) => {
     const slab = blocks.find((b) => b.name === 'tile');
     const surfaceFaces = recipe.surface === 'wall' && blocks.length === 1 && blocks[0].name === 'wall' ? { side: blocks[0].atlasRects.front, top: blocks[0].atlasRects.top }
       : (recipe.surface === 'floor' || recipe.surface === 'roof') && slab ? { top: slab.atlasRects.top } : undefined;
-    out.push({ id: recipe.id, ids: recipe.ids, interior: recipe.interior, group: recipe.group, names: recipe.names, bound: recipe.bound, fx: clips.length ? recipe.fx : undefined, path: `${recipe.group}/${recipe.id}.glb`, body: recipe.body, source: recipe.source, surface: recipe.surface, surfaceFaces, opening: recipe.opening, groupOf: recipe.groupOf, footprint: recipe.footprint, faceWall: recipe.faceWall, faceOut: recipe.faceOut, gear: recipe.gear ?? [], desc: recipe.desc, size: [size.x, size.y, size.z].map((n) => +n.toFixed(3)), bottom: +box.min.y.toFixed(3), low, triangles });
+    out.push({ id: recipe.id, ids: recipe.ids, interior: recipe.interior, group: recipe.group, names: recipe.names, bound: recipe.bound, fx: clips.length ? recipe.fx : undefined, path: `${recipe.group}/${recipe.id}.glb`, body: recipe.body, source: recipe.source, surface: recipe.surface, surfaceFaces, opening: recipe.opening, groupOf: recipe.groupOf, footprint: recipe.footprint, faceWall: recipe.faceWall, faceOut: recipe.faceOut, field: recipe.field, gear: recipe.gear ?? [], desc: recipe.desc, size: [size.x, size.y, size.z].map((n) => +n.toFixed(3)), bottom: +box.min.y.toFixed(3), low, triangles });
   }
   return out;
 };

@@ -32,8 +32,8 @@ function boxFaces(box) {
  * A block: `box` (THREE.Box3 in `parent` space) painted by `paint(ctx, x, y, w, h, side)`.
  * Returns the block so callers can keep it; bake() turns all blocks into textured meshes.
  */
-export function block(parent, name, box, paint, { ppm = PPM, glow = false, metal = false, cutout = false, glass = false, tint = false } = {}) {
-  return { parent, name, box, paint, ppm, glow, metal, cutout, glass, tint };
+export function block(parent, name, box, paint, { ppm = PPM, glow = false, metal = false, cutout = false, glass = false, tint = false, haze = false, glowCut = false } = {}) {
+  return { parent, name, box, paint, ppm, glow, metal, cutout, glass, tint, haze, glowCut };
 }
 
 /** Bake blocks into meshes with one shared atlas texture. Returns the atlas canvas. */
@@ -92,6 +92,12 @@ export function bake(blocks) {
   // Tintable paint (a vehicle's body): a light neutral atlas colour an engine multiplies by the
   // material's colour (white = as painted), so one model takes any paint job.
   const paint = new THREE.MeshStandardMaterial({ name: 'cubeclysm-paint', map, roughness: 0.55, metalness: 0.15 });
+  // Haze (smoke, gas, mist): the atlas colour, see-through and matte; overlapping puffs build up density.
+  const haze = new THREE.MeshStandardMaterial({ name: 'cubeclysm-haze', map, roughness: 1, metalness: 0, transparent: true, opacity: 0.38, depthWrite: false });
+  // Glowing haze (an electric cloud, plasma, glowing spores): see-through and lit by itself.
+  const hazeGlow = new THREE.MeshStandardMaterial({ name: 'cubeclysm-haze-glow', map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 1, roughness: 1, metalness: 0, transparent: true, opacity: 0.5, depthWrite: false });
+  // Glowing cut-out (a pool of light, a smear of congealed light): lit by itself, with holes.
+  const glowCut = new THREE.MeshStandardMaterial({ name: 'cubeclysm-glow-cutout', map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 1, roughness: 0.6, metalness: 0, alphaTest: 0.5, side: THREE.DoubleSide });
   for (const b of blocks) {
     const pos = [], uv = [], normals = [];
     // Where each face of the block sits in the atlas, [x, y, w, h] as fractions, y down (image
@@ -112,7 +118,7 @@ export function bake(blocks) {
     g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     if (normals.length === pos.length) g.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
     else g.computeVertexNormals();
-    const mesh = new THREE.Mesh(g, b.glow ? glowing : b.tint ? paint : b.metal ? metallic : b.cutout ? cutout : b.glass ? glassy : material);
+    const mesh = new THREE.Mesh(g, b.haze ? (b.glow ? hazeGlow : haze) : b.glowCut ? glowCut : b.glow ? glowing : b.tint ? paint : b.metal ? metallic : b.cutout ? cutout : b.glass ? glassy : material);
     mesh.name = `block_${b.name}`;
     b.parent.add(mesh);
   }

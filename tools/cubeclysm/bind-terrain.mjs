@@ -18,23 +18,39 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const index = JSON.parse(readFileSync(join(ROOT, 'sources/cubeclysm/index.json'), 'utf8'));
 const onlyAt = process.argv.indexOf('--only');
 const only = onlyAt >= 0 ? new Set(process.argv[onlyAt + 1]?.split(',')) : null;
-const built = [...(index.terrain ?? []), ...(index.furniture ?? []), ...(index.vehicles ?? []), ...(index.items ?? [])]
-  .filter((model) => !only || only.has(model.id));
+const built = [...(index.terrain ?? []), ...(index.furniture ?? []), ...(index.vehicles ?? []), ...(index.items ?? []), ...(index.fields ?? []), ...(index.traps ?? [])]
+  .filter((model) => !only || only.has(model.id) || only.has(model.field?.of));
 const hasVehicles = built.some((model) => model.group === 'vehicles');
-if (!built.length || (only && built.length !== only.size)) {
+if (!built.length || (only && [...only].some((id) => !built.some((m) => m.id === id || m.field?.of === id)))) {
   throw new Error('missing models in sources/cubeclysm/index.json (run tools/cubeclysm/build.mjs)');
 }
 
-const entries = built.map((t) => {
+const copyModel = (t) => {
   const file = `models/cubeclysm/${t.group}/${t.id}.glb`;
   mkdirSync(dirname(join(ROOT, file)), { recursive: true });
   copyFileSync(join(ROOT, 'sources/cubeclysm', t.path), join(ROOT, file));
   const atlas = join(ROOT, 'sources/cubeclysm', t.path.replace(/\.glb$/, '.png'));
   if (existsSync(atlas)) copyFileSync(atlas, join(ROOT, file.replace(/\.glb$/, '.png')));
+  return file;
+};
+// Fields (fields.js): one model per look stage (fd_blood, fd_blood__2, fd_blood__3) make one entry
+// for the field id: `files` lists every stage (as the studio reads variants: `files` when present,
+// else `file`), `file` is stage 1 for readers of `file` only, field.intensity says which of `files`
+// each CDDA intensity (1…n) shows, and field.layer is where it sits when fields stack.
+const fieldEntries = [];
+for (const t of built.filter((m) => m.field && m.field.stage === 1)) {
+  const stages = built.filter((m) => m.field?.of === t.field.of).sort((a, b) => a.field.stage - b.field.stage);
+  if (stages.length !== t.field.stages) throw new Error(`${t.field.of}: build all its stages together (${stages.length}/${t.field.stages})`);
+  const files = stages.map(copyModel);
+  fieldEntries.push({ id: t.field.of, file: files[0], ...(files.length > 1 ? { files } : {}), preserveOrigin: true, field: { layer: t.field.layer, intensity: t.field.map }, author: 'cdda-cubeclysm-3d contributors', license: 'CC-BY-SA-3.0', source: t.source, style: 'cubeclysm' });
+}
+
+const entries = [...built.filter((m) => !m.field).map((t) => {
+  const file = copyModel(t);
   // A group model (groupOf + footprint) is no CDDA id's own model: it binds no id, an engine
   // draws it over a group of `groupOf` tiles of that footprint.
   return { ...(t.groupOf ? { groupOf: t.groupOf, footprint: t.footprint } : { id: t.ids ?? t.id }), file, preserveOrigin: true, ...(t.surface ? { surface: t.surface } : {}), ...(t.surfaceFaces ? { surfaceFaces: t.surfaceFaces } : {}), ...(t.opening ? { opening: t.opening } : {}), ...(t.faceWall ? { faceWall: true } : {}), ...(t.faceOut ? { faceOut: true } : {}), ...(t.interior ? { interior: t.interior } : {}), author: 'cdda-cubeclysm-3d contributors', license: 'CC-BY-SA-3.0', source: t.source ?? 'tools/cubeclysm/page/terrain.js', style: 'cubeclysm' };
-});
+}), ...fieldEntries];
 
 // Vehicle parts are modular: how CDDA's variants place them (vehicle-variants.js) goes beside them.
 const { VEHICLE_VARIANTS } = await import('./page/vehicle-variants.js');
@@ -44,7 +60,7 @@ const setPath = join(ROOT, 'meshset.json');
 const set = JSON.parse(readFileSync(setPath, 'utf8'));
 // Studios and engines assemble whole vehicles from the part models with these rules.
 if (hasVehicles) set.vehicleParts = 'models/cubeclysm/vehicles/variants.json';
-const isTerrain = (e) => /^models\/cubeclysm\/(terrain|furniture|vehicles|items)\//.test(String(e.file ?? ''));
+const isTerrain = (e) => /^models\/cubeclysm\/(terrain|furniture|vehicles|items|fields|traps)\//.test(String(e.file ?? ''));
 // Merge, never replace: sources/cubeclysm/ is git-ignored, so a checkout may hold only what was
 // built on it (`build.mjs --only …`). Rebuilt models replace their entry (same file), new ones are
 // appended, the others stay; an entry whose model file is gone is dropped.
@@ -63,4 +79,4 @@ const { models, ...head } = set;
 const lines = Object.entries(head).map(([k, v]) => `  ${JSON.stringify(k)}: ${JSON.stringify(v)}`);
 lines.push(`  "models": [\n${models.map((m) => `    ${JSON.stringify(m)}`).join(',\n')}\n  ]`);
 writeFileSync(setPath, `{\n${lines.join(',\n')}\n}\n`);
-console.log(`${entries.length} terrain, furniture, vehicle and item models bound, ${merged.length - entries.length} kept → meshset.json (${models.length} entries in all)`);
+console.log(`${entries.length} terrain, furniture, vehicle, item, field and trap models bound, ${merged.length - entries.length} kept → meshset.json (${models.length} entries in all)`);

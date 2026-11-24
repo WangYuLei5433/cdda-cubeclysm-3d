@@ -1,0 +1,121 @@
+{
+  "//": "Strict binding of the Cubeclysm characters and monsters to CDDA ids: one model per id, only where the model clearly is that object. `built` is the model in sources/cubeclysm/ (tools/cubeclysm/build.mjs); zombies built from a recipe are bound automatically. Run tools/cubeclysm/select.mjs after editing.",
+  "characters": [
+    {
+      "id": [
+        "player_male",
+        "npc_male"
+      ],
+      "built": "humans/human_male.glb",
+      "file": "characters/human_male.glb",
+      "why": "survivor man: field jacket, jeans, backpack; human face (iris eyes, thick brows, stubble)"
+    },
+    {
+      "id": [
+        "player_female",
+        "npc_female"
+      ],
+      "built": "humans/human_female.glb",
+      "file": "characters/human_female.glb",
+      "why": "survivor woman: grey hoodie, cargo pants, ponytail, backpack; human face (lashes, arched brows, lips)"
+    }
+  ],
+  "monsters": [
+    {
+      "id": "mon_zombie",
+      "built": "zombies/mon_zombie.glb",
+      "file": "monsters/mon_zombie.glb",
+      "why": "shambling corpse in a torn shirt, reaching; oily black eyes"
+    },
+    {
+      "id": "mon_zombie_fat",
+      "built": "zombies/mon_zombie_fat.glb",
+      "file": "monsters/mon_zombie_fat.glb",
+      "why": "fat body, belly pushing out under a riding-up T-shirt; empty black gaze"
+    },
+    {
+      "id": "mon_zombie_tough",
+      "built": "zombies/mon_zombie_tough.glb",
+      "file": "monsters/mon_zombie_tough.glb",
+      "why": "athletic tough body in a tank top; face twisted in rage"
+    },
+    {
+      "id": "mon_zombie_child",
+      "built": "zombies/mon_zombie_child.glb",
+      "file": "monsters/mon_zombie_child.glb",
+      "why": "child body (1.13 m) with a small backpack; hungry eyes"
+    },
+    {
+      "id": "mon_zombie_runner",
+      "built": "zombies/mon_zombie_runner.glb",
+      "file": "monsters/mon_zombie_runner.glb",
+      "why": "lanky, fresh-skinned body in a hoodie; bloody mouth and hands from gnawing at them"
+    },
+    {
+      "id": "mon_zombie_crawler",
+      "built": "zombies/mon_zombie_crawler.glb",
+      "file": "monsters/mon_zombie_crawler.glb",
+      "why": "legless crawler: two ruined stumps with bone showing, dragging itself on its arms"
+    },
+    {
+      "id": "mon_zombie_brute",
+      "built": "zombies/mon_zombie_brute.glb",
+      "file": "monsters/mon_zombie_brute.glb",
+      "why": "brute body: hunched, muscle hump on the back, swollen shoulders, festering wounds"
+    },
+    {
+      "id": "mon_zombie_hulk",
+      "built": "zombies/mon_zombie_hulk.glb",
+      "file": "monsters/mon_zombie_hulk.glb",
+      "why": "giant (2.5 m): lumps of swollen flesh, forearms as wide as trash cans"
+    },
+    {
+      "id": "mon_zombie_cop",
+      "built": "zombies/mon_zombie_cop.glb",
+      "file": "monsters/mon_zombie_cop.glb",
+      "why": "damaged police uniform: peaked cap, badge, duty belt with pouches and holster, radio"
+    },
+    {
+      "id": "mon_zombie_fireman",
+      "built": "zombies/mon_zombie_fireman.glb",
+      "file": "monsters/mon_zombie_fireman.glb",
+      "why": "tattered turnout gear with reflective trim: brimmed helmet, full face mask with regulator, air tank"
+    },
+    {
+      "id": "mon_zombie_soldier",
+      "built": "zombies/mon_zombie_soldier.glb",
+      "file": "monsters/mon_zombie_soldier.glb",
+      "why": "combat gear head to toe: helmet with goggles, plate carrier with pouches, knee pads, camo"
+    },
+    {
+      "id": "mon_zombie_hazmat",
+      "built": "zombies/mon_zombie_hazmat.glb",
+      "file": "monsters/mon_zombie_hazmat.glb",
+      "why": "completely encased in a yellow hazmat suit: hood with visor, respirator with filters"
+    },
+    {
+      "id": "mon_zombie_shrieker",
+      "built": "zombies/mon_zombie_shrieker.glb",
+      "file": "monsters/mon_zombie_shrieker.glb",
+      "why": "elongated body (2 m), swollen chest, a hole where the jaw was"
+    },
+    {
+      "id": "mon_zombie_acidic",
+      "built": "zombies/mon_zombie_acidic.glb",
+      "file": "monsters/mon_zombie_acidic.glb",
+      "why": "sickly thin skin with yellow veins; yellow fluid dripping from chin and fingers, blisters"
+    },
+    {
+      "id": "mon_zombie_miner",
+      "built": "zombies/mon_zombie_miner.glb",
+      "file": "monsters/mon_zombie_miner.glb",
+      "why": "coal-dusted from head to toe: miner's hard hat with a glowing headlamp, lamp battery on the belt, coveralls with reflective trim, work gloves"
+    },
+    {
+      "id": "mon_zombie_medical",
+      "built": "zombies/mon_zombie_medical.glb",
+      "file": "monsters/mon_zombie_medical.glb",
+      "why": "dressed like a doctor: open white lab coat with tails over blue scrubs, stethoscope, ID badge on a lanyard, surgical mask under the chin, glasses, latex gloves"
+    }
+  ]
+}

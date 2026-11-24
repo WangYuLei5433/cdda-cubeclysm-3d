@@ -18,7 +18,7 @@ function orient(points, out) {
 /** Push facets as one part. opts: parent, at (subtracted from every point: the parent's origin), tint, glass, metal, glow, cutout, ppm. */
 export function add(p, name, faces, paint, opts = {}) {
   if (opts.at) { const o = V(...opts.at); for (const f of faces) f.p = f.p.map((q) => q.clone().sub(o)); }
-  p.blocks.push({ parent: opts.parent ?? p.root, name, faces, paint, ppm: opts.ppm ?? p.ppm ?? 64, tint: opts.tint, glass: opts.glass, metal: opts.metal, glow: opts.glow, cutout: opts.cutout });
+  p.blocks.push({ parent: opts.parent ?? p.root, name, faces, paint, ppm: opts.ppm ?? p.ppm ?? 64, tint: opts.tint, glass: opts.glass, metal: opts.metal, glow: opts.glow, cutout: opts.cutout, haze: opts.haze, glowCut: opts.glowCut });
 }
 
 /** The convex hull of points, as triangles. */

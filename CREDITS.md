@@ -13,15 +13,3 @@
 - Monster names, descriptions and sizes come from the
   [Cataclysm: Dark Days Ahead](https://github.com/CleverRaven/Cataclysm-DDA) data (CC BY-SA 3.0).
 
-## DEADWOOD — Last Light
-
-*"DEADWOOD — Last Light" by Cédric Bernadac, CC BY 4.0*:
-<https://github.com/cedricbernadac/deadwood-open>
-
-- Files: everything under `models/deadwood/` (17 weapons and items).
-- Source: `public/frisson/weapons.glb` and pickups, at the commit recorded in each
-  `meshset.json` entry's `source`. The original media licence is kept in
-  [sources/deadwood/ASSETS.md](sources/deadwood/ASSETS.md).
-- Changes: each model was assembled from its parts by the game's own code, then the joints were
-  renamed, flat shading was baked in, game-only helpers (first-person hands, pickup halos) were
-  removed, and the weapons were put in their ground pose. Sizes are set in `meshset.json`.

@@ -1,12 +1,11 @@
 # Licences
 
-This repository holds files under three licences. Each model's licence is also stated in its
+This repository holds files under two licences. Each model's licence is also stated in its
 `meshset.json` entry (`license`, `author`, `source`).
 
 | Files | Licence |
 | --- | --- |
 | `models/cubeclysm/` — every Cubeclysm model (zombies, characters, candidates, hair samples), built from the recipes in `tools/cubeclysm/`; `tools/cubeclysm/faces/` (face parts); `docs/` | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/), the licence of CDDA and CDDA-Tilesets. Attribution: *"Cubeclysm" by the cdda-cubeclysm-3d contributors, CC BY-SA 3.0*. |
-| `models/deadwood/` — 17 weapons and items | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): *"DEADWOOD — Last Light" by Cédric Bernadac*, adapted (assembled from parts, game-only helpers removed, ground pose). See [CREDITS.md](CREDITS.md). |
 | Code: `tools/` and `.claude/skills/` | MIT, below. |
 
 Contributions are accepted under these terms: a new model under CC BY-SA 3.0, or an outside model

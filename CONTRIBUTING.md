@@ -22,7 +22,7 @@ Thanks for helping model the Cataclysm. The full rules are in the
 4. **Effects only on `fx_*` nodes,** in the looping `FX` clip. Never animate a joint for an effect.
 5. **Standing on y = 0,** facing −Z (north), 1 unit = 1 m.
 6. **An entry in `meshset.json`** with `author`, `license` and `source`. A model built from a
-   recipe gets this from `node tools/deadwood/select.mjs`.
+   recipe gets this from `node tools/cubeclysm/select.mjs`.
 
 ## Licence
 

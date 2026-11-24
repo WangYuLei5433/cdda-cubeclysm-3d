@@ -20,7 +20,7 @@ grep -oE "^  [a-zA-Z]+\(H\)" tools/cubeclysm/page/humanoid.js
 | `page/atlas.js` | `block()`（一个方块 + 它的画笔）、`bake()`（贴图集） |
 | `page/build.js` | 页面端构建，输出 glb、png、index（包括 `size`、`bottom`、`low`） |
 | `build.mjs` | `node tools/cubeclysm/build.mjs --only a,b`；`--seed-faces` 会重画面部部件 |
-| `tools/deadwood/select.mjs` | 把构建好的配方自动绑定进 meshset.json |
+| `tools/cubeclysm/select.mjs` | 把构建好的配方自动绑定进 meshset.json |
 
 ## 配方字段
 

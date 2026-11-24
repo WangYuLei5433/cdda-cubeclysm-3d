@@ -1,5 +1,5 @@
-// Cubeclysm archetype zombies: 24 unbound models, one per type the DEADWOOD heads were named
-// after. Each one's clothes and props say who it was (a farmer has a straw hat and overalls, a
+// Cubeclysm archetype zombies: 24 unbound models, one per archetype.
+// Each one's clothes and props say who it was (a farmer has a straw hat and overalls, a
 // bride a veil and a wedding dress…), so its name matches what you see. They are candidates to
 // try on CDDA objects; recipes.js holds the zombies bound to CDDA ids.
 //

@@ -1,7 +1,7 @@
 // Binds monsters built from recipes (tools/cubeclysm/page/recipes.js → sources/cubeclysm/zombies/,
 // after build.mjs) into the Cubeclysm set: copies each named .glb and its atlas to
 // models/cubeclysm/monsters/ and adds or replaces only those ids' entries in meshset.json (every
-// other entry is left as it is). Unlike tools/deadwood/select.mjs it never touches other models.
+// other entry is left as it is). Unlike tools/cubeclysm/select.mjs it binds only the ids named.
 //
 //   node tools/cubeclysm/bind-monsters.mjs mon_zombie_rot mon_zombie_brainless …
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';

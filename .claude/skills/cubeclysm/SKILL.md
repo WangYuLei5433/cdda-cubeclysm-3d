@@ -59,7 +59,7 @@ python3 .claude/skills/cubeclysm/scripts/cdda_check.py id1 id2
 ### 4. 绑定
 
 ```bash
-node tools/deadwood/select.mjs     # 把 sources/cubeclysm 里构建好的配方自动绑定到 meshset.json
+node tools/cubeclysm/select.mjs    # 把 sources/cubeclysm 里构建好的配方自动绑定到 meshset.json（合并，不会删掉其他条目）
 ```
 
 ### 5. 渲染检查（自己先看，再交给用户）
