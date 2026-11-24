@@ -7,6 +7,7 @@
 import { LEVEL, border, cracks, flat, glass, grid, layers, planks, sides, speckle } from './props.js';
 import { fill, mix, rng, shade } from './paint.js';
 import * as K from './item-kit.js';
+import { add, sweep } from './lowpoly.js';
 
 // --- materials ----------------------------------------------------------------------------------
 
@@ -446,10 +447,104 @@ const RECIPES = [
       for (const [x, z] of [[-.43, -.4], [0, -.4], [-.43, 0], [0, 0]]) { const h = .25 + r() * .38; p.box(`crate${y}${x}${z}`, [x, y + .12, z, x + .42, y + .12 + h, z + .38], layers(speckle(`crate${x}${z}${y}`, 0xb8905a, [0xa8804a], .3), (ctx, xx, yy, w, hh) => fill(ctx, xx, yy + Math.round(hh * .3), w, 2, 0xd8c8a0))); }
     }
   } },
-  { id: 'f_washer', desc: 'An appliance used to clean laundry.', build: (p) => {
-    const c = 0xf0f0ec;
-    p.box('body', [-.3, .02, -.3, .3, .85, .3], front(layers(appliance(c), porthole(0xb0b4b8, 0x3a5a7a), (ctx, x, y, w) => { fill(ctx, x + 3, y + 3, Math.round(w * .3), 4, 0x6a8ab0); fill(ctx, x + w - 8, y + 3, 4, 4, 0x8a8e92); }), appliance(c)));
-  } },
+  { id: 'f_washer', ppm: 112, faceWall: true,
+    desc: 'An appliance used to clean laundry.  It needs to be plugged into a grid that provides it with electricity and large amounts of water to be used.',
+    build: (p) => {
+      const enamel = speckle('washer-enamel', 0xe4e6e1, [0xe0e3de, 0xe9ebe7], .18);
+      const trim = speckle('washer-stainless', 0xabb8bc, [0xa3b1b6, 0xbfc9cb], .24);
+      const gasket = flat(0x3c484d);
+      const charcoal = flat(0x29363a);
+      const cabinetBack = metal('washer-back', 0x9ba8aa);
+      const height = .416;
+      const barrelZ = -.314;
+      const ringPoints = (r) => Array.from({ length: 19 }, (_, i) => {
+        const angle = i * Math.PI / 9;
+        return [Math.cos(angle) * r, Math.sin(angle) * r];
+      });
+
+      legs(p, [-.267, -.277, .267, .277], .038, .041, charcoal);
+      K.bevel(p, 'enamel-worktop', [-.305, .829, -.329, .305, .871, .312], .015, enamel);
+      p.box('back-panel', [-.287, .04, .278, .287, .837, .307], cabinetBack);
+      p.box('bottom-case', [-.289, .036, -.292, .289, .105, .289], enamel);
+      const sidePanel = layers(enamel, sides(['left', 'right'], (ctx, x, y, w, h) => {
+        for (const offset of [.13, .84]) {
+          const px = x + Math.round(w * offset);
+          fill(ctx, px, y + Math.round(h * .18), 2, Math.round(h * .66), 0xd1d7d4);
+          fill(ctx, px + 2, y + Math.round(h * .19), 1, Math.round(h * .64), 0xeef0ea);
+        }
+      }));
+      for (const x of [-.303, .274]) {
+        p.box('pressed-enamel-side', [x, .038, -.31, x + .029, .839, .3], sidePanel);
+      }
+
+      // Tile the front sheet around its actual aperture. Add rays at the four outer corners
+      // so the casing stays rectangular, then hide the bore edge behind the door gasket.
+      const width = .281, halfHeight = .318;
+      const corners = [Math.atan2(halfHeight, width), Math.atan2(halfHeight, -width),
+        Math.PI + Math.atan2(halfHeight, width), 2 * Math.PI - Math.atan2(halfHeight, width)];
+      const angles = [...Array.from({ length: 18 }, (_, i) => i * Math.PI / 9), ...corners].sort((a, b) => a - b);
+      const aperture = (a, outer) => {
+        const x = Math.cos(a), y = Math.sin(a);
+        const r = outer ? Math.min(width / Math.abs(x), halfHeight / Math.abs(y)) : .198;
+        return K.V(x * r, height + y * r, -.325);
+      };
+      const fascia = angles.map((a, i) => {
+        const b = angles[(i + 1) % angles.length];
+        return { side: 'front', p: [aperture(a, true), aperture(a, false), aperture(b, false), aperture(b, true)], wm: .03, hm: .03 };
+      });
+      add(p, 'seamless-enamel-front', fascia, flat(0xe4e6e1));
+
+      // The door is a real layered ring and tinted glass over a recessed, empty steel drum.
+      const axis = p.group('drum-axis', { at: [0, height, barrelZ], rotX: -Math.PI / 2 });
+      const sleeve = (name, path, profile, paint, opts = {}) => sweep(p, name, profile, path, paint, { parent: axis, ...opts });
+      sleeve('beveled-stainless-door-bezel', ringPoints(.229),
+        [[0, -.004], [0, .019], [.011, .039], [.030, .042], [.046, .028], [.046, .003]], trim, { metal: true });
+      sleeve('rubber-door-seal', ringPoints(.198),
+        [[0, -.023], [0, .016], [.011, .028], [.026, .012], [.022, -.025]], gasket);
+      const drumMetal = layers(trim, (ctx, x, y, w, h) => {
+        for (let j = 3; j < h - 2; j += 5) for (let i = 1 + j % 2; i < w - 1; i += 4) {
+          fill(ctx, x + i, y + j, 1, 1, 0x67767a);
+        }
+      });
+      sleeve('perforated-drum-wall', ringPoints(.184), [[0, -.35], [0, -.015], [.008, -.015], [.008, -.35]], drumMetal, { metal: true });
+      K.cyl(p, 'drum-back', 'z', [0, height, .041], .179, .024, 18, drumMetal, { metal: true });
+      for (const [i, angle] of [.18, 2.274, 4.368].entries()) {
+        const baffle = p.group(`drum-baffle-${i}`, { at: [0, height, 0], rotZ: angle });
+        K.bevel(p, 'raised-drum-paddle', [-.022, .145, -.20, .022, .174, .023], .008, trim, { parent: baffle });
+      }
+      K.cyl(p, 'curved-door-glass', 'z', [0, height, -.331], .153, .024, 18,
+        glass(0xa0bac3), { glass: true }, .181);
+      p.box('door-hinge', [.19, .365, -.343, .242, .467, -.306], trim);
+      const handle = p.group('door-pull', { at: [-.193, .417, -.358], rotZ: -.10 });
+      p.box('handle-shadow', [-.025, -.059, -.008, .007, .059, .011], charcoal, { parent: handle });
+      K.bevel(p, 'molded-handle', [-.031, -.055, -.023, -.011, .055, -.001], .006, enamel, { parent: handle });
+
+      p.box('upper-control-fascia', [-.284, .741, -.327, .284, .828, .217], enamel);
+      p.box('detergent-drawer-seam', [.086, .750, -.337, .272, .821, -.326], gasket);
+      p.box('detergent-drawer', [.091, .755, -.340, .267, .816, -.330], enamel);
+      p.box('drawer-finger-recess', [.118, .758, -.343, .242, .768, -.336], gasket);
+      K.cyl(p, 'selector-trim', 'z', [.021, .788, -.332], .037, .017, 12, trim);
+      K.cyl(p, 'cycle-selector', 'z', [.021, .788, -.344], .026, .025, 12, enamel);
+      p.box('cycle-selector-notch', [.017, .802, -.359, .024, .812, -.353], flat(0x5e8395));
+      p.box('control-display-frame', [-.263, .752, -.341, -.062, .816, -.328], charcoal);
+      p.box('unpowered-display', [-.248, .775, -.347, -.103, .805, -.338], glass(0x4c646d));
+      for (const x of [-.243, -.200, -.157]) p.box('control-key', [x, .756, -.345, x + .028, .766, -.338], trim);
+      p.box('start-key', [-.095, .774, -.349, -.072, .802, -.338], flat(0x6f9aa4));
+      p.box('service-panel-seam', [.112, .059, -.315, .259, .139, -.299], gasket);
+      p.box('pump-filter-cover', [.117, .064, -.319, .254, .133, -.311], enamel);
+      p.box('filter-tab', [.161, .124, -.323, .209, .130, -.318], trim);
+
+      for (const [x, color] of [[-.084, 0x5b87a8], [.003, 0xa76c61]]) {
+        K.cyl(p, 'water-inlet', 'z', [x, .724, .309], .022, .030, 8, flat(color));
+        K.cyl(p, 'inlet-coupling', 'z', [x, .724, .329], .015, .014, 6, trim);
+      }
+      const hose = [[.147, .182, .319], [.202, .236, .334], [.206, .634, .334], [.174, .705, .334], [.127, .713, .334]];
+      for (let i = 1; i < hose.length; i++) {
+        K.tube(p, 'clipped-drain-hose', K.V(...hose[i - 1]), K.V(...hose[i]), .016, .016, 6, gasket);
+      }
+      p.box('drain-hose-clip', [.18, .54, .305, .226, .568, .351], trim);
+    },
+  },
   { id: 'f_mailbox', desc: 'A small metal box on top of a wooden post, designed to receive mail deliveries.', build: (p) => {
     p.box('post', [-.05, 0, -.05, .05, .9, .05], wood('f_mailbox_post', WOOD, 1, true));
     p.box('box', [-.1, .9, -.25, .1, 1.08, .22], metal('f_mailbox', 0x9aa0a4), { metal: true });
