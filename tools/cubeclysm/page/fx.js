@@ -23,13 +23,26 @@ export function effects(seed) {
   let count = 0;
 
   /** A particle node at `at` on `parent`, its block centred on the node. */
-  function particle(parent, kind, at, size, color, glow = false) {
+  function particle(parent, kind, at, size, color, glow = false, haze = false) {
     const g = new THREE.Group();
     g.name = `fx_${kind}_${count++}`;
     g.position.copy(at);
     parent.add(g);
     const h = size / 2;
-    blocks.push(block(g, g.name, B(-h, -h, -h, h, h, h), (ctx, x, y, w, hh) => { fill(ctx, x, y, w, hh, color); fill(ctx, x, y, w, Math.max(1, hh * 0.3), shade(color, 1.25)); }, { glow }));
+    const paint = (ctx, x, y, w, hh) => {
+      if (!haze) {
+        fill(ctx, x, y, w, hh, color);
+        fill(ctx, x, y, w, Math.max(1, hh * 0.3), shade(color, 1.25));
+        return;
+      }
+      for (let row = 0; row < hh; row++) for (let col = 0; col < w; col++) {
+        const radius = Math.hypot((col + .5) / w - .5, (row + .5) / hh - .5) * 2;
+        ctx.globalAlpha = Math.max(0, 1 - radius ** 2) * (.63 + r() * .37);
+        fill(ctx, x + col, y + row, 1, 1, shade(color, 1.18 - radius * .41));
+      }
+      ctx.globalAlpha = 1;
+    };
+    blocks.push(block(g, g.name, B(-h, -h, -h, h, h, h), paint, { glow, haze }));
     return g;
   }
 
@@ -65,10 +78,10 @@ export function effects(seed) {
       }
     },
     /** Puffs that rise and spread out (gas, stench). */
-    puff(parent, at, { color, size = 0.06, rise = 0.5, n = 3 }) {
+    puff(parent, at, { color, size = 0.06, rise = 0.5, n = 3, haze = false }) {
       for (let i = 0; i < n; i++) {
         const dx = (r() - 0.5) * 0.25, dz = (r() - 0.5) * 0.25;
-        const node = particle(parent, 'puff', at.clone().add(v((r() - 0.5) * 0.1, 0, (r() - 0.5) * 0.1)), size, color);
+        const node = particle(parent, 'puff', at.clone().add(v((r() - 0.5) * 0.1, 0, (r() - 0.5) * 0.1)), size, color, false, haze);
         animate(node, i / n, (u) => ({ p: v(dx * u, rise * u, dz * u), s: u < 0.2 ? u / 0.2 : 1 + u * 1.2 - (u > 0.8 ? (u - 0.8) * 10 : 0) }));
       }
     },

@@ -11,6 +11,7 @@ import { buildHumanoid } from './humanoid.js';
 import { ARCHETYPES } from './archetypes.js';
 import { HUMANS } from './humans.js';
 import { RECIPES } from './recipes.js';
+import { FAUNA } from './fauna.js';
 import { Prop } from './props.js';
 import { TERRAIN } from './terrain.js';
 import { FIELDS } from './fields.js';
@@ -36,7 +37,7 @@ window.seedFaces = () => {
 window.buildAll = async (only = null) => {
   await loadFaces('/faces/');
   const out = [];
-  const all = [...TERRAIN.map((r) => ({ ...r, group: r.dir ?? 'terrain' })), ...FIELDS.map((r) => ({ ...r, group: 'fields' })), ...TRAPS.map((r) => ({ ...r, group: 'traps' })), ...SLAMFIRE_ITEMS.map((r) => ({ ...r, group: 'items' })), ...CROSSBOW_ITEMS.map((r) => ({ ...r, group: 'items' })), ...ROOF_ACCESS.map((r) => ({ ...r, group: 'terrain' })), ...RECIPES.map((r) => ({ ...r, group: 'zombies' })), ...ARCHETYPES.map((r) => ({ ...r, group: 'archetypes' })), ...HUMANS.map((r) => ({ ...r, group: 'humans' }))];
+  const all = [...TERRAIN.map((r) => ({ ...r, group: r.dir ?? 'terrain' })), ...FIELDS.map((r) => ({ ...r, group: 'fields' })), ...TRAPS.map((r) => ({ ...r, group: 'traps' })), ...SLAMFIRE_ITEMS.map((r) => ({ ...r, group: 'items' })), ...CROSSBOW_ITEMS.map((r) => ({ ...r, group: 'items' })), ...ROOF_ACCESS.map((r) => ({ ...r, group: 'terrain' })), ...[...RECIPES, ...FAUNA].map((r) => ({ ...r, group: 'zombies' })), ...ARCHETYPES.map((r) => ({ ...r, group: 'archetypes' })), ...HUMANS.map((r) => ({ ...r, group: 'humans' }))];
   // One sample per hair style: a plain zombie wearing it, to browse the styles in the studio.
   const HAIR_NAMES = {
     bald: ['光头', 'bald', 'лысый'], buzz: ['寸头', 'buzz cut', 'ёжик'], short: ['短发', 'short', 'короткие'], messy: ['乱发', 'messy', 'растрёпанные'], spiky: ['刺头', 'spiky', 'торчком'],
@@ -78,20 +79,21 @@ window.buildAll = async (only = null) => {
       root.add(mesh);
     }
     if (recipe.batchByMaterial) {
-      // Road vehicles have static root-space geometry. Keep glass in its own render pass.
+      // Batch static root-space geometry by material. Leave animated descendants intact.
       const batches = new Map();
       // The roof (blocks named roof-…) stays a node of its own, `roof`, so a viewer can lift it off.
-      for (const mesh of root.children) {
+      for (const mesh of root.children.filter((child) => child.isMesh)) {
         const roof = mesh.name.startsWith('block_roof');
         const key = `${mesh.material.uuid}|${roof}`;
-        const group = batches.get(key) ?? { material: mesh.material, roof, geometries: [] };
+        const group = batches.get(key) ?? { material: mesh.material, roof, geometries: [], meshes: [] };
         group.geometries.push(mesh.geometry);
+        group.meshes.push(mesh);
         batches.set(key, group);
       }
-      root.clear();
       const roofNode = new THREE.Group();
       roofNode.name = 'roof';
-      for (const { material, roof, geometries } of batches.values()) {
+      for (const { material, roof, geometries, meshes } of batches.values()) {
+        root.remove(...meshes);
         const mesh = new THREE.Mesh(mergeGeometries(geometries), material);
         mesh.name = roof ? 'roof_body' : material.transparent ? 'glazing' : 'closed_body';
         (roof ? roofNode : root).add(mesh);

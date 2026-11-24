@@ -209,10 +209,11 @@ function turkey(p) {
         (zone, side) => flat(shade(i%2 ? 0x75523b : 0x6e513b, zone===2 ? .83 : side ? 1.09 : .96)));
     }
   }
-  // A partially spread tail reads in top-down play without using an upright display pose.
-  for (let i = -4; i <= 4; i++) {
-    feather(p, `tail-feather-${i}`, [i*.014,.560,.255], [i*.047,.642-Math.abs(i)*.010,.539-Math.abs(i)*.013],
-      .057, [0,1,0], (zone, side) => (ctx,x,y,w,h) => {
+  // The wild turkey carries an overlapping, partly spread tail in its relaxed stance.
+  for (let i = -5; i <= 5; i++) {
+    const f=i/5, side=Math.abs(f);
+    feather(p, `tail-feather-${i}`, [i*.014,.560,.255],
+      [f*.284,.736-side*.088,.604-side*.086], .067, [0,1,-.28], (zone, side) => (ctx,x,y,w,h) => {
         fill(ctx,x,y,w,h,shade(0x634731,side ? 1.09 : .93));
         if (zone === 2) {
           fill(ctx,x,y+Math.floor(h*.51),w,Math.max(1,Math.round(h*.20)),0x312823);
