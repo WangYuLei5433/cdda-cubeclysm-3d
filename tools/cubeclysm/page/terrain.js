@@ -9,6 +9,11 @@ import { fill, rng, shade } from './paint.js';
 import { FLOWERS, LOW_FURN, TREES } from './vegetation.js';
 import { FURNITURE } from './furniture.js';
 import { FURNITURE_BATCH } from './furniture-batch.js';
+import { WORLD_FURNITURE } from './furniture-world.js';
+import { MEDICAL_FURNITURE } from './furniture-medical.js';
+import { WORKSHOP_FURNITURE } from './furniture-workshop.js';
+import { EXOTIC_FURNITURE } from './furniture-exotic.js';
+import { VITRIFIED_FURNITURE } from './furniture-vitrified.js';
 import { VEHICLES } from './vehicles.js';
 import { ROAD_VEHICLES } from './road-vehicles.js';
 import { ITEMS } from './items.js';
@@ -983,4 +988,4 @@ const OPENING = { t_window: SHOP, t_window_alarm: SHOP, t_window_taped: SHOP, t_
 const openings = (list) => list.map((e) => ({ ...e, opening: OPENING[e.id] ?? DOMESTIC }));
 
 /** Phase-1 terrain, each with the kind of surface an engine may take its texture for. */
-export const TERRAIN = [...tag(GROUND, 'floor'), ...tag(ROOFS, 'roof'), ...tag(WALLS, 'wall'), ...DOORS, ...openings(WINDOWS), ...FENCES, ...TREES, ...FLOWERS, ...LOW_FURN, ...FURNITURE, ...FURNITURE_BATCH, ...VEHICLES, ...ROAD_VEHICLES, ...ITEMS, ...ITEMS2, ...STAIRS, ...SPIRAL_STAIRS, ...ITEMS3, ...ITEMS4, ...INVENTORY_PROPS, ...SHELTER_PROPS, ...CARRY_PROPS, ...COMMON_LOOT].map((e) => ({ ppm: 64, ...e }));
+export const TERRAIN = [...tag(GROUND, 'floor'), ...tag(ROOFS, 'roof'), ...tag(WALLS, 'wall'), ...DOORS, ...openings(WINDOWS), ...FENCES, ...TREES, ...FLOWERS, ...LOW_FURN, ...FURNITURE, ...FURNITURE_BATCH, ...WORLD_FURNITURE, ...MEDICAL_FURNITURE, ...WORKSHOP_FURNITURE, ...EXOTIC_FURNITURE, ...VITRIFIED_FURNITURE, ...VEHICLES, ...ROAD_VEHICLES, ...ITEMS, ...ITEMS2, ...STAIRS, ...SPIRAL_STAIRS, ...ITEMS3, ...ITEMS4, ...INVENTORY_PROPS, ...SHELTER_PROPS, ...CARRY_PROPS, ...COMMON_LOOT].map((e) => ({ ppm: 64, ...e }));

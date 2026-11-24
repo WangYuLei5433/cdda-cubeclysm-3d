@@ -2207,3 +2207,6 @@ export const FURNITURE_BATCH = Array.from(families).flatMap(([build, list]) =>
     build: (p) => build(p, name),
   })),
 );
+
+// Shared construction primitives for later furniture recipes.
+export { box, cyl, hoop, tray, hollowTube, panel, label, legs, casework };
