@@ -156,12 +156,36 @@ const ITEMS_3 = [
     cyl(p, 'cap', 'y', [0, .282, -.13], .024, .018, 10, plasticP(0x1e1e20));
   } },
 
-  { id: 'lighter', desc: 'A disposable plastic lighter, capable of creating a small flame with the flick of a finger.  Allows you to use various drugs like cigarettes, light explosives like Molotov cocktails, or light nearby items on fire.  (14 ml: an 8 cm blue plastic lighter lying on its side, aluminium hood, flint wheel.)', build: (p) => {
-    bevel(p, 'body', [-.04, 0, -.012, .025, .024, .012], .003, layers(flat(0x2a5ac8), (ctx, x, y, w, h) => fill(ctx, x, y + Math.round(h * .55), w, Math.max(1, Math.round(h * .2)), 0x6a8ae0)), GLASS);
-    bevel(p, 'fuel', [-.036, .002, -.009, .02, .012, .009], .002, flat(0x5a7ad8), GLASS);
-    bevel(p, 'hood', [.025, .001, -.011, .042, .023, .011], .002, steelP(0xc8ccd0), STEEL);
-    cyl(p, 'wheel', 'y', [.033, .012, 0], .007, .01, 10, layers(flat(0x5a5c60), (ctx, x, y, w, h) => { for (let i = 0; i < w; i += 2) fill(ctx, x + i, y, 1, h, 0x3a3c40); }), STEEL);
-    bevel(p, 'button', [.02, .022, -.006, .03, .026, .006], .001, flat(0x1e1e20));
+  { id: 'lighter', desc: 'A disposable plastic lighter, capable of creating a small flame with the flick of a finger.  Allows you to use various drugs like cigarettes, light explosives like Molotov cocktails, or light nearby items on fire.  (14 ml: an 8 cm blue plastic lighter lying on its side, with a vented aluminium hood, exposed flint wheel and red thumb lever.)', build: (p) => {
+    const blue = plasticP(0x356bc6);
+    const aluminum = steelP(0xc9cdd0);
+    const recess = flat(0x2d3237);
+    const detail = { ppm: 1100 };
+    const metal = { ...STEEL, ...detail };
+
+    bevel(p, 'molded blue fuel body', [-.041, 0, -.012, .021, .014, .012], .0036, blue, detail);
+    bevel(p, 'blue base plug', [-.042, .001, -.0112, -.037, .013, .0112], .0016, plasticP(0x2856a2), detail);
+    bevel(p, 'plastic shoulder', [.018, .001, -.0118, .026, .013, .0118], .002, plasticP(0x294574), detail);
+
+    bevel(p, 'aluminum wind guard', [.0235, .0008, -.0005, .041, .0144, .0118], .0017, aluminum, metal);
+    for (const x of [.0305, .035]) {
+      for (const y of [0, .0143]) {
+        bevel(p, 'dark vent slot', [x - .001, y, .0038, x + .001, y + .001, .0081], .00035, recess, detail);
+      }
+    }
+    cyl(p, 'dark opening in hood', 'x', [.041, .0074, .0058], .0032, .001, 10, recess, detail);
+
+    const knurl = (ctx, x, y, w, h, side) => {
+      if (!side.startsWith('side')) return fill(ctx, x, y, w, h, 0x767d85);
+      fill(ctx, x, y, w, h, 0x44494f);
+      fill(ctx, x, y, 1, h, 0xa0a4a8);
+    };
+    cyl(p, 'exposed serrated flint wheel', 'y', [.034, .0075, -.006], .0056, .011, 18, knurl, metal);
+    for (const y of [.0009, .0129]) {
+      bevel(p, 'wheel mounting ear', [.0322, y, -.0072, .0358, y + .0012, .0018], .00045, aluminum, metal);
+    }
+    cyl(p, 'wheel axle end caps', 'y', [.034, .0075, -.006], .0015, .0138, 10, aluminum, metal);
+    bevel(p, 'red thumb lever', [.0205, .0016, -.0114, .0278, .0124, -.0009], .00115, plasticP(0xba412e), detail);
   } },
 
   { id: 'hinge', desc: 'A small metal hinge with two metal plates with screw holes.  Useful for making doors or chests.  (A 10 cm butt hinge lying opened flat: two steel leaves, three screw holes each, the knuckle and pin between them.)', build: (p) => {

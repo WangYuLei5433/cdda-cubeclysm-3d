@@ -113,7 +113,10 @@ export function coil(p, name, R, r, turns, paint, opts = {}, seed = name) {
  * A book lying flat: covers, page block, spine. `cover` paints the front (a title band and a
  * motif); paperback by default, `hard` gives thicker boards that overhang the pages.
  */
-export function book(p, { L = .18, W = .11, T = .03, color, title = 0xf0e8d0, motif = null, hard = false, pages = 0xf0ead6 }) {
+export function book(p, {
+  L = .18, W = .11, T = .03, color, title = 0xf0e8d0, motif = null, hard = false, pages = 0xf0ead6,
+  frontPaint, backPaint, spinePaint,
+}) {
   const b = hard ? .004 : .0012, o = hard ? .003 : 0;
   const cover = layers(flat(color), (ctx, x, y, w, h) => {
     fill(ctx, x + Math.round(w * .12), y + Math.round(h * .62), Math.round(w * .76), Math.max(2, Math.round(h * .12)), title);
@@ -121,10 +124,12 @@ export function book(p, { L = .18, W = .11, T = .03, color, title = 0xf0e8d0, mo
     motif?.(ctx, x, y, w, h);
   });
   bevel(p, 'pages', [-L / 2 + o, b, -W / 2 + o, L / 2 - o, T - b, W / 2 - o * 2], .001, layers(flat(pages), (ctx, x, y, w, h) => { for (let j = 1; j < h; j += 2) fill(ctx, x, y + j, w, 1, shade(pages, .9)); }));
-  pane(p, 'back', [V(-L / 2, b / 2, -W / 2), V(L / 2, b / 2, -W / 2), V(L / 2, b / 2, W / 2), V(-L / 2, b / 2, W / 2)], b, flat(shade(color, .9)));
+  pane(p, 'back', [V(-L / 2, b / 2, -W / 2), V(L / 2, b / 2, -W / 2), V(L / 2, b / 2, W / 2), V(-L / 2, b / 2, W / 2)], b, backPaint ?? flat(shade(color, .9)));
   // The front cover faces up: its paint reads from the spine side.
-  pane(p, 'front', [V(-L / 2, T - b / 2, W / 2), V(L / 2, T - b / 2, W / 2), V(L / 2, T - b / 2, -W / 2), V(-L / 2, T - b / 2, -W / 2)], b, cover);
-  bevel(p, 'spine', [-L / 2, 0, W / 2 - b * 1.5, L / 2, T, W / 2 + b * .5], b * .4, band(color, title, .35, .55));
+  pane(p, 'front', [V(-L / 2, T - b / 2, W / 2), V(L / 2, T - b / 2, W / 2), V(L / 2, T - b / 2, -W / 2), V(-L / 2, T - b / 2, -W / 2)], b, frontPaint ?? cover);
+  const spine = [-L / 2, 0, W / 2 - b * 1.5, L / 2, T, W / 2 + b * .5];
+  if (spinePaint) p.box('spine', spine, spinePaint);
+  else bevel(p, 'spine', spine, b * .4, band(color, title, .35, .55));
 }
 
 /**

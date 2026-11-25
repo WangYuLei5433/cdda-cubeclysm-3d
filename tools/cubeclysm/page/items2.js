@@ -3,9 +3,12 @@
 // size (volume, longest side). Novels are 18 cm paperbacks (CDDA: longest side 18 cm, 662 ml), each
 // with its own cover; folded clothes lie as they would in a drawer.
 import {
-  CUT, GLASS, STEEL, V, band, barkP, bevel, blob, book, can, clothP, coil, crumple, cyl, denimP, fill, flat, flatHandle, folded, hull, knitP,
+  CUT, GLASS, STEEL, V, band, barkP, bevel, blob, book, clothP, coil, crumple, cyl, denimP, fill, flat, flatHandle, folded, hull, knitP,
   layers, loop, lump, pane, qbox, paperP, pile, plasticP, printP, rng, shade, sheet, speckle, steelP, stoneP, tube, woodP,
 } from './item-kit.js';
+import { drawEmptyCan } from './common-loot-canned.js';
+import { garbageBag, pressSealBag, shoppingBag } from './plastic-bags.js';
+import { drawShorts } from './shorts.js';
 
 // --- cover motifs -------------------------------------------------------------------------------
 const disc = (hex, cx = .5, cy = .38, r = .16) => (ctx, x, y, w, h) => { const R = Math.min(w, h) * r; for (let j = -R; j <= R; j++) for (let i = -R; i <= R; i++) if (i * i + j * j <= R * R) fill(ctx, Math.round(x + w * cx + i), Math.round(y + h * cy + j), 1, 1, hex); };
@@ -19,6 +22,7 @@ const thick = (ml, L = .18, W = .11) => +(ml / 1e6 / (L * W)).toFixed(3);
 const B = (id, desc, o) => ({ id, desc, build: (p) => book(p, o) });
 /** Clothes: folded, `knit` for knitwear, `denim`; the rest of the options go to folded(). */
 const F = (id, desc, { color, knit = false, denim = false, ...o }) => ({ id, desc, build: (p) => folded(p, { color, paint: knit ? knitP(color) : denim ? denimP(color) : clothP(color), ...o }) });
+const S = (id, desc) => ({ id, desc, build: (p) => drawShorts(p,id) });
 
 const RECIPES = [
   // Books --------------------------------------------------------------------------------------
@@ -78,14 +82,11 @@ const RECIPES = [
   } },
   F('jeans', 'A pair of jeans with two deep pockets.  (Folded denim.)', { color: 0x4a6a9a, denim: true, w: .34, d: .27, h: .05, waist: 0x3e5a86, legs: true, pocket: 0x3e5a86 }),
   F('pants', 'A pair of khaki pants.  Slightly warmer than jeans.  (Folded khaki.)', { color: 0xb09a70, w: .34, d: .27, h: .045, waist: 0x9a8660, legs: true }),
-  F('shorts', 'A pair of khaki shorts.  (Folded.)', { color: 0xb09a70, w: .28, d: .23, h: .035, waist: 0x9a8660, legs: true }),
-  { id: 'shorts_cargo', desc: 'A pair of shorts lined with pockets, offering decent storage.  (Folded, flapped cargo pockets on the legs.)', build: (p) => {
-    folded(p, { color: 0x8a8a7a, paint: clothP(0x8a8a7a), w: .3, d: .25, h: .042, waist: 0x7a7a6a, legs: true, pocket: 0x7a7a6a });
-    for (const x of [-.1, .07]) { bevel(p, `cargo${x}`, [x, .042, .02, x + .07, .042 + .006, .09], .002, clothP(0x7e7e6e)); bevel(p, `flap${x}`, [x - .003, .042 + .006, .015, x + .073, .042 + .009, .035], .001, flat(0x6e6e5e)); }
-  } },
-  F('b_shorts', 'A pair of basketball shorts.  Comfortable and light.  (Folded: cyan with a side stripe.)', { color: 0x2aa8b8, w: .3, d: .25, h: .028, waist: 0x1a8898, stripe: 0xf0f0f0 }),
+  S('shorts', 'A pair of khaki shorts, laid flat with belt loops and slant pockets.'),
+  S('shorts_cargo', 'A pair of cargo shorts with gusseted pockets and buttoned flaps.'),
+  S('b_shorts', 'Light cyan basketball shorts with a drawstring and contrast side stripes.'),
   F('briefs', 'A pair of briefs.  Comfortable underwear worn by men.  (Folded white.)', { color: 0xf0f0ee, w: .18, d: .15, h: .014, waist: 0xd8d8d6 }),
-  F('under_armor_shorts', 'Nylon sportswear that clings to your upper legs, aiding muscle tone and wicking away sweat.  (Folded, dark grey.)', { color: 0x3a3c40, w: .22, d: .18, h: .014, waist: 0x2a2c30 }),
+  S('under_armor_shorts', 'Close-fitting dark grey compression shorts with flatlock seams.'),
   F('towel', 'A large, fluffy towel.  It could be used to dry yourself.  (Folded: cyan with stripes.)', { color: 0x3ab0c0, knit: true, w: .35, d: .25, h: .06, stripe: 0xf0f0f0 }),
   F('dish_towel', 'A dish towel, useful for cleaning hard surfaces.  (Folded: white with a red stripe.)', { color: 0xf0eee8, w: .22, d: .2, h: .01, stripe: 0xc83a3a }),
   F('pillowcase', 'A simple cotton pillowcase.  (Folded white.)', { color: 0xf2f0ec, w: .4, d: .3, h: .012 }),
@@ -230,19 +231,9 @@ const RECIPES = [
   { id: 'sugar', desc: 'Sweet, sweet sugar.  Bad for your teeth and surprisingly not very tasty on its own.  (A small white heap.)', build: (p) => { pile(p, 'heap', .04, .018, speckle('sugar', 0xf4f2ec, [0xffffff, 0xdcdad4], .5), 'sugar'); } },
   { id: 'water', desc: 'Water, the stuff of life.  (Spilt: a shallow puddle.)', build: (p) => { crumple(p, 'puddle', .14, .1, .003, flat(0x6a9ab8), 'puddle', GLASS); } },
   // Bags, paper, sheets ----------------------------------------------------------------------
-  { id: 'bag_garbage', desc: 'A hefty plastic bag, made to carry lots of trash.  It\'s sturdy and water-resistant.  (Empty, crumpled black bag with tie.)', build: (p) => {
-    crumple(p, 'bag', .22, .15, .03, plasticP(0x1e1e22), 'garbage');
-    tube(p, 'tie', V(.2, .006, -.02), V(.24, .004, -.005), .008, .005, 5, plasticP(0x1e1e22));
-  } },
-  { id: 'plastic_shopping_bag', desc: 'A bag used to carry groceries home.  (A white bag, its handles at one end, a printed smile.)', build: (p) => {
-    crumple(p, 'bag', .16, .12, .03, layers(flat(0xf0f0ee), (ctx, x, y, w, h) => fill(ctx, x + Math.round(w * .4), y + Math.round(h * .5), Math.round(w * .2), 1, 0xc83a3a)), 'shopping');
-    for (const s of [-1, 1]) tube(p, `handle${s}`, V(.14, .005, s * .04), V(.22, .004, s * .03), .005, .005, 4, flat(0xe8e8e6));
-    tube(p, 'loop', V(.22, .004, -.03), V(.22, .004, .03), .005, .005, 4, flat(0xe8e8e6));
-  } },
-  { id: 'bag_zipper_gallon', desc: 'A resealable, watertight transparent plastic bag, extra-large size.  (Gallon size: 27 × 28 cm, clear, the seal strip.)', build: (p) => {
-    sheet(p, 'bag', .27, .26, .006, flat(0xe4eef2), GLASS);
-    bevel(p, 'seal', [-.135, 0, .124, .135, .007, .14], .002, band(0x3a6ad0, 0xd8e4f8, .45, .55));
-  } },
+  { id: 'bag_garbage', desc: 'An empty, heavy black plastic bag with loose drawstring tapes.', build: garbageBag },
+  { id: 'plastic_shopping_bag', desc: 'A thin white grocery bag with two flat loop handles.', build: shoppingBag },
+  { id: 'bag_zipper_gallon', desc: 'An extra-large clear plastic bag with a double press seal.', build: (p) => pressSealBag(p, true) },
   { id: 'shrink_wrap', desc: 'Polymer plastic material, that shrinks tightly over whatever it is covering.  Disposable.  (Used: balled up into a clear wad.)', build: (p) => { lump(p, 'wad', [.045, .03, .04], flat(0xe8f0f2), 'shrink', GLASS); } },
   { id: 'plastic_sheet_small', desc: 'A small sheet of flexible plastic, like a cut-up garbage bag.  (A flat piece, 25 cm.)', build: (p) => { crumple(p, 'sheet', .12, .1, .006, plasticP(0x2a2a2e), 'plsheet'); } },
   { id: 'wrapper', desc: 'Just a piece of butcher\'s paper.  Good for starting fires.  (A crumpled sheet.)', build: (p) => { crumple(p, 'paper', .1, .08, .02, paperP(0xe8dcc0), 'wrapper'); } },
@@ -312,9 +303,9 @@ const RECIPES = [
     cyl(p, 'body', 'y', [0, .02, 0], .011, .04, 8, band(0xf0f0f0, 0x3a8ad0, .3, .65));
     cyl(p, 'tip', 'y', [0, .048, 0], .009, .016, 8, plasticP(0xf0f0f0), {}, .002);
   } },
-  { id: 'can_drink', desc: 'An aluminum can, like what soda comes in.  (A 12 oz can: 12.2 cm, red with a white wave.)', build: (p) => { can(p, { r: .033, h: .122, label: layers(flat(0xc82a2a), (ctx, x, y, w, h) => fill(ctx, x, y + Math.round(h * .45), w, Math.round(h * .12), 0xf0f0f0)), ring: true }); } },
-  { id: 'can_food', desc: 'A small tin can, like what tuna comes in.  (Longest side 8 cm: a flat tin, blue label.)', build: (p) => { can(p, { r: .042, h: .04, label: band(0x2a5aa8, 0xf0e0a0, .3, .7) }); } },
-  { id: 'can_medium', desc: 'A medium tin can, like what soup comes in.  (Longest side 10 cm: red and white soup label.)', build: (p) => { can(p, { r: .037, h: .1, label: band(0xc82a2a, 0xf0f0ec, .5, 1) }); } },
+  { id: 'can_drink', desc: 'An opened aluminum soda can with its pull tab still attached.', build: (p) => drawEmptyCan(p,'can_drink',.033,.119,true) },
+  { id: 'can_food', desc: 'A small open tin can, like what tuna comes in.', build: (p) => drawEmptyCan(p,'can_food',.040,.04) },
+  { id: 'can_medium', desc: 'A medium open tin can, like what soup comes in.', build: (p) => drawEmptyCan(p,'can_medium',.037,.0983) },
   { id: 'nanomaterial', desc: 'A steel canister containing carbon, iron, titanium, copper, and other elements in specifically engineered atomic-scale configurations.  (300 ml: a sealed steel canister with a warning band.)', build: (p) => {
     cyl(p, 'can', 'y', [0, .055, 0], .03, .11, 12, band(steelP(0xb8bcc0), 0xd8b020, .4, .55), STEEL);
     cyl(p, 'lid', 'y', [0, .113, 0], .028, .008, 12, steelP(0x8a8e92), STEEL);

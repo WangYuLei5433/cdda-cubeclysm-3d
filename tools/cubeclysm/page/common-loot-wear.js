@@ -2,6 +2,7 @@ import { denimP, knitP, loop } from './item-kit.js';
 import {
   GLASS, V, bevel, cement, clothP, cyl, fill, flat, outline, path, plasticP, rubber, shade, steelP, top, tube,
 } from './common-loot-kit.js';
+import { drawShorts, shortsStyles } from './shorts.js';
 
 function bag(p,d) {
   const { id,color }=d;
@@ -149,6 +150,7 @@ function shirt(p,d) {
 
 function pants(p,d) {
   const i=d.id;
+  if (Object.hasOwn(shortsStyles,i)) return drawShorts(p,i);
   const base=i.includes('jeans')?0x526b82:i==='pants_leather'?0x39393c:i.includes('leather')?0x665148:d.color;
   const twill=i.includes('jeans')?denimP(base):clothP(base);
   const paint=i==='pants_checkered' ? (ctx,x,y,w,h) => {

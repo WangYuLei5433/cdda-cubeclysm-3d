@@ -1,8 +1,10 @@
 // Everyday loot, laid out around its centre on the ground. Measurements are in metres.
 import {
-  GLASS, STEEL, V, bevel, blob, clothP, crumple, cyl, denimP, fill, flat, hull, knitP,
+  GLASS, STEEL, V, bevel, blob, clothP, crumple, cyl, fill, flat, hull, knitP,
   layers, loop, pane, paperP, pile, plasticP, printP, rng, sheet, speckle, steelP, tube,
 } from './item-kit.js';
+import { openPlasticBag, pressSealBag } from './plastic-bags.js';
+import { drawShorts } from './shorts.js';
 
 const item = (id, desc, build) => ({ id, desc, build });
 const top = (p, name, [x0, z0, x1, z1], y, paint, opts) =>
@@ -49,23 +51,22 @@ function garmentPanel(p, name, outline, height, paint) {
   hull(p, name, outline.flatMap(([x, z]) => [V(x, 0, z), V(x, height, z)]), paint);
 }
 
-function trousers(p, cargo, color = cargo ? 0x68715a : 0x6d8296) {
-  const fabric = cargo ? clothP(color) : denimP(color);
-  const end = cargo ? .24 : .107;
-  const height = cargo ? .018 : .011;
+function cargoTrousers(p) {
+  const fabric = clothP(0x68715a);
+  const end = .24;
+  const height = .018;
   p.box('seat', [-.12, 0, -.105, .12, height, -.029], fabric);
   for (const side of [-1, 1]) {
     garmentPanel(p, `leg ${side}`, [[.005, -.035], [.12, -.037], [.105, end], [.024, end - .008]]
       .map(([x, z]) => [x * side, z]), height, fabric);
     const x = side * .065;
-    p.box(`cuff ${side}`, [x - .039, 0, end - .013, x + .04, height + .002, end - .007], clothP(color));
-    if (!cargo) continue;
+    p.box(`cuff ${side}`, [x - .039, 0, end - .013, x + .04, height + .002, end - .007], fabric);
     bevel(p, `bellows pocket ${side}`, [x - .035, height, .047, x + .035, height + .01, .111], .003, clothP(0x555e49));
     p.box(`pocket flap ${side}`, [x - .038, height + .009, .042, x + .038, height + .013, .065], clothP(0x7c8267));
     cyl(p, `snap ${side}`, 'y', [x, height + .013, .06], .003, .001, 8, flat(0x353a2e));
   }
-  p.box('waistband', [-.123, 0, -.108, .123, height + .003, -.086], knitP(cargo ? 0x555e49 : 0xd0d8dc));
-  p.box('fly', [-.011, height, -.087, .011, height + .002, -.027], clothP(color));
+  p.box('waistband', [-.123, 0, -.108, .123, height + .003, -.086], knitP(0x555e49));
+  p.box('fly', [-.011, height, -.087, .011, height + .002, -.027], fabric);
 }
 
 function combatBoots(p) {
@@ -187,28 +188,6 @@ function ring(p) {
   }
 }
 
-function plasticBag(p) {
-  const film = layers(flat(0xdde9e2), (ctx, x, y, w, h) =>
-    rect(ctx, x, y, w, h, [.2, .25, .76, .30], 0xa1b6a9));
-  crumple(p, 'wrinkled film', .107, .122, .022, film, 'open grocery bag', GLASS);
-  for (const s of [-1, 1]) {
-    const x = s * .065;
-    loop(p, `handle ${s}`, [x, .004, -.129], .034, .003, flat(0xbcccc3), GLASS, 10);
-    tube(p, `side seam ${s}`, V(s * .096, .004, -.106), V(s * .078, .005, .098), .0025, .002, 4, flat(0xa4b5aa), GLASS);
-  }
-}
-
-function zipperBag(p) {
-  const film = layers(flat(0xe1eced), (ctx, x, y, w, h) => {
-    rect(ctx, x, y, w, h, [.07, .1, .1, .93], 0xa7bbc4);
-    rect(ctx, x, y, w, h, [.9, .1, .93, .93], 0xa7bbc4);
-  });
-  pane(p, 'plastic pouch', [V(-.086, .003, .077), V(.079, .004, .073), V(.084, .005, -.073), V(-.084, .004, -.073)], .002, film, GLASS);
-  p.box('blue press seal', [-.084, .002, -.074, .084, .008, -.069], plasticP(0x527a9a));
-  p.box('white press seal', [-.084, .003, -.068, .084, .0085, -.065], plasticP(0xbed1d8));
-  top(p, 'write-on label', [.029, .017, .072, .041], .006, paperP(0xe1e5e3));
-}
-
 function wallet(p) {
   const leather = speckle('wallet', 0x5f3c2c, [0x78523c, 0x4f3428], .45);
   bevel(p, 'folded lower half', [-.059, 0, -.043, .059, .008, .043], .003, leather);
@@ -281,8 +260,8 @@ export const INVENTORY_PROPS = [
   item('mp3_on', 'The same player with the LCD on.', (p) => mp3(p, true)),
   item('ref_lighter', 'A closed brass refillable lighter.', (p) => lighter(p, false)),
   item('ref_lighter_on', 'An open refillable lighter with a lit wick.', (p) => lighter(p, true)),
-  item('bag_plastic', 'An open plastic bag with two loop handles.', plasticBag),
-  item('bag_zipper', 'A clear sandwich bag with a double press seal.', zipperBag),
+  item('bag_plastic', 'An open plastic bag with loose, heat-sealed film.', openPlasticBag),
+  item('bag_zipper', 'A clear sandwich bag with a double press seal.', pressSealBag),
   item('tobacco', 'A small heap of loose cut tobacco.', tobacco),
   item('weed', 'Several crumpled dried green leaves.', driedLeaves),
   item('wallet', 'A brown stitched billfold with a snap closure.', wallet),
@@ -292,10 +271,10 @@ export const INVENTORY_PROPS = [
       layers(paperP(0xeee9d8), (ctx, x, y, w, h) => rect(ctx, x, y, w, h, [0, 0, 1, .14], 0xcfbf92)));
   }),
   item('boots_combat', 'A pair of laced tactical boots with lug soles.', combatBoots),
-  item('boxer_shorts', 'Grey-blue boxers with contrasting elastic.', (p) => trousers(p, false)),
-  item('xlboxer_shorts', 'Oversized slate boxers with contrasting elastic.', (p) => { p.root.scale.setScalar(1.12); trousers(p, false, 0x556575); }),
-  item('xsboxer_shorts', 'Small taupe boxers with contrasting elastic.', (p) => { p.root.scale.setScalar(.87); trousers(p, false, 0x918676); }),
-  item('pants_cargo', 'Olive cargo trousers with raised bellows pockets.', (p) => trousers(p, true)),
+  item('boxer_shorts', 'Grey-blue boxers with contrasting elastic.', (p) => drawShorts(p,'boxer_shorts')),
+  item('xlboxer_shorts', 'Oversized slate boxers with contrasting elastic.', (p) => drawShorts(p,'xlboxer_shorts')),
+  item('xsboxer_shorts', 'Small taupe boxers with contrasting elastic.', (p) => drawShorts(p,'xsboxer_shorts')),
+  item('pants_cargo', 'Olive cargo trousers with raised bellows pockets.', cargoTrousers),
   item('gloves_fingerless', 'Two short leather gloves with open fingertips.', gloves),
   item('tank_top', 'An ivory cotton tank with a shaped neckline.', tankTop),
   item('wristwatch', 'A digital wristwatch with a grey rubber strap.', watch),

@@ -19,6 +19,7 @@ import { TRAPS } from './traps.js';
 import { SLAMFIRE_ITEMS } from './slamfire.js';
 import { CROSSBOW_ITEMS } from './crossbow.js';
 import { ROOF_ACCESS } from './roof-access.js';
+import { ITEM_EXPANSION } from './item-expansion.js';
 
 const exporter = new GLTFExporter();
 const b64 = (bytes) => {
@@ -39,6 +40,7 @@ window.buildAll = async (only = null) => {
   const out = [];
   const all = [...TERRAIN.map((r) => ({ ...r, group: r.dir ?? 'terrain' })), ...FIELDS.map((r) => ({ ...r, group: 'fields' })), ...TRAPS.map((r) => ({ ...r, group: 'traps' })), ...SLAMFIRE_ITEMS.map((r) => ({ ...r, group: 'items' })), ...CROSSBOW_ITEMS.map((r) => ({ ...r, group: 'items' })), ...ROOF_ACCESS.map((r) => ({ ...r, group: 'terrain' })), ...[...RECIPES, ...FAUNA].map((r) => ({ ...r, group: 'zombies' })), ...ARCHETYPES.map((r) => ({ ...r, group: 'archetypes' })), ...HUMANS.map((r) => ({ ...r, group: 'humans' }))];
   // One sample per hair style: a plain zombie wearing it, to browse the styles in the studio.
+  all.push(...ITEM_EXPANSION);
   const HAIR_NAMES = {
     bald: ['光头', 'bald', 'лысый'], buzz: ['寸头', 'buzz cut', 'ёжик'], short: ['短发', 'short', 'короткие'], messy: ['乱发', 'messy', 'растрёпанные'], spiky: ['刺头', 'spiky', 'торчком'],
     long: ['长发', 'long', 'длинные'], ponytail: ['马尾', 'ponytail', 'хвост'], bob: ['波波头', 'bob', 'каре'], mohawk: ['莫西干', 'mohawk', 'ирокез'], afro: ['爆炸头', 'afro', 'афро'],

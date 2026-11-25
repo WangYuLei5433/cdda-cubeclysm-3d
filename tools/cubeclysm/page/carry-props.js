@@ -1,9 +1,10 @@
 // Common unmodelled loot from the CDDA item census. Dimensions are metres.
 import {
-  GLASS, V, band, bevel, blob, clothP, cyl, denimP, fill, flat, hull, layers, lump,
+  GLASS, V, band, bevel, blob, clothP, cyl, fill, flat, hull, layers, lump,
   pane, paperP, plasticP, printP, shade, speckle, steelP, stoneP, tube, woodP,
 } from './item-kit.js';
 import { poly } from './lowpoly.js';
+import { drawShorts } from './shorts.js';
 
 const graphite = plasticP(0x343a3e);
 const nickel = steelP(0x979ea0);
@@ -256,20 +257,6 @@ function blanket(p) {
     }));
 }
 
-function denimShorts(p) {
-  const blue = denimP(0x54738a);
-  p.box('seat',[-.158,0,-.158,.158,.018,.017],blue);
-  for (const side of [-1,1]) {
-    const shape = [[.008,-.015],[.157,-.026],[.167,.153],[.031,.182]];
-    hull(p,`hemmed leg ${side}`,shape.flatMap(([x,z])=>[V(side*x,0,z),V(side*x,.018,z)]),blue);
-    const x=side*.091;
-    top(p,`pocket stitching ${side}`,[x-.042,-.113,x+.042,-.044],.0185,
-      badge(denimP(0x496680),0xa4825e));
-  }
-  p.box('waistband',[-.162,0,-.16,.162,.022,-.125],denimP(0x435e72));
-  cyl(p,'brass button','y',[0,.022,-.131],.005,.003,8,steelP(0xa58956));
-}
-
 function garlic(p) {
   const skin= speckle('garlic paper',0xe2d7bb,[0xb5a48f,0xeedec8,0xd0bac1],.43);
   for (let k=0;k<5;k++) {
@@ -332,7 +319,7 @@ export const CARRY_PROPS = [
   item('coin_quarter', 'A silver quarter with a raised Washington profile.', null, (p) => coin(p,.01213,false), 2048),
   item('coin_penny', 'A copper penny with a raised Lincoln profile.', null, (p) => coin(p,.009525,true), 2048),
   item('blanket', 'A folded woven blanket with muted burgundy stripes.', null, blanket, 240),
-  item('shorts_denim', 'Blue denim shorts with turned hems and a brass button.', null, denimShorts, 288),
+  item('shorts_denim', 'Blue denim shorts with turned hems and a brass button.', null, (p) => drawShorts(p,'shorts_denim'), 288),
   item('garlic', 'A pale bulb with distinct cloves and a dry stalk.', null, garlic, 640),
   item('toilet_paper', 'A white roll of tissue with a hollow kraft core.', null,
     (p) => roll(p,.052,.098,paperP(0xe3ded2),.022,kraft)),

@@ -5,6 +5,7 @@
 import { flat, layers, speckle } from './props.js';
 import { fill, rng, shade } from './paint.js';
 import { V, bevel, cyl, hull, pane } from './lowpoly.js';
+import { openPlasticBag } from './plastic-bags.js';
 
 // --- paints -------------------------------------------------------------------------------------
 
@@ -146,15 +147,7 @@ const RECIPES = [
     for (let k = 0; k < 10; k++) { const a = (k / 10) * 2 * Math.PI; bowl.push(V(.065 + Math.cos(a) * .03, .012, Math.sin(a) * .02), V(.065 + Math.cos(a) * .018, 0, Math.sin(a) * .011)); }
     hull(p, 'bowl', bowl, steelP(), STEEL);
   } },
-  { id: 'bag_plastic_small', desc: 'A small, open plastic bag.  Essentially trash.  (A crumpled, thin, half-clear bag.)', build: (p) => {
-    // A flattened, crumpled bag: a ridged outline, a low puffed middle, the handle loops at one end.
-    const r = rng('bagsmall'), pts = [];
-    for (let k = 0; k < 12; k++) { const a = (k / 12) * 2 * Math.PI; pts.push(V(Math.cos(a) * .085 * (.9 + r() * .15), 0, Math.sin(a) * .06 * (.9 + r() * .15))); }
-    for (let k = 0; k < 6; k++) { const a = (k / 6) * 2 * Math.PI + r(); pts.push(V(Math.cos(a) * .045, .012 + r() * .01, Math.sin(a) * .03)); }
-    hull(p, 'bag', pts, flat(0xe8ecee), GLASS);
-    for (const s of [-1, 1]) tube(p, `handle${s}`, V(.07, .004, s * .025), V(.12, .003, s * .035), .004, .004, 4, flat(0xd8dcde));
-    tube(p, 'loop', V(.12, .003, -.035), V(.12, .003, .035), .004, .004, 4, flat(0xd8dcde));
-  } },
+  { id: 'bag_plastic_small', desc: 'A small, open plastic bag with wrinkled thin film.', build: (p) => openPlasticBag(p, true) },
   { id: 'bottle_plastic_small', desc: 'A watertight plastic bottle, holds 250 mL of liquid.  (Longest side 14 cm: clear, a printed label, a blue cap.)', build: (p) => {
     cyl(p, 'body', 'y', [0, .05, 0], .025, .1, 10, flat(0xdcecf0), GLASS);
     cyl(p, 'shoulder', 'y', [0, .11, 0], .025, .02, 10, flat(0xdcecf0), GLASS, .012);

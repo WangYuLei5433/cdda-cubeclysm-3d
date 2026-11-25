@@ -1,4 +1,5 @@
 import { blob, book, crumple, loop, lump, printP, sheet, woodP } from './item-kit.js';
+import { add } from './lowpoly.js';
 import {
   GLASS, V, bevel, clothP, coil, cyl, fill, flat, front, glass, label, lid, outline, pane, paperP, path,
   plasticP, ring, rubber, shade, steelP, top, tube, warmPaper,
@@ -372,6 +373,56 @@ function money(p,d) {
   }
 }
 
+function bandageRoll(p) {
+  const width=.046, rollThickness=.00265, tailThickness=.0012, outer=.024, inner=.008;
+  const turns=5, segments=turns*16;
+  const center=outer+rollThickness/2;
+  const track=Array.from({length:segments+1},(_,i)=>{
+    const angle=i/segments*turns*2*Math.PI, radius=inner+(outer-inner)*i/segments;
+    return [center-radius*Math.cos(angle),-radius*Math.sin(angle)];
+  });
+  track.push([.0017,-.007],[.0027,-.017],[.0021,-.030],[.0048,-.044],[.007,-.059],[.0057,-.066]);
+  const sections=track.map(([y,z],i)=>{
+    const previous=track[Math.max(0,i-1)], next=track[Math.min(track.length-1,i+1)];
+    const dy=next[0]-previous[0], dz=next[1]-previous[1];
+    const tail=Math.max(0,i-segments);
+    const thickness=tailThickness+(rollThickness-tailThickness)*Math.max(0,1-tail/3);
+    const half=thickness/(2*Math.hypot(dy,dz));
+    const shift=tail*.0010;
+    const point=(edge,surface)=>V(edge*(width/2-tail*.00025)+shift,
+      y-surface*dz*half+(edge*tail*.00032),z+surface*dy*half);
+    return [point(-1,1),point(1,1),point(1,-1),point(-1,-1)];
+  });
+  const face=(points,side)=>({p:points,side,wm:points[0].distanceTo(points[1]),hm:points[1].distanceTo(points[2])});
+  const faces=[], tailFaces=[];
+  for(let i=0;i<sections.length-1;i++) {
+    const a=sections[i],b=sections[i+1];
+    const dest=i<segments?faces:tailFaces;
+    for(let edge=0;edge<4;edge++) {
+      const next=(edge+1)%4;
+      dest.push(face([a[edge],a[next],b[next],b[edge]],edge));
+    }
+  }
+  faces.push(face([...sections[0]].reverse(),'start'));
+  tailFaces.push(face(sections.at(-1),'end'));
+  const fabric=(ctx,x,y,w,h,side)=>{
+    const edge=side===1||side===3;
+    const ivory=edge?0xe4dfd2:side===2?0xe5e1d5:0xf1eee5;
+    fill(ctx,x,y,w,h,ivory);
+    for(let row=0;row<h;row+=3) {
+      fill(ctx,x,y+row,w,1,shade(ivory,edge?.95:.955));
+      for(let col=row%2;col<w;col+=3) fill(ctx,x+col,y+row+1,1,2,shade(ivory,1.028));
+    }
+    if(!edge&&w>12) {
+      fill(ctx,x+1,y,1,h,shade(ivory,.89));
+      fill(ctx,x+w-2,y,1,h,shade(ivory,.89));
+    }
+  };
+  // The same strip makes the visible hollow cotton spiral and the relaxed tail.
+  add(p,'hollow wound cotton bandage',faces,fabric);
+  add(p,'partly unwound cloth tail',tailFaces,fabric);
+}
+
 function medical(p,d) {
   const id=d.id;
   if (id==='inhaler') {
@@ -383,9 +434,7 @@ function medical(p,d) {
     for(const z of [-.037,.037]) p.box(`heat seal ${z}`,[-.053,.009,z-.002,.053,.012,z+.002],paperP(0xb6c2b8));
     top(p,'sterile gauze label',[-.047,-.026,.047,.026],.0125,label(0x587f7c,'GAUZE',d.key));
   } else if (id==='bandages') {
-    cyl(p,'woven dressing roll','y',[0,.023,0],.029,.046,14,clothP(0xd9d8c6));
-    ring(p,'spiral layers',.012,.026,.0465,clothP(0xb6b3a1));
-    p.box('unrolled end',[-.030,.001,.010,.030,.005,.074],clothP(0xd9d8c6));
+    bandageRoll(p);
   } else if (/saline|sunscreen/.test(id)) {
     const base=plasticP(id==='saline'?0xd3ddc9:0xb4914a);
     bevel(p,'squeeze bottle',[-.027,0,-.014,.027,.101,.014],.006,base);

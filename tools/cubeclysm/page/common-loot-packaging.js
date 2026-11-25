@@ -1,13 +1,14 @@
-import { band, blob, pile, rng, stoneP } from './item-kit.js';
+import { band, blob, pile, rng, speckle, stoneP } from './item-kit.js';
+import { add } from './lowpoly.js';
+import { drawCannedFood, drawDrinkCan, drawEmptyCan, paintTomatoIcon } from './common-loot-canned.js';
 import {
-  GLASS, V, bevel, cement, clothP, cyl, flat, front, glass, label, lid, outline,
+  GLASS, V, bevel, cement, clothP, cyl, fill, flat, front, glass, hull, label, lid, outline,
   paperP, path, poly, plasticP, ring, rubber, shade, steelP, top, tube, warmPaper,
 } from './common-loot-kit.js';
 
 const colors = {
-  cola: 0xa63d37, beer: 0xb39750, pale_ale: 0x687e48, milk: 0x6c8da8, milk_UHT: 0x598075,
-  can_tomato: 0xa14237, can_corn: 0xb19a49, can_cheese: 0xc0894e, can_beans: 0x984f39,
-  ketchup: 0xa43e34, mayonnaise: 0xc8b886, peanutbutter: 0xa27544, jam_fruit: 0x874359,
+  milk: 0x6c8da8, milk_UHT: 0x598075,
+  mayonnaise: 0xc8b886, peanutbutter: 0xa27544, jam_fruit: 0x874359,
   horseradish: 0x9c8d72, marshmallow_fluff: 0x557095, honey_mustard: 0xb79248,
   bleach: 0x376883, disinfectant: 0x68856c, pepto: 0xaa637b, dayquil: 0xb97949, nyquil: 0x52567c,
   salt: 0x68899b, flour: 0xa39573, alcohol_wipes: 0x587b87, lens_case: 0x564e65,
@@ -22,22 +23,18 @@ function can(p, d) {
     path(p,'cream fold',[[-.017,.025,-.003],[-.008,.034,-.009],[.009,.030,-.004],[.017,.024,.008]],.005,cheese);
     return;
   }
+  if(id==='can_food_big') return drawEmptyCan(p,id,.081,.154);
+  if(id==='can_aluminum_250ml') return drawEmptyCan(p,id,.033,.104,true);
+  if(['cola','beer','pale_ale'].includes(id)) return drawDrinkCan(p,id,.033,.119);
   const smallTin = id === 'nic_pouch_can';
-  const big = id === 'can_food_big';
-  const drink = /^(cola|beer|pale_ale|can_aluminum)/.test(id);
-  const r = big ? .081 : smallTin ? .034 : drink ? .033 : .036;
-  const h = big ? .154 : smallTin ? .026 : drink ? (id === 'can_aluminum_250ml' ? .104 : .119) : .075;
-  const paint = id === 'can_food_big' || id === 'can_aluminum_250ml' ? cement : label(withColor(d),name,key);
-  cyl(p,'cylindrical wall','y',[0,h/2,0],r,h,12,paint === cement ? paint : band(plasticP(withColor(d)),0xc7b894,.24,.72),{open:true});
+  const r = smallTin ? .034 : .036;
+  const h = smallTin ? .026 : .075;
+  if(drawCannedFood(p,d,r,h)) return;
+  cyl(p,'cylindrical wall','y',[0,h/2,0],r,h,12,band(plasticP(withColor(d)),0xc7b894,.24,.72),{open:true});
   lid(p,'rolled base',r+.001,0,.004,cement);
   lid(p,'rolled top',r+.001,h-.004,.004,cement);
-  if (paint !== cement) {
-    front(p,'printed brand',[-r*.52,h*.2,r*.52,h*.83],-r-.001,paint);
-  }
-  if (drink) {
-    ring(p,'pull tab',.005,.009,h+.001,steelP(0xaab0ad),[-.006,0],10);
-    cyl(p,'rivet','y',[.005,h+.001,0],.004,.002,7,cement);
-  } else if (smallTin) {
+  front(p,'printed brand',[-r*.52,h*.2,r*.52,h*.83],-r-.001,label(withColor(d),name,key));
+  if (smallTin) {
     top(p,'pouch brand',[-r*.61,-r*.58,r*.61,r*.58],h+.0006,label(0x5e727e,'TYNN',key));
     ring(p,'lid accent',r-.005,r-.002,h+.0005,flat(withColor(d)));
   }
@@ -74,6 +71,108 @@ function bottle(p, d) {
   front(p,'label',[-r*.56,h*.24,r*.56,h*.66],-r*(jug ? .67 : 1.01),label(withColor(d),name,key));
 }
 
+function barbecueBottle(p) {
+  const sauce=plasticP(0x663b2c), neck=plasticP(0x754536);
+  bevel(p,'wide flat squeeze bottle',[-.042,0,-.017,.042,.104,.017],.006,sauce);
+  const shoulder=(y,x,z,cut)=>[
+    [-x+cut,y,-z],[x-cut,y,-z],[x,y,-z+cut],[x,y,z-cut],
+    [x-cut,y,z],[-x+cut,y,z],[-x,y,z-cut],[-x,y,-z+cut],
+  ].map(q=>V(...q));
+  hull(p,'tapered bottle shoulders',[
+    ...shoulder(.096,.041,.016,.005),...shoulder(.114,.025,.014,.006),
+    ...shoulder(.125,.013,.011,.004),
+  ],sauce);
+  lid(p,'short bottle neck',.011,.122,.012,neck);
+  lid(p,'tamper band',.013,.130,.004,plasticP(0x4a3a34));
+  cyl(p,'ribbed flip-top cap','y',[0,.142,0],.013,.017,14,(ctx,x,y,w,h)=>{
+    fill(ctx,x,y,w,h,0x343334);
+    fill(ctx,x,y,1,h,0x595552);
+  },{},.0124);
+  lid(p,'cap top',.0125,.149,.002,plasticP(0x2e3030));
+
+  const frontLabel=(ctx,x,y,w,h)=>{
+    fill(ctx,x,y,w,h,0xe2c69a);
+    fill(ctx,x,y+h*.10,w,h*.36,0x7f3e32);
+    fill(ctx,x+w*.09,y+h*.52,w*.82,h*.35,0x4d4139);
+    // Amber embers and grate stripes make the sauce legible at a distance.
+    for(let i=0;i<4;i++) fill(ctx,x+w*(.23+i*.15),y+h*.74,w*.035,h*.095,0xbd8961);
+    fill(ctx,x+w*.20,y+h*.71,w*.61,h*.026,0xdeae71);
+    for(const [u,v] of [[.26,.64],[.47,.58],[.65,.65]]) fill(ctx,x+w*u,y+h*v,w*.08,h*.062,0xe37943);
+    ctx.fillStyle='#f7e8c3';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.font='bold '+Math.round(h*.27)+'px sans-serif';
+    ctx.fillText('BBQ',x+w/2,y+h*.29,w*.83);
+    fill(ctx,x,y+h*.91,w,h*.042,0xa86444);
+  };
+  front(p,'BBQ front label',[-.031,.027,.031,.083],-.0172,frontLabel,{ppm:960});
+  poly(p,'back label',[V(-.029,.028,.0172),V(.029,.028,.0172),V(.029,.079,.0172),V(-.029,.079,.0172)],V(0,0,1),(ctx,x,y,w,h)=>{
+    fill(ctx,x,y,w,h,0xe2c69a);
+    fill(ctx,x+w*.10,y+h*.13,w*.77,h*.075,0x7f3e32);
+    for(let i=0;i<4;i++) fill(ctx,x+w*.11,y+h*(.29+i*.103),w*(.63+i%2*.13),Math.max(1,h*.034),0x826453);
+    for(let i=0;i<8;i++) if(i!==3&&i!==6) fill(ctx,x+w*(.57+i*.035),y+h*.76,w*.017,h*.13,0x4f423a);
+  },{ppm:840});
+}
+
+function ketchupBottle(p) {
+  // CDDA uses the inverted condiment bottle for ketchup. The broad label faces
+  // are flat through the middle, with rounded shoulders narrowing to the cap.
+  const profiles=[
+    [.019,.016,.013,.004],[.033,.022,.016,.005],[.055,.031,.0185,.006],
+    [.072,.036,.019,.006],[.123,.036,.019,.006],[.145,.033,.0178,.006],
+    [.163,.029,.015,.005],[.169,.022,.012,.004],
+  ];
+  const rings=profiles.map(([y,x,z,c])=>[
+    [-x+c,y,z],[x-c,y,z],[x,y,z-c],[x,y,-z+c],
+    [x-c,y,-z],[-x+c,y,-z],[-x,y,-z+c],[-x,y,z-c],
+  ].map(q=>V(...q)));
+  const faces=[];
+  const face=(q,side)=>faces.push({p:q,side,wm:q[0].distanceTo(q[1]),hm:q[1].distanceTo(q[2])});
+  for(let j=0;j<rings.length-1;j++) for(let i=0;i<8;i++) {
+    const next=(i+1)%8;
+    face([rings[j][i],rings[j][next],rings[j+1][next],rings[j+1][i]],i);
+  }
+  for(let i=1;i<7;i++) {
+    face([rings[0][0],rings[0][i+1],rings[0][i]],8);
+    face([rings.at(-1)[0],rings.at(-1)[i],rings.at(-1)[i+1]],9);
+  }
+  add(p,'inverted red squeeze bottle',faces,(ctx,x,y,w,h,side)=>{
+    const color=side===0||side===4?0xb64839:side===9?0xa33e32:0xa94234;
+    plasticP(color)(ctx,x,y,w,h);
+  });
+  const cap=plasticP(0xe7e2cf);
+  lid(p,'bottom flip cap',.0207,0,.008,cap);
+  lid(p,'flip cap seam',.0204,.008,.0015,plasticP(0xc9c3b3));
+  cyl(p,'ribbed cap collar','y',[0,.0144,0],.0205,.010,14,(ctx,x,y,w,h)=>{
+    fill(ctx,x,y,w,h,0xebe5d5);
+    fill(ctx,x,y,1,h,0xcdc8b7);
+  },{},.019);
+  p.box('cap thumb notch',[-.005,.005,-.0208,.005,.013,-.0193],plasticP(0xd8d1c1));
+
+  front(p,'ketchup tomato front label',[-.0275,.071,.0275,.121],-.01915,(ctx,x,y,w,h)=>{
+    fill(ctx,x,y,w,h,0xefe1b5);
+    fill(ctx,x,y+h*.05,w,h*.29,0x8f3d31);
+    fill(ctx,x,y+h*.91,w,h*.045,0x819054);
+    ctx.fillStyle='#f6e9c1';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.font='bold '+Math.round(h*.17)+'px sans-serif';
+    ctx.fillText('KETCHUP',x+w/2,y+h*.20,w*.89);
+    ctx.save();
+    ctx.translate(x,y+h*.355);
+    ctx.scale(w/88,h*.53/46);
+    ctx.translate(0,-29);
+    paintTomatoIcon(ctx);
+    ctx.restore();
+  },{ppm:1200});
+  poly(p,'ketchup back label',[V(-.024,.075,.01915),V(.024,.075,.01915),V(.024,.118,.01915),V(-.024,.118,.01915)],V(0,0,1),(ctx,x,y,w,h)=>{
+    fill(ctx,x,y,w,h,0xe9dbb4);
+    fill(ctx,x+w*.10,y+h*.10,w*.66,h*.089,0x903e32);
+    for(let i=0;i<4;i++) fill(ctx,x+w*.10,y+h*(.30+i*.106),w*(.56+i%2*.22),Math.max(1,h*.030),0x8a6e57);
+    for(let i=0;i<9;i++) if(i%3!==2) fill(ctx,x+w*(.52+i*.038),y+h*.76,w*.019,h*.15,0x57493d);
+  },{ppm:900});
+}
+
 function jar(p, d) {
   if (d.id === 'pickle') {
     const colors=[0x627049,0x506447,0x7e8751];
@@ -82,7 +181,9 @@ function jar(p, d) {
       k===0?.012:.016,k===4?.011:.016,8,plasticP(colors[k%3])));
     return;
   }
-  if (/ketchup|barbecue_sauce|honey_mustard/.test(d.id)) {
+  if (d.id === 'barbecue_sauce') return barbecueBottle(p);
+  if (d.id === 'ketchup') return ketchupBottle(p);
+  if (d.id === 'honey_mustard') {
     bottle(p,d);
     return;
   }
@@ -275,8 +376,40 @@ function vessel(p, d, kind) {
   }
 }
 
+function aluminumSurvivalKit(p) {
+  const aluminum=speckle('pressed aluminum',0xaebcbd,[0xb4c2c2,0xa5b1b3],.16);
+  const rim=steelP(0xc5d0ce);
+  const latch=steelP(0x889699);
+  const gasket=flat(0x353d3b);
+  const metal={metal:true,ppm:240};
+
+  bevel(p,'pressed aluminum base',[-.126,0,-.071,.126,.048,.071],.004,aluminum,metal);
+  p.box('dark lid gasket',[-.125,.046,-.071,.125,.051,.071],gasket);
+  bevel(p,'rolled aluminum lid',[-.128,.050,-.074,.128,.060,.074],.0035,rim,metal);
+  bevel(p,'stamped lid panel',[-.110,.058,-.057,.110,.064,.057],.002,aluminum,metal);
+  const badge=[V(.058,.0642,-.022),V(-.058,.0642,-.022),V(-.058,.0642,.020),V(.058,.0642,.020)];
+  poly(p,'survival kit enamel badge',badge,V(0,1,0),(ctx,x,y,w,h)=>{
+    fill(ctx,x,y,w,h,0x405e55);
+    fill(ctx,x,y,w,h*.13,0x859787);
+    ctx.fillStyle='#f2ebd1';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.font=`bold ${Math.floor(h*.29)}px sans-serif`;
+    ctx.fillText('SURVIVAL KIT',x+w/2,y+h*.55,w*.88);
+  },{ppm:650});
+
+  for(const x of [-.078,.078]) {
+    bevel(p,'latch mounting plate',[x-.013,.028,-.075,x+.013,.056,-.071],.001,latch,metal);
+    p.box('keeper',[x-.011,.049,-.080,x+.011,.055,-.073],rim,metal);
+    bevel(p,'over-center latch lever',[x-.008,.023,-.081,x+.008,.047,-.076],.0015,aluminum,metal);
+    cyl(p,'latch pivot','x',[x,.043,-.078],.0034,.021,8,latch,metal);
+    cyl(p,'rear hinge barrel','x',[x,.048,.073],.0036,.035,8,latch,metal);
+  }
+}
+
 function travelCase(p,d) {
-  const w = d.length || (/rc_car|survival/.test(d.id) ? .27 : .17);
+  if (d.id==='survival_kit_box') return aluminumSurvivalKit(p);
+  const w = d.length || (d.id==='rc_car_box' ? .27 : .17);
   const z = w * (/toolbox|rc_car/.test(d.id) ? .25 : .32);
   const h = z * (/pillbox/.test(d.id) ? .47 : .73);
   const base = /toolbox/.test(d.id) ? rubber : plasticP(shade(d.color,.82));
@@ -289,7 +422,7 @@ function travelCase(p,d) {
       p.box(`divider ${k}`,[x-.001,h-.002,-z*.92,x+.001,h+.001,z*.92],base);
     }
     if (d.id === 'pillbox_large') p.box('second week divider',[-w*.47,h-.002,-.002,w*.47,h+.001,.002],base);
-  } else if (/toolbox|survival/.test(d.id)) {
+  } else if (/toolbox/.test(d.id)) {
     for (const s of [-1,1]) p.box(`latch ${s}`,[s*w*.29-.008,h*.53,-z-.006,s*w*.29+.008,h*.79,-z+.003],cement);
     path(p,'carry handle',[[-w*.24,h,0],[-w*.19,h+.024,0],[w*.19,h+.024,0],[w*.24,h,0]],.005,lidPaint);
   } else {
