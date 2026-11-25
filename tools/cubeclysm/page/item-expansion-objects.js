@@ -385,7 +385,125 @@ function tool(p,d) {
   p.box('indicator',[.425,.077,-.054,.445,.086,-.050],flat(0x6b9b75));
 }
 
+// The outer wall turns across the lip into a visible interior, with a closed floor.
+function hollowWare(p,name,profile,outside,inside,wall=.035,sides=16) {
+  const section=[...profile,...profile.slice(1).reverse().map(([y,r])=>[y,r-wall])];
+  const rings=section.map(([y,r])=>Array.from({length:sides},(_,i)=>{
+    const a=i*Math.PI*2/sides;
+    return V(r*Math.cos(a),y,r*Math.sin(a));
+  }));
+  const faces=[];
+  const face=(points,side)=>faces.push({p:points,side,wm:points[0].distanceTo(points[1]),hm:points[1].distanceTo(points[2])});
+  for(let i=0;i<sides;i++) {
+    const next=(i+1)%sides;
+    for(let j=0;j<rings.length-1;j++) {
+      face([rings[j][i],rings[j+1][i],rings[j+1][next],rings[j][next]],j>=profile.length-1?'inside':'outside');
+    }
+    face([V(0,section[0][0],0),rings[0][i],rings[0][next]],'outside');
+    face([V(0,section.at(-1)[0],0),rings.at(-1)[next],rings.at(-1)[i]],'inside');
+  }
+  add(p,name,faces,(ctx,x,y,w,h,side)=>(side==='inside'?inside:outside)(ctx,x,y,w,h),{ppm:86});
+}
+
+function woodenBowl(p,{id}) {
+  const coconut=id==='bowl_coconut', large=id==='bowl_wood_large';
+  const finish=woodP(coconut?0x765035:large?0x966949:0xb58a59);
+  const inside=woodP(coconut?0xc6a783:large?0xc09163:0xc59b6a);
+  const profile=coconut?[[0,.208],[.055,.297],[.13,.39],[.246,.463],[.371,.471]]:
+    [[0,.264],[.044,.322],[.125,.396],[.225,.465],[large?.329:.292,.483]];
+  hollowWare(p,coconut?'split coconut shell bowl':'carved wooden bowl',profile,finish,inside,coconut?.022:.048);
+}
+
+function pail(p,d) {
+  const orange=d.id==='bucket_5gal', wooden=d.id==='bucket_wood';
+  const color=orange?0xc56736:wooden?0x8e6945:0x98a5a5;
+  const outside=orange?plasticP(color):wooden?woodP(color):steelP(color);
+  const inside=orange?plasticP(0xba5d31):wooden?woodP(0xac8154):steelP(0x7f8d8e);
+  const r=orange?.429:wooden?.442:.45, rimY=orange?.87:wooden?.63:.72;
+  hollowWare(p,wooden?'hollowed wooden pail':'tapered bucket body',
+    [[0,r*.71],[.058,r*.745],[.20,r*.81],[rimY-.033,r*.97],[rimY,r]],outside,inside,wooden?.056:.028);
+  if(!wooden) {
+    for(const y of orange?[rimY-.125,rimY-.064,rimY]:[.065,rimY-.030,rimY]) {
+      const reach=y<.10?r*.77:r*(y===rimY?1.027:.985);
+      cyl(p,'raised rolled rim','y',[0,y,0],reach,.017,16,outside,{open:true});
+    }
+  }
+  const handleY=orange?.743:wooden?.548:.615;
+  const rise=orange?.250:wooden?.272:.297;
+  const handlePaint=wooden?woodP(0x664b35):steelP(orange?0x888d86:0x6c797b);
+  path(p,'arched carry handle',[
+    [-r,handleY,0],[-r*.92,handleY+rise*.52,.025],[-.257,handleY+rise*.845,.084],[0,handleY+rise,.104],
+    [.257,handleY+rise*.845,.084],[r*.92,handleY+rise*.52,.025],[r,handleY,0],
+  ],wooden?.035:.011,handlePaint);
+  for(const x of [-r*.955,r*.955]) cyl(p,'handle lug','x',[x,handleY,0],.044,.043,8,outside);
+}
+
+const terracotta=plasticP(0xb36f4b);
+const clayInterior=plasticP(0x965c3f);
+const hideLid=clothP(0x856b50);
+function clayLid(p,r,y) {
+  cyl(p,'tied waterproof hide cover','y',[0,y+.015,0],r,.035,13,hideLid,{},r*.88);
+  cyl(p,'hide binding cord','y',[0,y+.008,0],r*1.008,.012,13,flat(0x644e39),{open:true});
+  path(p,'folded lid tab',[[r*.34,y+.031,-.02],[r*.69,y+.048,.05],[r*.86,y+.037,.075]],.020,hideLid);
+}
+
+function clayJar(p,d) {
+  const hydria=d.id==='clay_hydria', jug=d.id==='jug_clay';
+  const base=hydria?.208:jug?.214:.246, height=hydria?.94:jug?.845:.735;
+  const belly=hydria?.349:jug?.336:.353, mouth=hydria?.135:jug?.12:.22;
+  hollowWare(p,'thrown clay shoulders',[[0,base],[.065,base*1.13],[height*.30,belly],
+    [height*.59,belly*.97],[height*.77,mouth*1.11],[height*.91,mouth],[height,mouth*1.10]],
+    terracotta,clayInterior,.024);
+  clayLid(p,mouth*1.18,height);
+  const handle=plasticP(0xa76443);
+  if (hydria) {
+    for(const s of [-1,1]) path(p,'horizontal lifting handle',[[s*.257,.53,-.13],[s*.411,.57,-.12],
+      [s*.43,.58,.039],[s*.359,.58,.144],[s*.223,.57,.151]],.038,handle);
+  }
+  if (jug||hydria) {
+    const x=hydria?0:.114;
+    path(p,'vertical pouring handle',[[x,height*.91,.105],[x,height*.92,.252],[x,height*.78,.335],
+      [x,height*.54,.348],[x,height*.48,.258]],.036,handle);
+  } else {
+    for(const y of [.16,.572]) cyl(p,'urn decorative clay band','y',[0,y,0],y<.2?.308:.251,.011,16,plasticP(0xc0855e),{open:true});
+  }
+}
+
+const dishes = {
+  bowl_coconut:woodenBowl, bowl_wood:woodenBowl, bowl_wood_large:woodenBowl,
+  bucket:pail, bucket_5gal:pail, bucket_wood:pail,
+  clay_hydria:clayJar, jug_clay:clayJar, clay_canister:clayJar,
+  bowl_clay(p) {
+    hollowWare(p,'low clay bowl',[[0,.260],[.051,.304],[.124,.392],[.212,.463],[.282,.489]],terracotta,clayInterior,.040);
+    clayLid(p,.493,.273);
+  },
+  clay_cup(p) {
+    hollowWare(p,'open clay drinking cup',[[0,.239],[.058,.267],[.195,.288],[.486,.309],[.547,.317]],
+      plasticP(0xaa7050),plasticP(0x8d563a),.032);
+    path(p,'clay cup loop handle',[[.265,.431,0],[.409,.445,0],[.466,.358,0],[.446,.242,0],[.32,.171,0],[.275,.183,0]],
+      .033,plasticP(0xa96c4b));
+  },
+  lunchbox(p) {
+    const blue=plasticP(0x426d83), cream=plasticP(0xd3c398);
+    bevel(p,'molded lunch box',[-.486,0,-.341,.486,.241,.331],.039,blue);
+    bevel(p,'cream lid',[-.492,.228,-.346,.492,.302,.339],.025,cream);
+    p.box('blue lid seam',[-.471,.229,-.345,.471,.241,.340],plasticP(0x314c59));
+    path(p,'wide lunchbox grip',[[-.185,.169,-.327],[-.164,.148,-.423],[.168,.145,-.423],[.186,.174,-.328]],.027,blue);
+    for(const x of [-.265,.265]) {
+      bevel(p,'snap tab',[x-.040,.187,-.361,x+.040,.265,-.332],.006,cream);
+      p.box('back hinge',[x-.057,.212,.317,x+.057,.254,.342],blue);
+    }
+    top(p,'two-tone lid inset',[-.416,-.24,.416,.242],.303,(ctx,x,y,w,h)=>{
+      fill(ctx,x,y,w,h,0xadbbad);
+      fill(ctx,x+w*.056,y+h*.18,w*.888,h*.64,0x5c8391);
+      fill(ctx,x+w*.09,y+h*.27,w*.82,h*.063,0xd8ca9d);
+      fill(ctx,x+w*.09,y+h*.67,w*.82,h*.063,0xd8ca9d);
+    },{ppm:110});
+  },
+};
+
 export const objects = {
+  tableware:(p,d)=>dishes[d.id](p,d),
   rod:bar, wood:bar, ingot:bar, wire:reel, emptySpool:reel, hose:reel, pipe:hollow,
   foil:hollow, cardboardTube:hollow, tubeContainer:hollow,
   bottle:vessel, jar:vessel, drum:vessel, tank:vessel, box:container, sack:container,

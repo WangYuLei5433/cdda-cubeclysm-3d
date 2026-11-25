@@ -62,7 +62,7 @@ ln -s "$PWD" ../cdda-voxel-studio/vendor/mesh/cdda-cubeclysm-3d
 | --- | --- |
 | `meshset.json` | The "Cubeclysm" set: bound models and unbound candidates |
 | `models/cubeclysm/` | `monsters/`, `characters/`, `candidates/`: `.glb` and its atlas `.png`, named after the CDDA id |
-| `tools/cubeclysm/` | The generator: recipes (`page/recipes.js`), body builder, gear, faces, hair, effects, props and fields; `select.mjs` and `bind-terrain.mjs` bind built models into `meshset.json` |
+| `tools/cubeclysm/` | Model recipes, generators, and `bind.mjs` for importing built models into `meshset.json` |
 | `docs/standard.zh.md` | **Design and constraints** (the current standard) |
 | `docs/proposal.zh.md` | The original proposal (a discussion draft) |
 | `docs/census.zh.md` | **What to model next**: how often each CDDA object appears in play (sampled from the real engine), ranked per category, with coverage; full tables in `docs/census/*.csv` |
@@ -72,12 +72,14 @@ ln -s "$PWD" ../cdda-voxel-studio/vendor/mesh/cdda-cubeclysm-3d
 
 ```sh
 npm install
-node tools/cubeclysm/build.mjs --only mon_zombie,mon_zombie_fat   # recipes → sources/cubeclysm/ (headless Chromium)
-node tools/cubeclysm/select.mjs                                    # bind built characters and monsters into meshset.json
-node tools/cubeclysm/bind-terrain.mjs                              # bind built terrain, furniture, vehicles, items and fields
+node tools/cubeclysm/build.mjs --only mon_zombie,shorts             # recipes → sources/cubeclysm/ (headless Chromium)
+npm run bind -- --only mon_zombie,shorts                          # bind both models into meshset.json
 python3 .claude/skills/cubeclysm/scripts/cdda_check.py mon_zombie  # official description and size vs the model
 node .claude/skills/cubeclysm/scripts/preview.mjs --out sheet.png mon_zombie   # render check in the studio
 ```
+
+For bulk binding, `npm run bind` selects props and `npm run select` selects characters, monsters
+and candidates.
 
 The check script expects cdda-voxel-studio and a CDDA checkout beside this folder. To point it
 elsewhere, set `STUDIO` and `CDDA`.

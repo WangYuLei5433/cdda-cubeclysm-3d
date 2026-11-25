@@ -6,8 +6,8 @@
   "description": "Shared 3D model library for Cataclysm: Dark Days Ahead (glTF meshes and MagicaVoxel voxel models), engine-neutral.",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
-    "select": "node tools/cubeclysm/select.mjs",
-    "bind": "node tools/cubeclysm/bind-terrain.mjs"
+    "select": "node tools/cubeclysm/bind.mjs --characters",
+    "bind": "node tools/cubeclysm/bind.mjs"
   },
   "devDependencies": {
     "playwright": "1.60.0",

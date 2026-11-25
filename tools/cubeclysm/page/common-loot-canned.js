@@ -5,6 +5,10 @@ const labels = {
   can_tomato: { title:'TOMATO', base:0x9b3f33, accent:0xc55a46, food:paintTomatoIcon },
   can_corn: { title:'CORN', base:0x4d713c, accent:0x738f46, food:corn },
   can_beans: { title:'BEANS', base:0x426777, accent:0x638c98, food:beans },
+  can_peach: { title:'PEACHES', base:0xa35644, accent:0xcf7e4d, food:peachSlices },
+  can_pineapple: { title:'PINEAPPLE', titleWidth:65, base:0x48694c, accent:0x6d8c59, food:pineappleRings },
+  apple_canned: { title:'FRUIT MIX', titleWidth:62, base:0x986048, accent:0xb77752, food:fruitMix },
+  can_coconut: { title:'COCONUT', base:0x57707e, accent:0x7491a1, food:coconutMilk },
 };
 
 const otherLabels = {
@@ -27,6 +31,47 @@ function polygon(ctx,color,points) {
   }
   ctx.closePath();
   ctx.fill();
+}
+
+function peachSlices(ctx) {
+  polygon(ctx,'#a05e3e',[[23,43],[36,34],[53,34],[67,43],[66,58],[57,69],[46,75],[32,71],[21,60]]);
+  polygon(ctx,'#f1ab53',[[27,42],[41,36],[55,39],[63,47],[58,56],[47,62],[35,56],[25,50]]);
+  polygon(ctx,'#e68944',[[26,52],[36,59],[48,64],[62,59],[57,70],[46,74],[34,69],[26,61]]);
+  polygon(ctx,'#f8c76f',[[29,44],[40,40],[51,42],[46,48],[35,51],[29,48]]);
+}
+
+function pineappleRings(ctx) {
+  for(const [x,y] of [[50,46],[41,61]]) {
+    ctx.beginPath();
+    ctx.ellipse(x,y,21,12,-.21,0,Math.PI*2);
+    ctx.fillStyle='#ad773a';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(x,y-3,20,10,-.21,0,Math.PI*2);
+    ctx.fillStyle='#ebbc58';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(x,y-3,7,3.5,-.21,0,Math.PI*2);
+    ctx.fillStyle='#7f6a46';
+    ctx.fill();
+  }
+}
+
+function fruitMix(ctx) {
+  polygon(ctx,'#9d4135',[[19,49],[33,42],[48,44],[52,56],[44,69],[30,70],[20,63]]);
+  polygon(ctx,'#dda65a',[[40,42],[55,36],[67,43],[66,57],[54,64],[43,56]]);
+  polygon(ctx,'#83a05c',[[39,62],[50,55],[61,58],[62,69],[54,73],[42,70]]);
+  fill(ctx,27,48,10,4,0xda7851);
+  fill(ctx,47,41,12,4,0xedc578);
+  fill(ctx,46,61,9,3,0xa9b874);
+}
+
+function coconutMilk(ctx) {
+  polygon(ctx,'#77604b',[[17,52],[24,39],[38,35],[53,42],[57,56],[50,68],[37,71],[25,65]]);
+  polygon(ctx,'#ad835d',[[21,49],[27,42],[38,39],[45,42],[43,51],[34,58],[24,57]]);
+  polygon(ctx,'#715347',[[36,58],[41,49],[57,46],[68,50],[73,57],[67,69],[57,75],[44,71]]);
+  polygon(ctx,'#eddfb7',[[39,57],[48,51],[58,50],[68,54],[69,59],[62,65],[48,67],[41,63]]);
+  polygon(ctx,'#b89d78',[[49,57],[57,54],[63,56],[62,60],[54,62],[49,60]]);
 }
 
 function tuna(ctx) {

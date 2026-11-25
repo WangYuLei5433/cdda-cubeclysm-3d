@@ -12,7 +12,7 @@ function blend(a,b,weight) {
 }
 
 function skin(p, name, profile, [width, depth], color, options = {}) {
-  const { sides = 12, ribs = 0, lean = 0, at = [0,0,0], stripe = 0 } = options;
+  const { sides = 12, ribs = 0, lean = 0, at = [0,0,0], stripe = 0, parent } = options;
   const faces = [];
   const point = ([y, r], i) => {
     const a = i * 2 * Math.PI / sides;
@@ -41,7 +41,7 @@ function skin(p, name, profile, [width, depth], color, options = {}) {
     const arc=Math.max(0,Math.cos((k+.35*j)*Math.PI*2/sides));
     const tone=stripe ? (k%3===0 ? blush : base) : blend(base,blush,arc*arc*.86);
     speckle(name+k+'-'+j,tone,[shade(tone,1.13),pores],.14)(ctx,x,y,w,h);
-  });
+  },{parent});
 }
 
 const stem=(p,y,x=0,z=0)=>tube(p,'woody stem',V(x,y,z),V(x+.037,y+.083,z-.027),.027,.016,6,flat(0x655038));
@@ -360,8 +360,216 @@ function cornEar(p,d) {
   }
 }
 
+function creamFlorets(p) {
+  const cream=speckle('cauliflower florets',0xded3ab,[0xefdfb4,0xc4b58e],.22);
+  return (name,r,x,y,z)=>blob(p,name,[r,r*.81,r],[x,y,z],cream,{},3,7);
+}
+
+function crucifer(p, broccoli) {
+  const stalk=plasticP(broccoli?0x769051:0xb7bd81);
+  const green=speckle('broccoli buds',0x4e753a,[0x648c49,0x395632],.39);
+  const floret=broccoli
+    ? (name,r,x,y,z)=>blob(p,name,[r,r*.78,r],[x,y,z],green,{},3,8)
+    : creamFlorets(p);
+  if (broccoli) {
+    tube(p,'cut broccoli stalk',V(0,0,0),V(0,.38,0),.105,.094,9,stalk);
+  } else {
+    skin(p,'cauliflower base',[[0,.62],[.09,.83],[.26,1],[.40,.78]],[.28,.28],[0x68824a,0x94a564]);
+  }
+  for(let k=0;k<7;k++) {
+    const a=k*2.4, x=Math.cos(a)*.26, z=Math.sin(a)*.26, y=(broccoli?.46:.34)+k%3*.059;
+    tube(p,'stem to floret',V(0,broccoli?.23:.16,0),V(x,y,z),.055,.041,7,stalk);
+    floret('cluster of tight buds',.155,x,y,z);
+    for(let j=0;j<3;j++) {
+      const angle=j*2.09+a;
+      floret('small crown bud',.079,x+Math.cos(angle)*.095,y+.081,z+Math.sin(angle)*.095);
+    }
+    if (!broccoli) leaf(p,'green outer cauliflower leaf',[x*.45,.07,z*.45],[x*.92,z*.92],.088,.235,[0x698b4e,0xa3b77d]);
+  }
+  floret('center crown',.22,0,broccoli?.527:.463,0);
+}
+
+function bottleGourd(p,d) {
+  const dried=d.id==='bottle_gourd';
+  skin(p,'double-lobed bottle gourd',[[0,.52],[.09,.87],[.25,1],[.40,.76],[.50,.43],
+    [.59,.43],[.68,.63],[.80,.61],[.89,.41],[.94,.215]],[.38,.36],
+    dried?[0xb58649,0xcaa367,0x946f43]:[0x72984d,0xb4ba6e,0x507943],{sides:16});
+  if (dried) {
+    cyl(p,'dark mouth','y',[0,.943,0],.078,.009,10,flat(0x5e4630));
+    cyl(p,'fitted cork stopper','y',[0,.965,0],.062,.049,10,plasticP(0xa47d52),{},.068);
+    path(p,'woven neck cord',[[-.18,.70,0],[-.151,.73,-.126],[0,.73,-.176],[.15,.73,-.118],[.19,.73,.012],
+      [.132,.72,.142],[-.02,.72,.177],[-.18,.70,0],[-.29,.57,.052]],.012,plasticP(0x714f39));
+  } else stem(p,.942);
+}
+
+const market = {
+  cherries(p) {
+    const cherry=plasticP(0xa03540);
+    for(const [x,z] of [[-.23,.14],[.18,.14],[-.17,-.23],[.16,-.22]]) {
+      blob(p,'ripe red cherry',[.176,.147,.158],[x,.147,z],cherry,{},5,10);
+      path(p,'slender bent cherry stem',[[x,.278,z],[x*.73,.385,z*.72],[.03,.528,-.06]],.014,flat(0x657343));
+    }
+  },
+  coconut(p) {
+    const husk=speckle('hairy coconut husk',0x805a39,[0xa37949,0x5d432e],.40);
+    blob(p,'oval fibrous coconut shell',[.49,.338,.344],[0,.338,0],husk,{},6,12);
+    for(let i=0;i<9;i++) {
+      const a=i*2.4, z=Math.sin(a)*.209, y=.51+Math.cos(a)*.071;
+      path(p,'long husk fibre',[[-.35,y-.058,z*.69],[-.19,y+.048,z],[.11,y+.062,z*.94],[.32,y-.02,z*.73]],.004,flat(i%2?0x9c754e:0x6d4d34));
+    }
+    for(const [x,y,z] of [[.387,.545,0],[.353,.51,.147],[.362,.503,-.149]]) {
+      blob(p,'recessed coconut eye',[.038,.021,.030],[x,y,z],flat(0x4d3528),{},3,7);
+    }
+  },
+  coconut_flesh(p) {
+    for(const [x,z,angle,size] of [[-.26,.01,-.59,1],[.09,-.20,.27,.82],[.26,.146,.82,1.08],[-.13,.29,-.22,.91]]) {
+      const c=Math.cos(angle),s=Math.sin(angle);
+      const place=([u,v])=>[x+(u*c-v*s)*size,z+(u*s+v*c)*size];
+      const cut=[[-.156,.01],[-.069,-.11],[.102,-.104],[.153,-.037],[.055,-.035],[-.05,.085]];
+      outline(p,'curved ivory coconut piece',cut.map(place),.080*size,plasticP(0xece1c5),.016);
+      outline(p,'thin brown coconut skin',cut.map(place),.018,flat(0x9a7250));
+    }
+  },
+  lulo(p) {
+    skin(p,'fuzzy orange lulo rind',roundProfile,[.434,.412],[0xc58337,0xe8aa49,0x9a713b],{sides:15});
+    for(let k=0;k<4;k++) {
+      const a=k*Math.PI/2;
+      leaf(p,'low olive calyx',[0,.713,0],[Math.cos(a)*.182,Math.sin(a)*.182],.063,-.039,[0x658049,0x87945a]);
+    }
+    stem(p,.705);
+  },
+  maracuya(p) {
+    blob(p,'purple whole passionfruit',[.237,.213,.235],[-.255,.213,.057],plasticP(0x734b65),{},6,12);
+    const x=.238,z=-.051;
+    blob(p,'cut purple shell',[.236,.151,.23],[x,.151,z],plasticP(0x783f59),{},4,13);
+    cyl(p,'white pith border','y',[x,.249,z],.188,.106,14,plasticP(0xe2caa7));
+    cyl(p,'gold passionfruit pulp','y',[x,.303,z],.154,.016,14,plasticP(0xdea645));
+    for(let k=0;k<13;k++) {
+      const a=k*2.4,r=.126*Math.sqrt(k/13);
+      blob(p,'dark seed in pulp',[.018,.012,.017],[x+Math.cos(a)*r,.314,z+Math.sin(a)*r],flat(0x684527),{},3,6);
+    }
+  },
+  papaya(p) {
+    const shape=[[-.485,-.022],[-.344,-.136],[-.101,-.222],[.182,-.241],[.371,-.152],[.47,-.036],[.42,.112],[.268,.22],[.009,.238],[-.22,.165],[-.37,.076]];
+    outline(p,'yellow green papaya rind',shape,.090,plasticP(0x8e9d50));
+    outline(p,'warm orange papaya flesh',shape.map(([x,z])=>[x*.936,z*.91]),.092,plasticP(0xe59449),.083);
+    blob(p,'dark central seed cavity',[.269,.020,.103],[.055,.171,0],plasticP(0xbc6a42),{},4,11);
+    const rand=rng('papaya seeds');
+    for(let k=0;k<18;k++) {
+      const a=k*2.4,r=Math.sqrt(k/18);
+      blob(p,'black papaya seed',[.018+rand()*.008,.015,.019],[.055+.235*r*Math.cos(a),.186,.079*r*Math.sin(a)],plasticP(0x473631),{},3,6);
+    }
+  },
+  watermelon_wedge(p) {
+    const arc=(r)=>Array.from({length:13},(_,k)=>{
+      const a=Math.PI*k/12;
+      return [Math.cos(a)*r,Math.sin(a)*r*.81-.17];
+    });
+    outline(p,'striped green rind',arc(.48),.086,plasticP(0x41633c));
+    outline(p,'thin pale rind edge',arc(.448),.047,plasticP(0xbcce8d),.078);
+    outline(p,'red watermelon flesh',arc(.418).map(([x,z])=>[x,z+.008]),.076,plasticP(0xd95552),.113);
+    for (const [x,z] of [[-.26,-.07],[-.17,.065],[-.09,-.038],[.01,.099],[.10,-.056],[.18,.03],[.27,-.06]]) {
+      blob(p,'embedded watermelon seed',[.012,.005,.024],[x,.191,z],flat(0x513a37),{},3,6);
+    }
+  },
+  cactus_pad(p) {
+    const pad=plasticP(0x5f8851);
+    for(const [x,y,z] of [[-.16,0,.114],[.177,.047,-.114]]) {
+      outline(p,'flat rounded cactus paddle',[[x-.27,z-.075],[x-.14,z-.19],[x+.103,z-.157],[x+.237,z-.047],
+        [x+.21,z+.104],[x+.061,z+.163],[x-.14,z+.128],[x-.26,z+.047]],.064,pad,y);
+      for(const [dx,dz] of [[-.14,-.06],[-.15,.056],[-.035,0],[.041,-.078],[.085,.071],[.16,.02]]) {
+        blob(p,'pale cactus areole',[.019,.006,.014],[x+dx,y+.066,z+dz],flat(0xa9aa73),{},3,5);
+      }
+    }
+  },
+  broccoli: (p)=>crucifer(p,true),
+  cauliflower_head: (p)=>crucifer(p,false),
+  cauliflower(p) {
+    const floret=creamFlorets(p);
+    const rand=rng('shredded cauliflower');
+    for(let k=0;k<18;k++) {
+      const a=k*2.4,r=.41*Math.sqrt(k/18),size=.056+rand()*.052;
+      floret('shredded cauliflower crumb',size,Math.cos(a)*r,size*.81,Math.sin(a)*r);
+    }
+  },
+  brussels_sprout(p) {
+    skin(p,'compact round green sprout',[[0,.46],[.14,.82],[.37,1],[.62,.89],[.79,.45]],[.428,.415],[0x537842,0x82a35b,0x42643b]);
+    for(let k=0;k<9;k++) {
+      const a=k*2.4;
+      const point=(r,y,turn=0)=>V(Math.cos(a+turn)*r,y,Math.sin(a+turn)*r);
+      const root=point(.341,.25), ridge=point(.436,.482), tip=point(.273,.749);
+      const out=point(1,.38);
+      for(const side of [-1,1]) {
+        const edge=point(.421,.57,side*.337);
+        poly(p,'overlapping sprout leaf',[root,edge,tip,ridge],out,plasticP(side<0?0x63884c:0x719757));
+      }
+    }
+    cyl(p,'trimmed basal stalk','y',[0,0.035,0],.123,.07,9,plasticP(0xa5af73));
+  },
+  celery(p) {
+    const stemPaint=plasticP(0xa7bb6d);
+    pod(p,'ribbed celery stalk',[[-.45,.095,-.04,.084],[-.23,.088,-.04,.079],[.05,.082,.008,.068],[.33,.062,.09,.044]],
+      [0x90a85b,0xb6c77b],false);
+    for (const z of [-.032,.02]) path(p,'pale raised stalk rib',[[-.448,.165,z-.04],[-.23,.165,z-.04],[.05,.145,z+.008],[.329,.095,z+.085]],.011,stemPaint);
+    for(const dir of [[.177,.04],[.095,.191],[-.031,-.175]]) leaf(p,'celery leaf',[.28,.105,.074],dir,.070,.063,[0x6b974e,0xa0b565]);
+  },
+  eggplant(p) {
+    const parent=p.group('eggplant laid on its side',{at:[-.455,.235,.020],rotZ:-Math.PI/2});
+    skin(p,'continuous purple eggplant skin',[[0,.29],[.101,.74],[.226,1],[.370,.946],[.564,.68],[.731,.43],[.860,.26]],
+      [.233,.221],[0x503450,0x754f70,0x48314c],{sides:16,lean:.087,parent});
+    for(const [dx,dz] of [[-.17,.11],[-.15,-.09],[-.20,.009]]) leaf(p,'green eggplant calyx',[.369,.177,.061],[dx,dz],.056,.061,[0x577342,0x87a05b]);
+    tube(p,'curved peduncle',V(.370,.128,.061),V(.49,.187,.095),.047,.029,7,plasticP(0x65824b));
+  },
+  pea(p) {
+    const rand=rng('small pile of peas');
+    for(let i=0;i<9;i++) {
+      const a=i*2.4,r=.32*Math.sqrt(i/9),s=.106+rand()*.030;
+      blob(p,'green pea',[s,s*.89,s],[r*Math.cos(a),s*.89,r*Math.sin(a)],plasticP(shade(0x77a44f,.90+rand()*.20)),{},4,8);
+    }
+  },
+  raw_artichoke(p) {
+    skin(p,'joined artichoke bud',[[0,.50],[.14,.75],[.31,1],[.56,.93],[.75,.59],[.86,.25]],[.33,.33],
+      [0x5c7946,0x78844d],{sides:14});
+    for(let row=0;row<3;row++) for(let k=0;k<8;k++) {
+      const a=(k+row*.48)*Math.PI/4,x=Math.cos(a),z=Math.sin(a);
+      const r=[.23,.307,.25][row], y=[.138,.272,.510][row];
+      leaf(p,'artichoke bract',[x*r,y,z*r],[x*.049,z*.049],.093-row*.012,.218,
+        [row===2?0x768851:0x5b7e48,0x9d9e64]);
+    }
+    tube(p,'short artichoke stalk',V(0,0,0),V(0,.157,0),.107,.088,8,plasticP(0x819655));
+  },
+  raw_asparagus(p) {
+    for(const [i,z] of [-.176,0,.162].entries()) {
+      const x=i%2*.067;
+      pod(p,'slender asparagus spear',[[-.45+x,.056,z,.041],[-.17,.063,z+.015,.050],[.175,.055,z+.04,.055],
+        [.32,.056,z+.052,.066],[.472-x,.055,z+.064,.020]],[0x57854c,0x82a963],false);
+      for(let k=0;k<4;k++) {
+        blob(p,'closed scales on spear tip',[.035,.025,.024],[.27+k*.044-x*.7,.091,z+.046+(k%2)*.022],
+          plasticP(k%2?0x655373:0x71884e),{},3,6);
+      }
+    }
+  },
+  raw_bamboo(p) {
+    for(const [i,x] of [-.18,.204].entries()) {
+      skin(p,'conical layered bamboo shoot',[[0,.72],[.07,.97],[.23,.91],[.44,.74],[.56,.57],[.74,.41],[.92-i*.14,.084]],
+        [.205,.215],[0x96714c,0xc4a275,0x7a6247],{at:[x,0,i*.065],sides:12,ribs:4,lean:i?-.083:.12});
+      const z=i*.065;
+      for(let k=0;k<3;k++) leaf(p,'pointed shoot sheath',[x,.15+k*.14,z-.14],[.045,-.055],.089-k*.012,.166,[0xa88b63,0xd0aa76]);
+    }
+  },
+  raw_bottle_gourd:bottleGourd, bottle_gourd:bottleGourd,
+  rhubarb(p) {
+    const branch=[[-.47,.078,-.052,.073],[-.28,.08,-.046,.082],[-.052,.080,-.009,.079],
+      [.22,.078,.031,.068],[.445,.065,.065,.056]];
+    pod(p,'pink red rhubarb stalk',branch,[0xab4559,0xc37372],false);
+    path(p,'pale pink longitudinal rib',branch.map(([x,y,z,r])=>[x,y+r*.91,z]),.011,flat(0xd49a95));
+    cyl(p,'pale cut stem face','x',[.448,.065,.065],.047,.010,8,flat(0xc5b58e));
+  },
+};
+
 export const produce = {
   banana, berries, root:roots, leaves, corn:cornEar,
+  marketProduce:(p,d)=>market[d.id](p,d),
   fruit:(p,d)=>d.id.includes('chunks')?pieces(p,d):whole(p,d),
   produce:(p,d)=>d.id.endsWith('_cut')?pieces(p,d):whole(p,d),
 };

@@ -1,6 +1,6 @@
 // Builds the Cubeclysm models from their recipes (tools/cubeclysm/page/recipes.js) in a headless
 // browser (three.js, canvas textures, GLTFExporter) into sources/cubeclysm/: a .glb and its texture
-// atlas (.png) per model and an index. tools/cubeclysm/select.mjs and bind-terrain.mjs then bind them in the Cubeclysm set.
+// atlas (.png) per model and an index. tools/cubeclysm/bind.mjs binds them in the Cubeclysm set.
 //
 //   node tools/cubeclysm/build.mjs [--only mon_zombie,mon_zombie_cop]
 import { createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -13,8 +13,9 @@ import { chromium } from 'playwright';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '../..');
 const OUT = join(ROOT, 'sources/cubeclysm');
-const i = process.argv.indexOf('--only');
-const only = i > 0 ? process.argv[i + 1].split(',') : null;
+const onlyAt = process.argv.indexOf('--only');
+const only = onlyAt < 0 ? null : [...new Set((process.argv[onlyAt + 1] ?? '').split(',').map((id) => id.trim()))];
+if (only?.includes('')) throw new Error('--only expects a comma-separated list of recipe IDs');
 
 const TYPES = { '.js': 'text/javascript', '.html': 'text/html', '.json': 'application/json', '.png': 'image/png' };
 const FACES = join(HERE, 'faces');
@@ -76,7 +77,7 @@ try {
   const merge = (old, now) => [...old.filter((m) => !now.some((n) => n.id === m.id)), ...now];
   writeFileSync(indexFile, `${JSON.stringify({ style: 'cubeclysm', models: merge(prev.models, built.filter((m) => m.group === 'zombies')), archetypes: merge(prev.archetypes ?? [], built.filter((m) => m.group === 'archetypes')), hair: merge(prev.hair ?? [], built.filter((m) => m.group === 'hair')), humans: merge(prev.humans ?? [], built.filter((m) => m.group === 'humans')), terrain: merge(prev.terrain ?? [], built.filter((m) => m.group === 'terrain')), furniture: merge(prev.furniture ?? [], built.filter((m) => m.group === 'furniture')), vehicles: merge(prev.vehicles ?? [], built.filter((m) => m.group === 'vehicles')), items: merge(prev.items ?? [], built.filter((m) => m.group === 'items')), fields: merge(prev.fields ?? [], built.filter((m) => m.group === 'fields')), traps: merge(prev.traps ?? [], built.filter((m) => m.group === 'traps')) }, null, 2)}\n`);
   for (const m of built) console.log(`${m.id.padEnd(22)} ${m.size.join(' × ')} m  ${m.triangles} triangles  [${m.gear.join(', ')}]`);
-  console.log('next: node tools/cubeclysm/select.mjs (characters, monsters) or bind-terrain.mjs (the rest) binds them in the Cubeclysm set');
+  console.log('Bind a batch with npm run bind -- --only id[,id...].');
 } finally {
   await browser.close();
   server.close();

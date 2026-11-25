@@ -1,5 +1,5 @@
 {
-  "//": "Strict binding of the Cubeclysm characters and monsters to CDDA ids: one model per id, only where the model clearly is that object. `built` is the model in sources/cubeclysm/ (tools/cubeclysm/build.mjs); zombies built from a recipe are bound automatically. Run tools/cubeclysm/select.mjs after editing.",
+  "//": "Strict binding of Cubeclysm characters and monsters to CDDA ids. The built path points to the model in sources/cubeclysm/. Zombies built from a recipe are bound automatically. Run npm run select after editing.",
   "characters": [
     {
       "id": [

@@ -7,8 +7,11 @@ import { reading } from './item-expansion-reading.js';
 import { produce } from './item-expansion-produce.js';
 import { food } from './item-expansion-food.js';
 import { objects } from './item-expansion-objects.js';
+import { shortsStyles } from './shorts.js';
+import { drawBadge, hasBadge } from './badges.js';
 
 function jewelry(p,d) {
+  if (hasBadge(d.id)) return drawBadge(p,d.id);
   const n=d.name.toLowerCase(), metal=steelP(d.color);
   const extraStones={alexandrite:0x678374,aquamarine:0x83bbcc,citrine:0xc4a35c,peridot:0x9da95b,tourmaline:0xaa667c};
   const [extraGem]=n.split(' ');
@@ -41,8 +44,7 @@ function jewelry(p,d) {
       if(gem!==null || /bead|charm|drop|dangl/.test(n)) set(x,-.18,.085);
     }
   } else if(d.family==='brooch') {
-    const guard=/badge/.test(n);
-    outline(p,'face plate',guard?[[-.30,-.32],[0,-.44],[.29,-.32],[.25,.18],[0,.40],[-.26,.18]]:[[-.34,-.19],[.28,-.22],[.37,.09],[.17,.25],[-.32,.18]],.095,metal);
+    outline(p,'face plate',[[-.34,-.19],[.28,-.22],[.37,.09],[.17,.25],[-.32,.18]],.095,metal);
     if(gem!==null) set(0,0,.15);
     else top(p,'enamel emblem',[-.18,-.17,.18,.14],.097,label(shade(d.color,.63),d.name,d.key));
   } else {
@@ -230,7 +232,8 @@ export const ITEM_EXPANSION=Object.entries(ITEM_EXPANSION_DATA).flatMap(([family
     const length=asMeters(id,family,volume,mm);
     const item={id,name,volume,length,family,key:identity(id),color:color?parseInt(color,16):colorFor(id),detail};
     return {
-      id, source, group:'items', ppm:shape===reading?530:reused[family]&&family!=='scarf'?110:54, longestSide:length,
+      id, source, group:'items', ppm:shape===reading?530:reused[family]&&family!=='scarf'?110:54,
+      longestSide:Object.hasOwn(shortsStyles,id)?undefined:length,
       names:{en:name,...(zh?{zh_CN:zh}:{})}, build:(p)=>shape(p,item),
     };
   });

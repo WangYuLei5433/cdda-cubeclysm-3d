@@ -7,7 +7,7 @@
 // they are shown through a temporary mesh set that turns them 150° (a three-quarter front view).
 // The set is linked into the studio's vendor/mesh as zz-preview and removed afterwards; the studio
 // dev server is started on port 5182 if it is not already running (and stopped again if started
-// here). Reads models from models/cubeclysm/monsters/ (after tools/cubeclysm/select.mjs) or, with
+// here). Reads models from models/cubeclysm/monsters/ (after npm run bind) or, with
 // --group <dir>, from sources/cubeclysm/<dir>/ (zombies, archetypes, humans, hair).
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync, lstatSync } from 'node:fs';

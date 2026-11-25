@@ -1,5 +1,5 @@
 // How engines and the studio place the vehicle cabin parts (vehicles.js) inside a whole-vehicle
-// model (road-vehicles.js). Plain data, no three.js: tools/cubeclysm/bind-terrain.mjs writes it
+// model (road-vehicles.js). Plain data, no three.js: tools/cubeclysm/bind.mjs writes it
 // next to the models as models/cubeclysm/vehicles/variants.json, and meshset.json names that file
 // as "vehicleParts".
 //

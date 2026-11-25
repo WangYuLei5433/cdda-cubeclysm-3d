@@ -3,6 +3,7 @@ import {
   GLASS, V, bevel, cement, clothP, cyl, fill, flat, outline, path, plasticP, rubber, shade, steelP, top, tube,
 } from './common-loot-kit.js';
 import { drawShorts, shortsStyles } from './shorts.js';
+import { drawBadge } from './badges.js';
 
 function bag(p,d) {
   const { id,color }=d;
@@ -296,8 +297,7 @@ function jewelry(p,d) {
   if (i==='hairpin') {
     path(p,'spring pin',[[-.022,.002,-.003],[.016,.002,-.003],[.021,.002,0],[.017,.002,.004],[-.021,.002,.005]],.0014,metal);
   } else if (i==='pin_badge') {
-    cyl(p,'enamel badge','y',[0,.002,0],.015,.004,12,metal);
-    cyl(p,'painted centre','y',[0,.004,0],.012,.001,12,plasticP(d.color));
+    drawBadge(p,i);
   } else {
     const bracelet=i.includes('bracelet');
     loop(p,'band',[0,bracelet?.005:.002,0],bracelet?.027:.009,.0018,bracelet?clothP(d.color):metal,{},12);

@@ -58,8 +58,12 @@ window.buildAll = async (only = null) => {
       outfit: { style: 'tshirt', top: 0x5a6a7a, sleeves: 'short', pants: 0x3a3f4a, shoes: 0x2a2a2a }, wear: {},
     });
   });
-  for (const recipe of all) {
-    if (only && !only.includes(recipe.id)) continue;
+  const requested = only ? new Set(only) : null;
+  const fields = new Set(FIELDS.filter((r) => requested?.has(r.id)).map((r) => r.field.of));
+  const selected = requested ? all.filter((r) => requested.has(r.id) || fields.has(r.field?.of)) : all;
+  const missing = only?.filter((id) => !selected.some((r) => r.id === id));
+  if (missing?.length) throw new Error(`No Cubeclysm recipe for ${missing.join(', ')}`);
+  for (const recipe of selected) {
     let root, blocks, clips;
     if (recipe.build) {
       // Props (props.js): blocks only, no rig; a prop may set p.clip (fields: the looping FX clip).
