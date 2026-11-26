@@ -264,14 +264,14 @@ function drawTitle(ctx, title, [x,y,width,height], { serif, centered, ink }) {
   ctx.textAlign='left';
 }
 
-function coverCanvas(d, design, colors) {
+function coverCanvas(d, design, colors, requestedLayout) {
   const [dark,paper,accent,middle]=colors;
   const magazine=d.family==='magazine';
   const cover=document.createElement('canvas');
   cover.width=80;cover.height=112;
   const ctx=cover.getContext('2d');
   ctx.imageSmoothingEnabled=false;
-  const layout=coverLayout(d,design);
+  const layout=requestedLayout ?? coverLayout(d,design);
   const { heading, picture, label, centered }=layouts[layout];
   rect(ctx,dark,0,0,80,112);
   ctx.textBaseline='top';
@@ -322,13 +322,13 @@ function coverCanvas(d, design, colors) {
   return cover;
 }
 
-export function reading(p,d) {
+export function reading(p,d,options={}) {
   const magazine=d.family==='magazine', hard=d.detail==='hard';
-  const width=magazine?.157:.137, length=.21;
-  const thickness=magazine?.008:/phonebook|collector_book/.test(d.id)?.056:Math.min(.042,Math.max(.009,d.volume/25500));
-  const design=coverDesign(d);
-  const colors=paletteFor(design,d), [base,ink,accent,middle]=colors;
-  const image=coverCanvas(d,design,colors);
+  const width=options.width ?? (magazine?.157:.137), length=options.length ?? .21;
+  const thickness=options.thickness ?? (magazine?.008:/phonebook|collector_book/.test(d.id)?.056:Math.min(.042,Math.max(.009,d.volume/25500)));
+  const design=options.cover ?? coverDesign(d);
+  const colors=options.cover?.palette ?? paletteFor(design,d), [base,ink,accent,middle]=colors;
+  const image=coverCanvas(d,design,colors,options.layout);
   const cover=(ctx,x,y,w,h,side)=>{
     rect(ctx,base,x,y,w,h);
     if(side==='front') {
