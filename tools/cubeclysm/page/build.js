@@ -23,6 +23,8 @@ import { ITEM_EXPANSION } from './item-expansion.js';
 import { ITEM_WORKSHOP } from './item-workshop.js';
 import { ITEM_SUPPLY } from './item-supply.js';
 import { ITEM_MARKET } from './item-market.js';
+import { READING_COLLECTION } from './reading-collection.js';
+import { repaintClassicReading } from './classic-reading.js';
 
 const exporter = new GLTFExporter();
 const b64 = (bytes) => {
@@ -43,7 +45,7 @@ window.buildAll = async (only = null) => {
   const out = [];
   const all = [...TERRAIN.map((r) => ({ ...r, group: r.dir ?? 'terrain' })), ...FIELDS.map((r) => ({ ...r, group: 'fields' })), ...TRAPS.map((r) => ({ ...r, group: 'traps' })), ...SLAMFIRE_ITEMS.map((r) => ({ ...r, group: 'items' })), ...CROSSBOW_ITEMS.map((r) => ({ ...r, group: 'items' })), ...ROOF_ACCESS.map((r) => ({ ...r, group: 'terrain' })), ...[...RECIPES, ...FAUNA].map((r) => ({ ...r, group: 'zombies' })), ...ARCHETYPES.map((r) => ({ ...r, group: 'archetypes' })), ...HUMANS.map((r) => ({ ...r, group: 'humans' }))];
   // One sample per hair style: a plain zombie wearing it, to browse the styles in the studio.
-  all.push(...ITEM_EXPANSION, ...ITEM_WORKSHOP, ...ITEM_SUPPLY, ...ITEM_MARKET);
+  all.push(...ITEM_EXPANSION, ...ITEM_WORKSHOP, ...ITEM_SUPPLY, ...ITEM_MARKET, ...READING_COLLECTION);
   const HAIR_NAMES = {
     bald: ['光头', 'bald', 'лысый'], buzz: ['寸头', 'buzz cut', 'ёжик'], short: ['短发', 'short', 'короткие'], messy: ['乱发', 'messy', 'растрёпанные'], spiky: ['刺头', 'spiky', 'торчком'],
     long: ['长发', 'long', 'длинные'], ponytail: ['马尾', 'ponytail', 'хвост'], bob: ['波波头', 'bob', 'каре'], mohawk: ['莫西干', 'mohawk', 'ирокез'], afro: ['爆炸头', 'afro', 'афро'],
@@ -72,6 +74,7 @@ window.buildAll = async (only = null) => {
       // Props (props.js): blocks only, no rig; a prop may set p.clip (fields: the looping FX clip).
       const p = new Prop(recipe.id, recipe.ppm);
       recipe.build(p);
+      repaintClassicReading(p);
       ({ root, blocks } = p);
       clips = p.clip ? [p.clip] : [];
     } else ({ root, blocks, clips } = buildHumanoid(recipe));
